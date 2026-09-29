@@ -39,12 +39,13 @@ test, CI, Dockerfile, docker-compose) viene creata a valere su quel documento.
   configurabile e pubblicabile su altre istanze self-hosted in futuro, senza
   dipendere dall'host di test. L'URL dell'istanza norish deve poter essere impostato
   dall'utente finale o da chi effettua il deploy, senza modificare il codice,
-  tramite variabili d'ambiente o file di configurazione.
+  tramite variabili d'ambiente o file di configurazione (`NORISH_BASE_URL`).
 - **Stato attuale:** la configurazione dell'endpoint è **pianificata, non ancora
-  implementata** in questo repository. Nomi dei parametri e modalità operative
-  saranno documentati con l'implementazione; il riferimento per le decisioni è
-  [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Non è quindi disponibile oggi
-  una procedura di deploy funzionante.
+  implementata** in questo repository. Modalità operative e superficie completa
+  (inclusi i segreti correlati) saranno documentate con l'implementazione; il
+  riferimento per le decisioni è
+  [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (§ 5.0 e § 9, ADR-0007). Non è
+  quindi disponibile oggi una procedura di deploy funzionante.
 
 Le fixture in `docs/norish-api/` sono snapshot del contratto osservato sull'istanza
 di test in sola lettura (vietato modificarne i dati), non una configurazione di
