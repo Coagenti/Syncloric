@@ -1,0 +1,56 @@
+# ---- Segreti / ambiente (MAI committare) ----
+# L'API key di norish e le credenziali AI passano solo da env/secret del deploy.
+.env
+.env.*
+!.env.example
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# ---- Node / frontend ----
+node_modules/
+dist/
+build/
+.vite/
+.next/
+out/
+coverage/
+.eslintcache
+*.tsbuildinfo
+
+# ---- Python / backend ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+
+# ---- Database locali ----
+*.db
+*.sqlite
+*.sqlite3
+
+# ---- Docker runtime ----
+docker-compose.override.yml
+
+# ---- Upload / dati runtime dell'app ----
+uploads/
+data/
+
+# ---- IDE / OS ----
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---- Log ----
+logs/
+*.log
