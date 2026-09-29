@@ -1,0 +1,60 @@
+{
+  "name": "syncloric",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Webapp self-hosted per il conteggio calorie con import automatico da norish (vedi docs/ARCHITECTURE.md)",
+  "packageManager": "pnpm@10.34.6",
+  "engines": {
+    "node": ">=22.0.0 <25"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run --config vitest.config.ts",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test": "pnpm test:unit && pnpm test:integration",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node scripts/run-db-migrate.cjs",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@heroui/react": "3.2.6",
+    "@internationalized/date": "3.12.4",
+    "@react-aria/ssr": "3.10.1",
+    "@react-aria/utils": "3.34.1",
+    "@tanstack/react-query": "5.104.0",
+    "better-auth": "1.7.6",
+    "clsx": "2.1.1",
+    "drizzle-orm": "0.45.3",
+    "next": "16.3.7",
+    "node-cron": "4.6.0",
+    "pino": "10.3.1",
+    "postgres": "3.4.9",
+    "react": "19.3.0",
+    "react-aria": "3.52.1",
+    "react-aria-components": "1.21.1",
+    "react-dom": "19.3.0",
+    "tailwind-merge": "3.7.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
+    "@eslint/eslintrc": "3.3.7",
+    "@playwright/test": "1.63.0",
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/node": "22.20.4",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "dotenv": "18.0.4",
+    "drizzle-kit": "0.31.11",
+    "esbuild": "0.27.4",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.7",
+    "tailwindcss": "4.3.3",
+    "typescript": "5.9.3",
+    "vitest": "5.0.2"
+  }
+}

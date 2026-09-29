@@ -1,0 +1,24 @@
+@import "tailwindcss";
+@import "@heroui/react/styles";
+
+/* Syncloric — design token mobile-first (docs/ARCHITECTURE.md § 1, § 10.1).
+   Palette base Cyberpunk 2077; i token dedicati della UI grafica (GPT-6-SOL)
+   arrivano nel task UI dedicato: qui solo la base Tailwind v4. */
+@theme {
+  --color-cyber-bg: #0a0e17;
+  --color-cyber-surface: #101828;
+  --color-cyber-border: #1f2a44;
+  --color-cyber-cyan: #00f0ff;
+  --color-cyber-yellow: #fcee0a;
+  --color-cyber-magenta: #ff2d6f;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-cyber-bg);
+  color: #e5e9f0;
+  -webkit-font-smoothing: antialiased;
+}
