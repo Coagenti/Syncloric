@@ -379,8 +379,13 @@ dopo l'E2E `t_ee2705d5`.
 
 ## 8. Convenzioni di lavoro (branch, PR, test)
 
-- **Branch**: `main` protetto (no push diretti, no force push, PR obbligatoria
-  con review del Technical Lead o un maintainer designato). Branching:
+- **Branch**: `main` con regola di lavoro "no push diretti, no force push, PR
+  obbligatoria". NOTA (2026-09-29): la branch protection tecnica su GitHub è
+  **disponibile solo con account a pagamento su repo private** (tentativo via API:
+  403 Upgrade required) — il vincolo resta quindi una convenzione di processo
+  (review obbligatoria del Technical Lead sulle PR), non enforcement lato GitHub.
+  Se l'account passa a plan pagato o la repo diventa pubblica, attivare la
+  protection (required PR, no force-push). Branching:
   `feat/<id-card>-<slug>`, `fix/<id-card>-<slug>`, `chore/<slug>`.
 - **PR**: descrizione con cosa/perché, screenshot per le UI, checklist
   (test aggiunti? segreti toccati? schema DB migrato?)
@@ -407,7 +412,8 @@ dopo l'E2E `t_ee2705d5`.
   GPT-6-SOL a Ultra HIGH effort (vincolo esplicito, con procedura di block se il
   provider non fosse raggiungibile). L'ARCHITECTURE fornisce la base (tema token Tailwind,
   mobile-first, layout mobile-first); la realizzazione grafica è un task dedicato.
-- **Collaborator KorinBlack**: invito in corso (verificato 2026-09-29, permessi write) —
+- **Collaborator KorinBlack**: invito in corso (verificato 2026-09-29, permessi
+  write, in attesa di accettazione da parte dell'invitato) —
   non dipende da questo documento.
 
 ### 9.2 Rischi tecnici tracciati
