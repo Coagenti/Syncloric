@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    env:
+      # Variabili per il fail fast di src/server/config (§ 5.0): valori di test,
+      # nessun segreto reale in CI.
+      NORISH_BASE_URL: https://norish.example.invalid
+      DATABASE_URL: postgres://syncloric:syncloric@localhost:5432/syncloric_test
+      BETTER_AUTH_SECRET: ci-super-secret-not-used-for-real-sessions-0123456789
+      ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.6
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test:unit
+
+      - name: Integration tests (PGlite = Postgres WASM in-process)
+        run: pnpm test:integration
+
+      - name: Build
+        run: pnpm build
