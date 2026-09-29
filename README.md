@@ -9,9 +9,9 @@ Dashboard moderna in stile cyberpunk (palette Cyberpunk 2077), mobile-first.
 ## Stato del progetto
 
 Repo appena inizializzata. L'architettura e lo stack tecnico (frontend, backend,
-database, distribuzione Docker) sono in definizione nel documento
-`docs/ARCHITECTURE.md` (in arrivo). La struttura completa delle cartelle (`src/`,
-test, CI, Dockerfile, docker-compose) verrà creata a valere su quel documento.
+database, distribuzione Docker) sono definiti in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+La struttura completa delle cartelle (`src/`,
+test, CI, Dockerfile, docker-compose) viene creata a valere su quel documento.
 
 ## Funzionalità previste
 
