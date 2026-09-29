@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { CalendarView, DashboardView, DiaryView } from "@/components/calorie-views";
-import { addEntry, demoEntries, editEntry, formatDate, shiftDate, slotLabels, type DiaryEntry, type Slot } from "@/lib/diary";
+import { addEntry, demoEntries, editEntry, formatDate, localDateKey, shiftDate, slotLabels, type DiaryEntry, type Slot } from "@/lib/diary";
 
 type View = "dashboard" | "diary" | "calendar";
 const storageKey = "syncloric-demo-diary-v1";
@@ -33,14 +33,24 @@ export function CalorieApp({ view }: { view: View }) {
           const parsed: unknown = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.every((item) => item && typeof item === "object" && typeof item.id === "string" && typeof item.date === "string" && typeof item.name === "string")) setEntries(parsed as DiaryEntry[]);
         }
-        const savedDay = window.localStorage.getItem(`${storageKey}-day`);
-        if (savedDay && /^\d{4}-\d{2}-\d{2}$/.test(savedDay)) setDate(savedDay);
-      } catch { /* local storage may be disabled: the demo remains in memory */ }
+        if (view === "dashboard") setDate(localDateKey());
+        else {
+          const savedDay = window.localStorage.getItem(`${storageKey}-day`);
+          setDate(savedDay && /^\d{4}-\d{2}-\d{2}$/.test(savedDay) ? savedDay : localDateKey());
+        }
+      } catch {
+        // A blocked read must not prevent the dashboard from opening on today.
+        setDate(localDateKey());
+      }
       setLoaded(true);
     });
     return () => { cancelled = true; };
-  }, []);
-  useEffect(() => { if (loaded) { try { window.localStorage.setItem(storageKey, JSON.stringify(entries)); window.localStorage.setItem(`${storageKey}-day`, date); } catch { /* unavailable storage: in-memory demo remains functional */ } } }, [entries, date, loaded]);
+  }, [view]);
+  useEffect(() => {
+    if (!loaded) return;
+    try { window.localStorage.setItem(`${storageKey}-day`, date); }
+    catch { /* date navigation remains in memory when storage is unavailable */ }
+  }, [date, loaded]);
   useEffect(() => { if (editor) firstField.current?.focus(); }, [editor]);
 
   function save(event: FormEvent<HTMLFormElement>) {
@@ -54,15 +64,21 @@ export function CalorieApp({ view }: { view: View }) {
     }
     const kind = String(data.get("kind")) === "recipe" ? "recipe" : "food";
     const update = { name, date, slot: editor.slot, entryType: kind as "recipe" | "food", quantityGrams: kind === "food" ? quantity : null, servings: kind === "recipe" ? quantity : null, kcal: calories };
-    setEntries((current) => editor.entry ? editEntry(current, editor.entry.id, update) : addEntry(current, { ...update, id: crypto.randomUUID(), protein: null, fat: null, carbs: null, source: "manual", norishDeleted: false }));
+    const next = editor.entry ? editEntry(entries, editor.entry.id, update) : addEntry(entries, { ...update, id: crypto.randomUUID(), protein: null, fat: null, carbs: null, source: "manual", norishDeleted: false });
+    setEntries(next);
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(next));
+      setNotice("Modifiche salvate in questo browser (demo). Non inviate al server.");
+    } catch {
+      setNotice("Modifiche non salvate nel browser: restano visibili solo finché questa pagina è aperta. Riprova quando lo spazio di archiviazione è disponibile.");
+    }
     setEditor(null);
-    setNotice("Modifiche salvate in questo browser (demo). Non inviate al server.");
   }
 
   return <div className="app-shell">
     <aside className="sidebar"><Link href="/dashboard" className="brand" aria-label="Syncloric, vai alla dashboard"><span className="brand-icon">S<span>↗</span></span><span>SYN<span className="brand-accent">CLORIC</span><small>CALORIE / IN FOCUS</small></span></Link><div className="side-divider" /><span className="side-label">ESPLORA</span><nav className="side-nav" aria-label="Navigazione principale">{navigation.map((item) => <Link key={item.id} href={item.href} aria-current={view === item.id ? "page" : undefined} className={`nav-link ${view === item.id ? "active" : ""}`}><span aria-hidden="true">{item.symbol}</span>{item.label}{view === item.id && <i aria-hidden="true" />}</Link>)}</nav><div className="side-bottom"><span className="side-label">IL TUO SPAZIO</span><p>Una panoramica semplice di quello che registri. Nessun giudizio, solo dati.</p><div className="side-build">SYNC / DEMO <span>●</span> V.01</div></div></aside>
     <div className="app-main"><header className="topbar"><div className="topbar-path"><span>SYNCLORIC</span><span aria-hidden="true">/</span><strong>{navigation.find((item) => item.id === view)?.label.toUpperCase()}</strong></div><div className="topbar-right"><span className="live-label"><i /> MODALITÀ DEMO</span><span className="avatar" aria-label="Profilo dimostrativo">S</span></div></header>
-      <main className="content"><div className="demo-alert" role="note"><strong>DATI DIMOSTRATIVI</strong><span>Pasti di esempio. Le modifiche restano solo in questo browser; nessuna sincronizzazione o salvataggio remoto.</span></div><div className="date-toolbar"><div><span className="section-kicker">GIORNO SELEZIONATO</span><strong>{formatDate(date, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</strong></div><div className="date-actions"><button type="button" aria-label="Giorno precedente" onClick={() => setDate(shiftDate(date, -1))}>←</button><button type="button" onClick={() => setDate(new Date().toLocaleDateString("en-CA"))}>Oggi</button><button type="button" aria-label="Giorno successivo" onClick={() => setDate(shiftDate(date, 1))}>→</button><label className="date-picker">Data <input type="date" aria-label="Seleziona data" value={date} onChange={(event) => { if (event.target.value) setDate(event.target.value); }} /></label></div></div>
+      <main className="content"><div className="demo-alert" role="note"><strong>DATI DIMOSTRATIVI</strong><span>Pasti di esempio. Le modifiche restano solo in questo browser; nessuna sincronizzazione o salvataggio remoto.</span></div><div className="date-toolbar"><div><span className="section-kicker">GIORNO SELEZIONATO</span><strong>{formatDate(date, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}</strong></div><div className="date-actions"><button type="button" aria-label="Giorno precedente" onClick={() => setDate(shiftDate(date, -1))}>←</button><button type="button" onClick={() => setDate(localDateKey())}>Oggi</button><button type="button" aria-label="Giorno successivo" onClick={() => setDate(shiftDate(date, 1))}>→</button><label className="date-picker">Data <input type="date" aria-label="Seleziona data" value={date} onChange={(event) => { if (event.target.value) setDate(event.target.value); }} /></label></div></div>
       {view === "dashboard" && <DashboardView entries={entries} date={date} target={null} />}
       {view === "diary" && <DiaryView entries={entries} date={date} onAdd={(slot) => { setEditor({ slot, entry: null }); setNotice(""); }} onEdit={(entry) => { setEditor({ slot: entry.slot, entry }); setNotice(""); }} />}
       {view === "calendar" && <CalendarView entries={entries} date={date} onSelect={setDate} />}

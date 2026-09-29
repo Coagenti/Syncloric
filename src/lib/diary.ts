@@ -9,6 +9,11 @@ export type DiaryEntry = {
   source: "manual" | "barcode" | "ai_label" | "norish_sync"; norishDeleted: boolean;
 };
 
+/** Calendar keys use the visitor's local day, not UTC or locale-dependent formatting. */
+export function localDateKey(now = new Date()) {
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
 const demoDate = "2026-09-29";
 export const demoEntries: DiaryEntry[] = [
   { id: "demo-1", date: demoDate, slot: "Breakfast", entryType: "food", name: "Yogurt greco e mirtilli", quantityGrams: 220, servings: null, kcal: 245, protein: 19, fat: 6, carbs: 28, source: "manual", norishDeleted: false },

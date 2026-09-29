@@ -8,7 +8,7 @@ export function DashboardView({ entries, date, target }: { entries: DiaryEntry[]
   const progress = target === null || target <= 0 ? 0 : Math.min(summary.consumed / target, 1) * 100;
   return <div className="view-stack">
     <div className="eyebrow"><span className="signal-dot" /> PANORAMICA / {date}</div>
-    <div className="view-title"><div><h1>Il tuo oggi<span className="title-punctuation">.</span></h1><p>Un giorno alla volta, tutto sotto controllo.</p></div><span className="view-index">01 / 03</span></div>
+    <div className="view-title"><div><h1>Riepilogo del giorno<span className="title-punctuation">.</span></h1><p>Un giorno alla volta, tutto sotto controllo.</p></div><span className="view-index">01 / 03</span></div>
     <section className="energy-card" aria-label="Bilancio energetico">
       <div className="energy-copy"><span className="section-kicker">BILANCIO ENERGETICO</span><div className="energy-number">{number(summary.consumed)}<span>kcal</span></div><p>registrate il {formatDate(date, { day: "numeric", month: "long" })}</p>
         <div className="energy-rule" role="img" aria-label={target === null ? "Obiettivo non configurato" : `${number(summary.consumed)} di ${number(target)} kcal registrate`}><span style={{ width: `${progress}%` }} /></div>
