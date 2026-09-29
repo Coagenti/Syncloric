@@ -1,15 +1,19 @@
 # Syncloric — Architettura & Stack Tecnico
 
 > Webapp self-hosted per il conteggio calorie (stile Yazio), mobile-first, integrata
-> con le API di norish.coagenti.it per l'import automatico dei pasti del calendario
-> e delle kcal associate.
+> con le API di un'istanza norish dichiarata al deploy (istanza di test corrente:
+> norish.coagenti.it, solo lettura) per l'import automatico dei pasti del calendario
+> e delle kcal associate. Modello di deployment: § 9.
 >
-> Stato: v1.0 — documento di fondazione, committato prima del codebase init.
+> Stato: v1.1 — documento di fondazione + modello di deployment multi-istanza (§ 9).
 > Autore: Technical Lead · Data: 2026-09-29 · Repo: `Coagenti/Syncloric`
 >
 > Fixture dell'API upstream verificate il 2026-09-29 e archiviate in
 > `docs/norish-api/` (OpenAPI live + ricetta di esempio): usale come base per i
-> contract test del client.
+> contract test del client. Sono **record storici**: il campo `servers.url` della
+> fixture riflette lo stato dell'istanza di test alla data dell'archivio e NON è
+> una sorgente di configurazione — la base URL runtime arriva solo da `NORISH_BASE_URL`
+> (§ 5.0, § 9.2).
 
 ---
 
@@ -27,8 +31,8 @@ Vincoli che modellano l'architettura:
 | Nessun sendmail configurato | Registrazione con username+password senza verifica email (Better Auth) |
 | Multi-user reale ma a nuclei piccoli | Auth multiutente per singolo, nessun tenancy complesso; ogni utente collega la propria chiave API norish |
 | Mobile-first, dashboard cyberpunk (palette Cyberpunk 2077) | Next.js + Tailwind CSS v4 mobile-first, design token dedicati |
-| Integrazione con l'istanza norish via API key | Client REST su contratto verificato (vedi § 5), chiavi per-utente cifrate |
-| Grafica: GPT-6-SOL a Ultra HIGH effort (vincolo del brief) | La UI non è in scope di questo documento: vedi § 9.1 |
+| Integrazione norish via API key, base URL dell'istanza configurabile al deploy | Client REST su contratto verificato (vedi § 5), base URL via env (§ 5.0), chiavi per-utente cifrate |
+| Grafica: GPT-6-SOL a Ultra HIGH effort (vincolo del brief) | La UI non è in scope di questo documento: vedi § 10.1 |
 | Segreti: nessuna chiave nel repo | Tutte le credenziali via variabili d'ambiente / segreti Compose |
 
 **Nota AGPL**: norish è rilasciato in AGPL-3.0. Syncloric **non forka il codice di
@@ -236,16 +240,37 @@ admin_settings   key TEXT PK, value JSONB          -- singleton:
 
 ---
 
-## 5. Integrazione con norish.coagenti.it
+## 5. Integrazione con l'istanza norish di test (norish.coagenti.it)
+
+### 5.0 Base URL come configurazione di deployment (ADR-0007)
+
+Con l'apertura della piattaforma ad altre istanze (§ 9), il base URL dell'istanza
+norish **non è una costante del codice**: è configurazione di deployment, dichiarata
+al bootstrap tramite variabile d'ambiente (o file di configurazione per deployment
+senza Compose). Il caricamento è dichiarativo e senza fallback: se la variabile
+manca, l'app non parte (fail fast). È la stessa superficie di configurabilità che il
+README presenta come configurabile dall'utente finale / da chi fa il deploy
+(`NORISH_BASE_URL`): questo documento la rende vincolante per l'implementazione
+futura (task implementativi dedicati — qui si decide e si documenta il come).
+
+Il valore `https://norish.coagenti.it` identifica l'istanza di test corrente ed è un
+dato di questa fase: appare qui (e nel README) come esempio qualificato, mai come
+costante nel codice. Su norish vale il **divieto esplicito di modifica dei dati**:
+Syncloric la usa solo in lettura — il sync è read-only (ADR-0006) e il client è
+limitato ai soli `GET /api/v1/**` (§ 5.1). Nessun POST/PUT/PATCH/DELETE verso
+nessun endpoint dell'istanza di test.
 
 ### 5.1 Contratto verificato (giorno della scrittura: 2026-09-29)
 
 Le seguenti informazioni **non sono ipotesi**: provengono dal codice sorgente
 upstream di norish (`github.com/norish-recipes/norish`, AGPL-3.0, v0.24.0-beta come
-da bundle servito dall'istanza) e da una verifica live con la chiave reale.
+da bundle servito dall'istanza) e da una verifica live con la chiave reale (2026-09-29,
+istanza di test). Il base URL è variabile al deploy (§ 5.0); path, errori e semantica
+valgono per qualunque istanza norish che esponga la stessa API (stesso codice AGPL).
 
-- **Base URL**: `https://norish.coagenti.it/api/v1` (fetch handler tRPC→OpenAPI su
-  Router `openApiRouter`).
+- **Base URL** (istanza di test corrente): `https://norish.coagenti.it/api/v1`
+  (fetch handler tRPC→OpenAPI su Router `openApiRouter`). Al deploy il valore
+  arriva da `NORISH_BASE_URL` (§ 5.0, § 9.3): questo è il valore usato nei test.
 - **Auth**: header `x-api-key` con il valore della chiave (alternativa equivalente:
   `Authorization` con schema Bearer e la stessa chiave); plugin `apiKey` di Better
   Auth con `enableSessionForAPIKeys: true`. Le chiavi si generano da norish in
@@ -263,8 +288,8 @@ repo come `docs/norish-api/openapi-live-2026-09-29.json`):
 | GET | `/planned-recipes/today` | pasti di oggi | **core sync** |
 | GET | `/planned-recipes/week` | settimana corrente (server-side) | **core sync** |
 | GET | `/planned-recipes/month` | mese corrente | backfill |
-| POST | `/planned-recipes` | crea item pianificato | v1: **non usato** (Syncloric è read-only verso norish) |
-| DELETE | `/planned-recipes/{itemId}` | elimina item | non usato in v1 |
+| POST | `/planned-recipes` | crea item pianificato | **mai usato**: Syncloric è read-only verso qualunque istanza norish (ADR-0006, § 5.0) |
+| DELETE | `/planned-recipes/{itemId}` | elimina item | **mai usato** (read-only, § 5.0) |
 | POST | `/recipes/search` | ricerca ricette `{limit 1-200 (def 50), search?, searchFields?, cursor}` | ricerca ricette da Syncloric |
 | GET | `/recipes/{id}` | ricetta completa | mirror snapshot (§ 4.4) |
 | POST | `/recipes/import/url` · `/recipes/import/paste` | import ricetta da URL/testo | v2 (feature import) |
@@ -318,8 +343,9 @@ L'intero payload viene salvato in `recipes.snapshot` (JSONB).
 - **Multi-utente**: ogni utente configura la **propria** chiave norish (la casa su
   norish è per-user/household). Nel settings utente: input chiave → validate con una
   chiamata reale `GET /planned-recipes/today` → salvataggio cifrato (§ 6).
-  La chiave dell'istanza coagenti fornita nel brief va in `NORISH_API_KEY` (env):
-  è chiave di bootstrap/demo per l'istanza, mai committata nel repo.
+  La chiave dell'istanza di test corrente (norish.coagenti.it) va in `NORISH_API_KEY`
+  (env): è chiave di bootstrap/demo dell'istanza, mai committata nel repo; le chiavi
+  per-utente restano la via ordinaria (la base URL arriva da `NORISH_BASE_URL`, § 5.0).
 
 ### 5.5 Gestione errori e retry (matrice)
 
@@ -342,7 +368,9 @@ chiari e strutturati (livello, user_id, run_id, fase), mai il valore della chiav
 
 1. **Segreti**: mai nel repo. `.env.example` elenca tutte le variabili; `docker-compose.yml`
    legge da `.env`. Segreti obbligatori: `DATABASE_URL`, `BETTER_AUTH_SECRET`,
-   `ENCRYPTION_KEY`, `NORISH_API_KEY` (opzionale, bootstrap dell'istanza coagenti).
+   `ENCRYPTION_KEY`, `NORISH_API_KEY` (opzionale, bootstrap/demo dell'istanza di
+   test corrente, § 5.4). La base URL dell'upstream non è un segreto ma una config
+   di deployment: `NORISH_BASE_URL` (§ 9.2).
 2. **Chiavi API norish per-utente**: cifrate a riposo con AES-256-GCM (chiave
    = `ENCRYPTION_KEY`), mai loggate, mai spedite al client dopo il salvataggio,
    testate al momento dell'inserimento con una validazione live.
@@ -404,9 +432,90 @@ dopo l'E2E `t_ee2705d5`.
 
 ---
 
-## 9. Decisioni aperte e rischi tracciati
+## 9. Deployment, configurazione e pubblicazione multi-istanza
 
-### 9.1 Vincoli in ingresso dal brief, non in scope di questo documento
+Syncloric è self-hosted e pensato per essere **pubblicabile su più istanze
+indipendenti**. Questa sezione formalizza il modello di deployment multi-istanza:
+cosa è per-istanza, come si configura, quali vincoli regolano la pubblicazione di
+nuove istanze. Le decisioni qui sono vincolanti per l'implementazione futura; il
+codice non viene modificato in questo documento (task implementativi dedicati).
+
+### 9.1 Modello: un deployment = un'istanza
+
+1. **Un deployment Compose = un'istanza Syncloric completa e isolata**: DB Postgres
+   e volumi propri, utenti, diario e mirror ricette autonomi. Nessun dato è
+   condiviso tra istanze (nessuna chiave cross-instance nel modello dati § 4).
+2. **Un solo upstream norish per istanza**, selezionato al deploy tramite la base
+   URL configurata (§ 9.2): tutte le chiavi API per-utente (§ 5.4) si applicano a
+   quel singolo upstream. Un'istanza Syncloric non parla mai contemporaneamente con
+   due istanze norish (ADR-0007).
+3. **L'istanza norish upstream è una decisione di chi fa il deploy** (utente finale /
+   organizzazione self-hosted): la scelta è configurabile all'esterno, non cablata
+   nel codice. Ne risulta che nessun nome host (Syncloric o norish) è una costante
+   del codebase.
+
+### 9.2 Superficie di configurazione (env; `.env` via Compose)
+
+Variabili d'ambiente, parse all'avvio con **zod** nel modulo `server/config` (§ 3),
+documentate in `.env.example`; `.env` resta git-ignored (§ 6). Per deployments
+senza Compose vale una superficie di chiavi equivalente in un file di configurazione
+locale con gli stessi nomi-variabile (niente due schemi).
+
+| Variabile | Obbligo | Contenuto |
+| --- | --- | --- |
+| `NORISH_BASE_URL` | **Sì**, fail fast | Base URL dell'istanza norish upstream (es. `https://norish.coagenti.it`, l'istanza di test corrente). Il client aggiunge `/api/v1` (§ 5.1). Normalizzazione: no trailing slash; solo https (http ammesso solo su host locale, per lo sviluppo). Nessun default embedded nel codice. |
+| `NORISH_API_KEY` | No (bootstrap/demo) | Chiave API verso l'upstream dell'istanza di test corrente (§ 5.4); per altre istanze il deployer genera la chiave sulla propria istanza norish. Cifrata a riposo come le per-utente (§ 6). |
+| `DATABASE_URL`, `BETTER_AUTH_SECRET`, `ENCRYPTION_KEY` | Sì | Segreti standard già previsti da § 6; unici per istanza. |
+
+- **Parametri per-istanza aggiuntivi** (throttling client, finestre sync): restano
+  default di codice in v1; se una futura istanza upstream richiedesse valori
+  diversi, si estende questa tabella con nuove env (una riga = una variabile, mai
+  costanti nel codice).
+- Le fixture `docs/norish-api/*` archiviano l'OpenAPI servito dall'istanza di test:
+  restano record storici (anche per il campo `servers.url`) e NON sono sorgente di
+  configurazione (nota in testa al documento e § 5.1).
+
+### 9.3 Ambiente di test corrente: norish.coagenti.it
+
+- L'istanza **norish.coagenti.it è l'ambiente di test corrente** per tutta la fase:
+  verifiche live del client, contract test e sync sperimentale girano su di essa
+  (§ 5.1: fixture e verifica del 2026-09-29 su questa istanza).
+- **Divieto esplicito di modifica dei dati su norish**: nessuna scrittura,
+  cancellazione o variazione di utenze/impostazioni via Syncloric (o dai task che
+  la usano). Syncloric è read-only per design (ADR-0006): su norish esegue solo
+  `GET /api/v1/**` (§ 5.1) — la regola coincide con il vincolo tecnico, e
+  l'implementazione futura del client non deve neanche esporre path di scrittura.
+- Se in futuro servono prove destructive (cancellazioni, import che modificano
+  item upstream), **si creerà un'istanza norish dedicata ai test**: mai sull'istanza
+  di test condivisa.
+
+### 9.4 Pubblicazione su altre istanze: vincoli e passi previsti
+
+Aggiungere una nuova istanza Syncloric (nuovo deployer, nuova base URL norish)
+richiede: implementare, verificare e poi configurare — nessun rebuild:
+
+1. **Implementazione dell'env-parsing** (`NORISH_BASE_URL` in `server/config`,
+   zod) + unit test: variabile assente → startup error; presente → il client
+   norish usa quel base URL per tutte le chiamate. [task implementativo]
+2. **CI verde** secondo § 8 (unit + integration su Postgres reale, build).
+3. **Contract test dell'upstream della nuova istanza**: `GET /api/v1/health` → 200
+   e i GET di § 5.1 rispondono con lo stesso contratto (stesso codice AGPL).
+   L'admin dell'istanza target genera le chiavi su **propria istanza norish**.
+4. **Deploy della stessa immagine** (docker/Dockerfile multi-stage): nuova istanza
+   = stesso artefatto, nuovi secrets e nuovo `.env` — la base URL è l'unico input
+   che cambia (oltre ai segreti § 6).
+5. **Isolamento**: DB dedicato, `BETTER_AUTH_SECRET`/`ENCRYPTION_KEY` unici per
+   istanza, chiavi norish generate sull'upstream selezionato. Nessuna migrazione
+   di dati tra istanze: un deployment parte con DB vuoto.
+6. **Rilascio pubblico** (registry immagini, licenza Syncloric, template
+   deployment): decisione separata, fuori da questo documento — si riaprirà come
+   schedulazione quando l'istanza coagenti sarà in produzione reale.
+
+---
+
+## 10. Decisioni aperte e rischi tracciati
+
+### 10.1 Vincoli in ingresso dal brief, non in scope di questo documento
 
 - **UI cyberpunk / GPT-6-SOL**: il brief richiede la parte grafica realizzata con
   GPT-6-SOL a Ultra HIGH effort (vincolo esplicito, con procedura di block se il
@@ -416,7 +525,7 @@ dopo l'E2E `t_ee2705d5`.
   write, in attesa di accettazione da parte dell'invitato) —
   non dipende da questo documento.
 
-### 9.2 Rischi tecnici tracciati
+### 10.2 Rischi tecnici tracciati
 
 | Rischio | Mitigazione |
 | --- | --- |
@@ -429,7 +538,7 @@ dopo l'E2E `t_ee2705d5`.
 
 ---
 
-## 10. Riassunto delle decisioni (ADR inline)
+## 11. Riassunto delle decisioni (ADR inline)
 
 | ADR | Decisione | Conseguenze accettate | Revisit quando |
 | --- | --- | --- | --- |
@@ -439,3 +548,4 @@ dopo l'E2E `t_ee2705d5`.
 | 0004 | Scheduler in-process (node-cron) + advisory lock, no Redis in v1 | limiti con many-user/batch AI, ma zero dipendenze extra | >50 utenti sync attivi o job AI batch |
 | 0005 | Mirror locale delle ricette norish con snapshot JSONB (+ kcal snapshot nel diario) | duplicazione dati (storia stabile, query locali) | se norish garantisse storia immutabile |
 | 0006 | Sync read-only + idempotenza per `norish_item_id` + no-autodelete (voci orfane marcate) | voci orfane restano visibili finché non rimosse a mano | feedback utenti |
+| 0007 | Base URL dell'istanza norish via configurazione di deployment (env `NORISH_BASE_URL`, § 5.0), nessun host cablato nel codice; norish.coagenti.it è istanza di test read-only | config obbligatoria al bootstrap (fail fast), un solo upstream norish per istanza in v1 | se un deployment dovesse parlare con più upstream contemporaneamente o servisse un override per-utente della base URL |
