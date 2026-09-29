@@ -1,0 +1,265 @@
+{
+ "id": "a135c4ca-3055-48ce-842f-fc0fd56118f5",
+ "userId": "hPfqNspfJxKWVvxDfeHyYHHZUlcdhjuR",
+ "name": "Sachertorte",
+ "description": "La Sachertorte è il dolce tipico della tradizione austriaca ed è sicuramente la torta al cioccolato più conosciuta al mondo.",
+ "image": null,
+ "url": "https://ricette.giallozafferano.it/Sacher-torte.html",
+ "servings": 8,
+ "prepMinutes": 60,
+ "cookMinutes": 50,
+ "totalMinutes": 110,
+ "notes": null,
+ "systemUsed": "metric",
+ "calories": 458,
+ "fat": "27.40",
+ "carbs": "47.80",
+ "protein": null,
+ "originCountry": null,
+ "originCountryName": null,
+ "originRegion": null,
+ "provenanceNote": null,
+ "dishColor": "#767587",
+ "createdAt": "2026-09-29T08:51:53.103Z",
+ "updatedAt": "2026-09-29T08:51:53.103Z",
+ "categories": [],
+ "version": 1,
+ "recipeIngredients": [
+  {
+   "id": "097aac6c-5445-42a8-ab7f-2351252a71e9",
+   "ingredientId": "2f90761d-12a4-4de0-b7cd-3ae9051b3f1e",
+   "amount": 75,
+   "unit": "gram",
+   "order": 0,
+   "systemUsed": "metric",
+   "version": 1,
+   "ingredientName": "Cioccolato fondente al 60%"
+  },
+  {
+   "id": "28e1dc67-f5ee-46ac-a3b5-0b5905d7f867",
+   "ingredientId": "4c912c33-ac2d-48af-b557-8d7a94634376",
+   "amount": 60,
+   "unit": "gram",
+   "order": 1,
+   "systemUsed": "metric",
+   "version": 1,
+   "ingredientName": "Tuorli (circa 3)"
+  },
+  {
+   "id": "0dd05c8f-0c85-4859-ba12-2f6ef506a63b",
+   "ingredientId": "a020cb9e-3b3a-4482-a1c6-43d329ea10fe",
+   "amount": 90,
+   "unit": "gram",
+   "order": 2,
+   "systemUsed": "metric",
+   "version": 1,
+   "ingredientName": "Albumi (circa 3)"
+  },
+  {
+   "id": "33ba89a8-f3c4-4529-91cd-0b9a22467517",
+   "ingredientId": "dc7465c5-8bd7-4ef7-92c5-3c577abc6383",
+   "amount": 65,
+   "unit": "gram",
+   "order": 3,
+   "systemUsed": "metric",
+   "version": 1,
+   "ingredientName": "Burro ammorbidito"
+  },
+  {
+   "id": "13b3f401-be99-4cb9-ad9a-db6dc138868b",
+   "ingredientId": "7c357b56-9682-444c-96cc-e903f2cb806c",
+   "amount": 65,
+   "unit": "gram",
+   "order": 4,
+   "systemUsed": "metric",
+   "version": 1,
+   "ingredientName": "Farina 00"
+  },
+  {
+   "id": "160be78d-f9c6-4f47-af5e-f3e6cd4991b8",
+   "ingredientId": "f62da9a7-518d-4bcd-accd-913f9fefd3a3",
+   "amount": 20,
+   "unit": "gram",
+   "order": 5,
+   "systemUsed": "metric",
+   "version": 1,
+   "ingredientName": "Zucchero a velo"
+  },
+  {
+   "id": "798bf9e6-d609-4bd8-8a25-24443045176a",
+   "ingredientId": "bf2df13d-afe9-47e3-ab58-b652b0a881df",
+   "amount": 90,
+   "unit": "gram",
+   "order": 6,
+   "systemUsed": "metric",
+   "version": 1,
+   "ingredientName": "Zucchero"
+  },
+  {
+   "id": "6a507c50-42a2-4176-b15d-2939f7d6df32",
+   "ingredientId": "793d6a38-0513-4cfa-aa3a-0f4e2d6ed9bf",
+   "amount": 1,
+   "unit": "",
+   "order": 7,
+   "systemUsed": "metric",
+   "version": 1,
+   "ingredientName": "Baccello di vaniglia"
+  },
+  {
+   "id": "175249f8-b2fc-4648-89c6-291528cd9be4",
+   "ingredientId": "c7cc1396-5b47-49d1-944d-3de7e67ad9ac",
+   "amount": 1,
+   "unit": "pinch",
+   "order": 8,
+   "systemUsed": "metric",
+   "version": 1,
+   "ingredientName": "Sale fino"
+  },
+  {
+   "id": "f1c8a1ed-4a7d-4681-9dd3-b00e1e0a2117",
+   "ingredientId": "f86dbe28-3c87-40ff-a9af-bb3752646b18",
+   "amount": 150,
+   "unit": "gram",
+   "order": 9,
+   "systemUsed": "metric",
+   "version": 1,
+   "ingredientName": "Confettura di albicocche"
+  },
+  {
+   "id": "d6452d4d-a432-4382-ad3d-7ac8d3507ef4",
+   "ingredientId": "2f90761d-12a4-4de0-b7cd-3ae9051b3f1e",
+   "amount": 185,
+   "unit": "gram",
+   "order": 10,
+   "systemUsed": "metric",
+   "version": 1,
+   "ingredientName": "Cioccolato fondente al 60%"
+  },
+  {
+   "id": "e5c31a97-c8b0-4006-a4d1-75b1990c3eb5",
+   "ingredientId": "fad93748-eb61-4ee8-b572-d76ae0555625",
+   "amount": 125,
+   "unit": "gram",
+   "order": 11,
+   "systemUsed": "metric",
+   "version": 1,
+   "ingredientName": "Panna fresca liquida (preferibilmente con 30-35% di grassi)"
+  }
+ ],
+ "steps": [
+  {
+   "step": "Per preparare la Sachertorte come prima cosa trasferite il cioccolato in piccoli pezzi in una bastardella 1 e fondetelo a bagnomaria 2 . Se preferite potete sciogliere il cioccolato in microonde azionandolo pochi secondi per volta e mescolando ad ogni interruzione in modo da non bruciare il cioccolato. Nel frattempo ponete nella ciotola di una planetaria il burro morbido, lo zucchero a velo 3",
+   "systemUsed": "metric",
+   "order": 1,
+   "version": 1,
+   "images": [],
+   "stepIngredients": []
+  },
+  {
+   "step": "e un pizzico di sale 4 . Aggiungete anche i semi del baccello di vaniglia 5 e iniziate a lavorare il composto con la frusta 6 fino ad ottenere una consistenza cremosa.",
+   "systemUsed": "metric",
+   "order": 2,
+   "version": 1,
+   "images": [],
+   "stepIngredients": []
+  },
+  {
+   "step": "Versate poi i tuorli leggermente sbattuti in due volte 7 e continuate a montare il burro 8 ; ci vorranno circa 8-10 minuti. L'importante è che il composto di zucchero a velo, tuorli e burro sia ben montato affinchè in cottura l'impasto si sviluppi bene. Ora, assicuratevi che il cioccolato che avete fuso abbia una temperatura compresa tra 45 e 55°; è preferibile utilizzare un termometro per misurarla: se dovesse essere troppo alta, infatti, rischierebbe di sciogliere il burro, viceversa rischierebbe di compattare troppo il composto. A questo punto aggiungete il cioccolato nel composto di burro e tuorli 9 e continuate a mescolare",
+   "systemUsed": "metric",
+   "order": 3,
+   "version": 1,
+   "images": [],
+   "stepIngredients": []
+  },
+  {
+   "step": "fino ad ottenere un composto uniforme 10 . Versate poi gli albumi nella ciotola di una planetaria e iniziate a montarli a velocità alta 11 . Non appena saranno bianchi e spumosi (quando inizieranno a \"salire\") versate pian piano anche lo zucchero semolato, sempre poco alla volta 12 ; è importante aspettare che gli albumi siano leggermente montati prima di aggiungere lo zucchero, altrimenti l'albume diventerà troppo pesante e farà molta più fatica a montare.",
+   "systemUsed": "metric",
+   "order": 4,
+   "version": 1,
+   "images": [],
+   "stepIngredients": []
+  },
+  {
+   "step": "Gli albumi non dovranno essere montati a neve fermissima, ma dovrete fermarvi qualche istante prima 13 altrimenti quando andrete ad inserirli nell'impasto continueranno a montarsi e la torta, una volta cotta, rischierebbe di afflosciarsi. A questo punto unite gli albumi in due volte nel composto di tuorli e cioccolato 14 e mescolate con una spatola 15 o con una frusta.",
+   "systemUsed": "metric",
+   "order": 5,
+   "version": 1,
+   "images": [],
+   "stepIngredients": []
+  },
+  {
+   "step": "Aggiungete poi anche la farina già setacciata 16 emescolate dall'alto verso il basso con una spatola 17 , fino ad ottenere un composto liscio ed uniforme 18 .",
+   "systemUsed": "metric",
+   "order": 6,
+   "version": 1,
+   "images": [],
+   "stepIngredients": []
+  },
+  {
+   "step": "Imburrate e infarinate uno stampo da 18 cm di diametro, poi versate il composto all'interno, livellate la superficie 19 e cuocete in forno statico preriscaldato a 170° per 35-40 minuti. Trascorso questo tempo verificate la cottura con uno stecchino, quindi sfornate il dolce 20 ; non preoccupatevi se la torta risulta crepata in superficie. Lasciate raffreddare la torta completamente, prima di sformarla capovolgendola su un piano. Quindi tagliate la torta in due dischi, utilizzando un coltello dalla lama lunga seghettata 21 .",
+   "systemUsed": "metric",
+   "order": 7,
+   "version": 1,
+   "images": [],
+   "stepIngredients": []
+  },
+  {
+   "step": "Disponete circa metà dose di confettura di albicocche all'interno 22 e spargetela con una spatola su tutta la superficie 23 . Ricoprite con il secondo disco 24",
+   "systemUsed": "metric",
+   "order": 8,
+   "version": 1,
+   "images": [],
+   "stepIngredients": []
+  },
+  {
+   "step": "aggiungete altra confettura in superficie 25 e utilizzando una spatola spargetela ovunque per creare un velo, anche sui bordi della torta 26 ; in questo modo l'effetto finale risulterà più lucido. Trasferite la torta su una gratella 27 e occupatevi di preparare la ganache.",
+   "systemUsed": "metric",
+   "order": 9,
+   "version": 1,
+   "images": [],
+   "stepIngredients": []
+  },
+  {
+   "step": "Ponete la panna in un pentolino e portatela a sfiorare il bollore 28 ; non appena inizierà a bollire spegnete il fuoco e unite il cioccolato 29 . Mescolate con una frusta fino a che il cioccolato sarà completamente sciolto e ben amalgamato 30 .",
+   "systemUsed": "metric",
+   "order": 10,
+   "version": 1,
+   "images": [],
+   "stepIngredients": []
+  },
+  {
+   "step": "Trasferite poi la ganache all'interno di una ciotola 31 e utilizzatela per glassare la torta 32 , aiutandovi con una spatola e sbattendola delicatamente sul piano in modo da ricoprire sia la superficie che i bordi e lisciarla allo stesso tempo 33 . Per risultare liscia e lucida la ganache deve avere una temperatura di circa 40°.",
+   "systemUsed": "metric",
+   "order": 11,
+   "version": 1,
+   "images": [],
+   "stepIngredients": []
+  },
+  {
+   "step": "A questo punto ponete a rassodare in frigorifero ( a +4°) per circa 20 minuti 34 . Poi trasferite la torta sacher su un piatto da portata 35 e servite ciascuna fetta in purezza o assieme a della panna semimontata senza zucchero 36 .",
+   "systemUsed": "metric",
+   "order": 12,
+   "version": 1,
+   "images": [],
+   "stepIngredients": []
+  }
+ ],
+ "tags": [],
+ "cuisines": [],
+ "author": {
+  "id": "hPfqNspfJxKWVvxDfeHyYHHZUlcdhjuR",
+  "name": "Alessio",
+  "image": null,
+  "version": 5
+ },
+ "images": [
+  {
+   "id": "e93dcd5e-c29e-4d53-9451-182ff3668a38",
+   "image": "/recipes/a135c4ca-3055-48ce-842f-fc0fd56118f5/905b2012-5315-528f-a795-ce7660d18071.jpg",
+   "order": 0,
+   "generated": false,
+   "version": 1
+  }
+ ],
+ "videos": []
+}
