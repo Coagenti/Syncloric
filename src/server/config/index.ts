@@ -5,6 +5,8 @@ const httpsOrLocalHttp = z
   .trim()
   .refine(
     (value) => {
+      // URL() normalizza anche forme senza authority: qui richiediamo un URL assoluto.
+      if (!/^https?:\/\/[^/\\\s?#]+/i.test(value)) return false;
       let url: URL;
       try {
         url = new URL(value);
@@ -64,7 +66,7 @@ export function loadEnvConfig(env: NodeJS.ProcessEnv = process.env): SyncloricCo
       .map((issue) => `  - ${issue.path.join(".")}: ${issue.message}`)
       .join("\n");
     throw new Error(
-      `Configurazione d'ambiente non valida — l'app non parte (fail fast, § 5.0):\n${details}`,
+      `Configurazione d'ambiente non valida — l'app non parte (fail fast, ADR-0007, § 5.0):\n${details}`,
     );
   }
   cached = parsed.data;

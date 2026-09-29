@@ -26,8 +26,17 @@ describe("loadEnvConfig", () => {
     );
     // next-env.d.ts stringe ProcessEnv (NODE_ENV unione letterale): doppio cast
     // confinato al test, che costruisce un processo-env sintetico.
+    expect(() => loadEnvConfig(resto as unknown as NodeJS.ProcessEnv)).toThrow(/ADR-0007/);
     expect(() => loadEnvConfig(resto as unknown as NodeJS.ProcessEnv)).toThrow(/NORISH_BASE_URL/);
   });
+
+  it.each(["", "   ", "not-a-url", "ftp://example.invalid", "https://", "https:example.invalid", "https:///example.invalid"])(
+    "rifiuta NORISH_BASE_URL vuota o malformata: %j",
+    (value) => {
+      expect(() => loadEnvConfig({ ...base, NORISH_BASE_URL: value })).toThrow(/ADR-0007/);
+      expect(() => loadEnvConfig({ ...base, NORISH_BASE_URL: value })).toThrow(/NORISH_BASE_URL/);
+    },
+  );
 
   it("rifiuta http non-locale (§ 9.2)", () => {
     expect(() =>
