@@ -5,7 +5,7 @@
 > norish.coagenti.it, solo lettura) per l'import automatico dei pasti del calendario
 > e delle kcal associate. Modello di deployment: § 9.
 >
-> Stato: v1.1 — documento di fondazione + modello di deployment multi-istanza (§ 9).
+> Stato: v1.2 — fondazione, deployment multi-istanza (§ 9) e idempotenza per utente (ADR-0008).
 > Autore: Technical Lead · Data: 2026-09-29 · Repo: `Coagenti/Syncloric`
 >
 > Fixture dell'API upstream verificate il 2026-09-29 e archiviate in
@@ -217,13 +217,16 @@ diary_entries    id, user_id FK,
                      -- macro SNAPSHOTTATI al momento dell'aggiunta: cambi futuri al cibo
                      -- o alla ricetta non riscrivono la storia
                  source ENUM('manual','barcode','ai_label','norish_sync'),
-                 norish_item_id UUID NULL UNIQUE,          -- idempotenza sync (§ 5.4)
+                 norish_item_id UUID NULL,                 -- idempotenza per utente (§ 5.4, ADR-0008)
                  norish_deleted BOOLEAN NOT NULL DEFAULT false,  -- item non più presente su norish (§ 5.4)
                  created_at, updated_at
 ```
 
-Indici: `(user_id, date)`, unique parziale `(user_id, date, slot, norish_item_id)`,
-`foods.barcode`.
+Indici di query non-univoci: `(user_id, date)` e `(user_id, date, slot, norish_item_id)`.
+Vincolo d'idempotenza: indice univoco parziale `(user_id, norish_item_id)`
+`WHERE norish_item_id IS NOT NULL` ([ADR-0008](adr/0008-user-scoped-norish-idempotency.md)).
+`foods.barcode` resta univoco quando noto (§ 4.4). Nessuna unicità globale su
+`diary_entries.norish_item_id`: lo stesso item può appartenere ai diari di utenti diversi.
 
 ### 4.6 Stato sync e configurazione admin
 
@@ -300,7 +303,7 @@ repo come `docs/norish-api/openapi-live-2026-09-29.json`):
 ```jsonc
 GET /api/v1/planned-recipes/{today|week|month}
 → 200 [ {
-    "id": "uuid",              <- norish_item_id: chiave d'idempotenza
+    "id": "uuid",              <- norish_item_id: con user_id forma la chiave d'idempotenza
     "date": "string",          <- data chiave del calendario (formato dataKey upstream: YYYY-MM-DD, fuso del server norish)
     "slot": "Breakfast|Lunch|Dinner|Snack",   <- mapping diretto ai 4 pasti Syncloric
     "sortOrder": int,
@@ -331,8 +334,12 @@ L'intero payload viene salvato in `recipes.snapshot` (JSONB).
   Redis). Trigger manuale: bottone "Sincronizza ora" in settings e in dashboard.
 - **Finestra**: sync incrementale su rolling 7 giorni (today+week); backfill manuale
   con range month alla prima connessione della chiave.
-- **Idempotenza**: ogni item upstream con `id` → upsert su `diary_entries.norish_item_id`
-  UNIQUE. Se l'item esiste già: aggiorna `date`, `slot`, `servings`, kcal solo se
+- **Idempotenza**: ogni item upstream con `id` → upsert su `diary_entries` con
+  conflict target `(user_id, norish_item_id) WHERE norish_item_id IS NOT NULL`
+  (indice univoco parziale, [ADR-0008](adr/0008-user-scoped-norish-idempotency.md)).
+  `user_id` identifica l'utente del run; `date` e `slot` non fanno parte della
+  chiave perché possono cambiare upstream. Se l'item esiste già per lo stesso
+  utente: aggiorna `date`, `slot`, `servings`, kcal solo se
   cambiati (no-touch se l'utente ha modificato manualmente la voce: flag
   `source='norish_sync'` si preserva; edit manuale su voce sincronizzata = l'utente
   diventa owner della voce e il sync smette di toccarla).
@@ -547,5 +554,6 @@ richiede: implementare, verificare e poi configurare — nessun rebuild:
 | 0003 | AI via unico modulo `services/ai/runtime` (provider OpenAI/Anthropic/Ollama configurabile da admin) | più layer di una chiamata diretta, ma provider swappable e prompt governati | se solo un provider resterà mai configurato su tutte le istanze |
 | 0004 | Scheduler in-process (node-cron) + advisory lock, no Redis in v1 | limiti con many-user/batch AI, ma zero dipendenze extra | >50 utenti sync attivi o job AI batch |
 | 0005 | Mirror locale delle ricette norish con snapshot JSONB (+ kcal snapshot nel diario) | duplicazione dati (storia stabile, query locali) | se norish garantisse storia immutabile |
-| 0006 | Sync read-only + idempotenza per `norish_item_id` + no-autodelete (voci orfane marcate) | voci orfane restano visibili finché non rimosse a mano | feedback utenti |
+| 0006 | Sync read-only + idempotenza per coppia `(user_id, norish_item_id)` (raffinata da [ADR-0008](adr/0008-user-scoped-norish-idempotency.md)) + no-autodelete (voci orfane marcate) | import indipendenti per utente; voci orfane restano visibili finché non rimosse a mano | feedback utenti |
 | 0007 | Base URL dell'istanza norish via configurazione di deployment (env `NORISH_BASE_URL`, § 5.0), nessun host cablato nel codice; norish.coagenti.it è istanza di test read-only | config obbligatoria al bootstrap (fail fast), un solo upstream norish per istanza in v1 | se un deployment dovesse parlare con più upstream contemporaneamente o servisse un override per-utente della base URL |
+| [0008](adr/0008-user-scoped-norish-idempotency.md) | Idempotenza sync per coppia utente/item: indice univoco parziale `(user_id, norish_item_id) WHERE norish_item_id IS NOT NULL` | stesso item importabile da utenti diversi; data/slot aggiornabili senza duplicare la voce; nessuna unicità globale sull'item | se cambiasse il modello un solo upstream per istanza (ADR-0007) |
