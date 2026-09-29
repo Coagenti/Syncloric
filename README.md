@@ -39,6 +39,27 @@ ADR-0004).
 Health check: `GET /api/health` (app) e `GET /api/v1/health` (app + database,
 pattern norish § 5.1).
 
+## Interfaccia diario (demo locale)
+
+Apri `/dashboard` (oppure `/`, che reindirizza alla dashboard), `/diary` e
+`/calendar`. Le tre viste sono mobile-first: totale kcal note e riepilogo dei
+quattro pasti, registro giornaliero con aggiunta/modifica manuale, calendario
+con i pasti marcati come importati. Seleziona il 29 settembre 2026 per vedere
+il set completo di dati dimostrativi; altri giorni contengono esempi limitati o
+nessuna voce. L'obiettivo calorico resta non configurato: non sono mostrate
+kcal residue finché il profilo reale non fornisce un target.
+
+**Questa UI non è ancora connessa all'API/DB:** dati importati e manuali sono mock,
+nessun pulsante esegue una sincronizzazione con norish. Le modifiche manuali si
+salvano esclusivamente nel `localStorage` di questo browser (`syncloric-demo-diary-v1`),
+non sono multiutente né sincronizzate: possono andare perse cancellando i dati del
+browser. Non usare la demo come diario affidabile. L'integrazione reale e la
+protezione dei dati tramite sessione sono demandate al task `t_ee2705d5`.
+
+L'interfaccia grafica e i testi di demo sono stati generati con assistenza AI;
+la revisione umana del Technical Lead e del Marketing Lead è prevista prima del
+rilascio. I dati di esempio non rappresentano consigli nutrizionali.
+
 ## Test
 
 ```bash
