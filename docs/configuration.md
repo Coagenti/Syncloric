@@ -49,11 +49,14 @@ Queste variabili restano obbligatorie. La decisione utente/TL sulle card
 `t_797de62f` e `t_2bd5557f` supera la precedente prescrizione ADR-0007 di
 fail-fast sull'URL assente: `NORISH_BASE_URL` assente/vuota/spazi non impedisce
 l'avvio; il bootstrap segnala Norish disabilitato e non avvia lo scheduler.
-Il template `docker/docker-compose.yml` attuale usa però l'interpolazione
-obbligatoria `${NORISH_BASE_URL:?...}` e rifiuta URL assenti o vuoti prima
-che il server parta. L'avvio opzionale è quindi supportato dal runtime
-applicativo, non ancora dal template Compose: non inserire un URL fittizio
-come workaround. L'allineamento del packaging è un follow-up separato.
+Il template `docker/docker-compose.yml` è allineato: usa
+`${NORISH_BASE_URL-}`, senza default e senza URL incorporati. Con `--env-file`
+il valore assente o vuoto è passato come stringa vuota; `docker/entrypoint.sh`
+rimuove la variabile vuota o composta solo da spazi prima del bootstrap.
+Il loader resta responsabile della validazione: un URL esplicito malformato
+non è normalizzato a unset e continua a impedire l'avvio. Non occorre inserire
+un URL fittizio per avviare lo stack senza Norish. Le altre variabili obbligatorie
+restano richieste da Compose e dal bootstrap.
 
 Limite attuale: il bootstrap decide l'avvio dello scheduler dalla sola env,
 non legge l'override DB. Il client riceve un `baseUrl` dal chiamante, non legge autonomamente le settings.
@@ -69,6 +72,11 @@ eseguono il bootstrap; si può costruire l'immagine senza segreti di deployment.
 
 ## Test riproducibili
 
+- `python3 tests/deploy/test_packaging.py`: contratto template senza default/URL
+  incorporati ed entrypoint reale (assente, vuoto, spazi, esplicito preservato).
+- `python3 tests/deploy/smoke.py` (Docker): config senza warning e stack healthy
+  senza URL/con URL valido, cinque deployment sulla stessa immagine e log
+  `Norish disabilitato` nei casi senza URL; nessuna API upstream reale.
 - `pnpm test:unit`: vero file .env temporaneo tramite dotenv, URL presente,
   assente e vuoto, precedenza GUI e bootstrap senza URL/scheduler disabilitato.
 - `pnpm test:integration`: API admin-only, persistenza DB e rimozione override.

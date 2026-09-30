@@ -1,5 +1,5 @@
 """Real Docker/Compose smoke. Only disposable CI projects; never production.
-Build once, start twice with different dotenv upstreams, verify env and health.
+Build once, test absent/empty/whitespace upstream and two configured instances.
 No upstream requests or credentials; .invalid URLs are deliberate test fixtures.
 """
 import json
@@ -34,7 +34,7 @@ def main():
         envfile = Path(directory) / '.env'
         prefix = ['docker', 'compose', '-f', str(COMPOSE), '--env-file', str(envfile)]
         def configure(values):
-            envfile.write_text(''.join(f'{key}={value}\n' for key, value in values.items()))
+            envfile.write_text(''.join(f'{key}="{value}"\n' for key, value in values.items()))
             envfile.chmod(0o600)
 
         values = dict(VALUES)
