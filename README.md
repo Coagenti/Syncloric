@@ -53,18 +53,52 @@ in-process con le stesse migrazioni drizzle dell'app. Le suite Playwright
 
 ## Deploy self-hosted (Docker Compose)
 
+Il template root `.env.example` è dedicato allo sviluppo; per il deploy usare
+`docker/.env.example`, che contiene soltanto `NORISH_BASE_URL` (ADR-0007).
+
 ```bash
-cd docker/
-cat > .env <<'EOF'
-POSTGRES_PASSWORD=<password-db>
-BETTER_AUTH_SECRET=<openssl rand -base64 32>
-ENCRYPTION_KEY=<openssl rand -hex 32>
-NORISH_BASE_URL=https://norish.coagenti.it
-EOF
-docker compose up -d --build
+cp docker/.env.example docker/.env
+# Impostare NORISH_BASE_URL nel file con l'URL assoluto dell'upstream scelto.
+# Il deployer fornisce dal vault, in ambiente o nello stesso .env protetto:
+# POSTGRES_PASSWORD, BETTER_AUTH_SECRET, ENCRYPTION_KEY.
+chmod 600 docker/.env
+export SYNCLORIC_IMAGE=syncloric:release-local
+docker compose -f docker/docker-compose.yml --env-file docker/.env -p syncloric-a build app
+docker compose -f docker/docker-compose.yml --env-file docker/.env -p syncloric-a up -d --no-build --wait
 ```
 
-L'immagine è Next standalone su `node:22-slim` (§ 3): al bootstrap applica le
+Non creare né conservare credenziali fuori dal vault: il file runtime è materiale
+segreto fornito dal deployer, mai da committare. `POSTGRES_PASSWORD` deve essere
+URL-safe (ad esempio esadecimale), perché Compose lo interpola nel `DATABASE_URL`
+derivato; Better Auth richiede almeno 32 caratteri e `ENCRYPTION_KEY` 64 cifre hex.
+Segreti mancanti/vuoti causano un errore Compose con il nome della variabile;
+la validazione applicativa rimane nel bootstrap. Non stampare `compose config`
+nei log condivisi: contiene i segreti risolti. L'ambiente della shell ha precedenza
+sul `.env`: rimuovere eventuali `NORISH_BASE_URL` esportate quando si cambia file.
+
+Per una seconda istanza, preparare `docker/.env.second` dal template, impostare
+il nuovo `NORISH_BASE_URL` e fornire dal vault segreti propri per la seconda
+istanza. Riutilizzare lo stesso `SYNCLORIC_IMAGE`, senza rebuild:
+
+```bash
+APP_PORT=3001 docker compose -f docker/docker-compose.yml --env-file docker/.env.second -p syncloric-b up -d --no-build --wait
+```
+
+I project name separano reti e volumi DB. Cambiare upstream richiede soltanto
+`NORISH_BASE_URL` e `up -d --no-build` (non `restart`, che conserva l'env precedente);
+segreti, porta e nome progetto sono isolamento operativo, non parametri di build.
+Per host diversi, trasferire l'immagine con `docker save`/`docker load` oppure
+pubblicarla nel registry autorizzato e fissare `SYNCLORIC_IMAGE` al suo digest.
+Non eseguire `down --volumes` su deployment con dati da preservare.
+
+CI esegue `python3 tests/deploy/test_packaging.py` e `python3 tests/deploy/smoke.py`:
+una build, due `.env`, identità immagine, ambiente runtime, utente non-root,
+health app/DB e rifiuto delle variabili obbligatorie assenti/vuote. Lo smoke crea
+e distrugge esclusivamente progetti CI temporanei, senza chiamare norish.
+Il collaudo infrastrutturale e il deploy finale restano su pve2, a cura del
+responsabile infrastruttura dopo consegna di `syncloric-test`; la CI non lo sostituisce.
+
+L'immagine è Next standalone su `node:22.20.0-bookworm-slim` (§ 3): al bootstrap applica le
 migrazioni e avvia lo scheduler. Un deployment Compose = un'istanza Syncloric
 completa (§ 9.1), con il suo DB e i suoi segreti (`ENCRYPTION_KEY`/`BETTER_AUTH_SECRET`
 unici per istanza — § 9.4). La base URL dell'istanza norish upstream è configurazione

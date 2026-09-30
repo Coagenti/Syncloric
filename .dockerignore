@@ -1,0 +1,16 @@
+.git
+**/node_modules
+**/.next
+**/.env
+**/.env.*
+**/secrets
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+coverage
+**/__pycache__
+*.tsbuildinfo
+logs
+uploads
+data

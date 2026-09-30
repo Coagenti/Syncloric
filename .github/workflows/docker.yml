@@ -1,0 +1,20 @@
+name: Docker deployment
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  docker-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Offline packaging contract
+        run: python3 tests/deploy/test_packaging.py
+      - name: Build once and smoke two dotenv deployments
+        run: python3 tests/deploy/smoke.py
