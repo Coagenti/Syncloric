@@ -10,6 +10,8 @@ import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
 import { buildNorishUrlHandlers } from "@/server/services/settings/http";
 import type { Db } from "@/server/db";
+import { norishBaseUrl, resetEnvConfigCache } from "@/server/config";
+import { getAdminSetting } from "@/server/db/repositories/settings";
 
 /** Real component + HTTP handlers + file-backed PostgreSQL WASM.
  * The session boundary is injected as admin; page/API authorization has separate tests.
@@ -24,6 +26,8 @@ it("browser: validation, save, warning, restart persistence, clear and env fallb
     ENCRYPTION_KEY: "a".repeat(64),
     NORISH_BASE_URL: "https://fallback.example.invalid",
   });
+  delete process.env.NORISH_API_KEY;
+  resetEnvConfigCache();
   let client = new PGlite(dir);
   let db = drizzle(client);
   await migrate(db, { migrationsFolder: "./drizzle" });
@@ -75,6 +79,9 @@ it("browser: validation, save, warning, restart persistence, clear and env fallb
     await client.close(); client = new PGlite(dir); db = drizzle(client); await client.waitReady;
     await page.reload(); await expect(input).toHaveValue("https://gui.example.invalid");
     await expect(page.getByTestId("norish-source")).toHaveText("Configurato da: Impostazioni");
+    const persisted = await getAdminSetting<string>(db, "norish.base_url");
+    expect(persisted).toBe("https://gui.example.invalid");
+    expect(norishBaseUrl({ adminSettings: { "norish.base_url": persisted ?? undefined } })).toBe("https://gui.example.invalid");
     await input.fill("https://gui.example.invalid/path"); await page.getByRole("button", { name: "Salva", exact: true }).click();
     await expect(page.getByRole("status")).toContainText("URL Norish salvato");
     await page.getByRole("button", { name: "Cancella", exact: true }).click();
@@ -86,10 +93,31 @@ it("browser: validation, save, warning, restart persistence, clear and env fallb
     await input.fill(""); await page.getByRole("button", { name: "Salva", exact: true }).click();
     await expect(page.getByTestId("norish-source")).toHaveText("Configurato da: .env");
     await expect(input).toHaveValue("");
+    delete process.env.NORISH_BASE_URL;
+    resetEnvConfigCache();
+    await page.reload();
+    await expect(input).toHaveValue("");
+    await expect(input).toHaveAttribute("placeholder", "your norish url");
+    await expect(page.getByTestId("norish-state")).toBeVisible();
+    await expect(page.getByTestId("norish-source")).toHaveText("Norish non configurato");
+    const unset = await page.request.get(`http://127.0.0.1:${address.port}/api/v1/settings/norish-url`);
+    expect(unset.status()).toBe(200);
+    expect(await unset.json()).toEqual({ saved: null, status: { enabled: false, source: "unset", urlPresent: false, apiKeyPresent: false } });
+    await input.fill("https://gui-only.example.invalid");
+    await page.getByRole("button", { name: "Salva", exact: true }).click();
+    await expect(page.getByTestId("norish-source")).toHaveText("Configurato da: Impostazioni");
+    await page.reload();
+    await expect(input).toHaveValue("https://gui-only.example.invalid");
+    await page.getByRole("button", { name: "Cancella", exact: true }).click();
+    await expect(page.getByTestId("norish-state")).toBeVisible();
+    await page.reload();
+    await expect(input).toHaveValue("");
+    expect(await getAdminSetting(db, "norish.base_url")).toBeNull();
     expect(errors).toEqual([]);
   } finally {
     await browser.close(); await new Promise<void>(resolve => server.close(() => resolve()));
     await client.close(); await rm(dir, { recursive: true, force: true });
     process.env = oldEnv;
+    resetEnvConfigCache();
   }
 }, 600_000);
