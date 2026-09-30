@@ -59,9 +59,7 @@ La pagina è admin-only e non espone API key. Al cambio origine avvisa di
 verificare le chiavi Norish, senza migrarle automaticamente.
 
 Limite runtime attuale: il bootstrap avvia lo scheduler dalla sola env e il
-client non legge ancora l'override DB. Il template Compose attuale richiede
-inoltre `NORISH_BASE_URL` non vuota: l'avvio senza URL descritto sopra riguarda
-il runtime applicativo, non quel template. Persistenza GUI e precedenza del resolver
+client non legge ancora l'override DB. Persistenza GUI e precedenza del resolver
 non dimostrano l'attivazione del sync tramite GUI: il collegamento runtime
 rimane lavoro dell'integrazione. Dettagli e limiti in
 [Configurazione runtime](docs/configuration.md) e
@@ -89,7 +87,8 @@ Il template root `.env.example` è dedicato allo sviluppo; per il deploy usare
 
 ```bash
 cp docker/.env.example docker/.env
-# Impostare NORISH_BASE_URL nel file con l'URL assoluto dell'upstream scelto.
+# NORISH_BASE_URL è opzionale: valorizzarla con l'URL assoluto scelto
+# oppure ometterla/lasciarla vuota per avviare senza Norish.
 # Il deployer fornisce dal vault, in ambiente o nello stesso .env protetto:
 # POSTGRES_PASSWORD, BETTER_AUTH_SECRET, ENCRYPTION_KEY.
 chmod 600 docker/.env
@@ -102,6 +101,10 @@ Non creare né conservare credenziali fuori dal vault: il file runtime è materi
 segreto fornito dal deployer, mai da committare. `POSTGRES_PASSWORD` deve essere
 URL-safe (ad esempio esadecimale), perché Compose lo interpola nel `DATABASE_URL`
 derivato; Better Auth richiede almeno 32 caratteri e `ENCRYPTION_KEY` 64 cifre hex.
+Compose passa `NORISH_BASE_URL` senza default (`${NORISH_BASE_URL-}`).
+Assente, vuota o composta solo da spazi: l'entrypoint la rimuove prima del
+bootstrap, che segnala `Norish disabilitato`; il container può diventare healthy.
+Un URL esplicito malformato resta un errore fail-fast del loader applicativo.
 Segreti mancanti/vuoti causano un errore Compose con il nome della variabile;
 la validazione applicativa rimane nel bootstrap. Non stampare `compose config`
 nei log condivisi: contiene i segreti risolti. L'ambiente della shell ha precedenza
@@ -123,8 +126,10 @@ pubblicarla nel registry autorizzato e fissare `SYNCLORIC_IMAGE` al suo digest.
 Non eseguire `down --volumes` su deployment con dati da preservare.
 
 CI esegue `python3 tests/deploy/test_packaging.py` e `python3 tests/deploy/smoke.py`:
-una build, due `.env`, identità immagine, ambiente runtime, utente non-root,
-health app/DB e rifiuto delle variabili obbligatorie assenti/vuote. Lo smoke crea
+una build, cinque `.env` temporanei (URL assente, vuoto, soli spazi e due URL
+validi), nessun warning di interpolazione, log `Norish disabilitato` senza URL,
+identità immagine, ambiente runtime, utente non-root, health app/DB e rifiuto
+dei segreti obbligatori assenti/vuoti. Lo smoke crea
 e distrugge esclusivamente progetti CI temporanei, senza chiamare norish.
 Il collaudo infrastrutturale e il deploy finale restano su pve2, a cura del
 responsabile infrastruttura dopo consegna di `syncloric-test`; la CI non lo sostituisce.
