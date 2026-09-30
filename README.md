@@ -31,10 +31,41 @@ pnpm db:migrate           # le applica al DATABASE_URL di .env
 pnpm dev                  # http://localhost:3000
 ```
 
-All'avvio il bootstrap (`src/instrumentation.ts`) valida l'env (**fail fast**:
-senza `NORISH_BASE_URL`, `DATABASE_URL`, `BETTER_AUTH_SECRET`, `ENCRYPTION_KEY`
-l'app non parte) e avvia lo scheduler in-process (sync norish ogni 30 minuti,
-ADR-0004).
+All'avvio il bootstrap (`src/instrumentation.ts`) valida l'env: senza
+`DATABASE_URL`, `BETTER_AUTH_SECRET` o `ENCRYPTION_KEY` l'app non parte.
+`NORISH_BASE_URL` è opzionale e senza default: se assente o vuota l'app parte
+con Norish disabilitato e scheduler non avviato; un URL esplicitamente malformato
+resta un errore. Con URL env valido avvia lo scheduler in-process (ADR-0004).
+
+## Configurare l'URL Norish
+
+Via preferita: un amministratore autenticato apre Impostazioni (`/settings`),
+inserisce `https://norish.your.domain` nel campo Norish URL e preme Salva.
+Il placeholder è `your norish url`: non è un valore di default. La GUI non
+precompila il valore env. Il valore salvato è globale per istanza e persistente
+nel DB, anche dopo ricaricamento o riavvio del database.
+
+In alternativa, nel file `.env` (sviluppo) oppure `docker/.env` (Compose):
+
+```dotenv
+NORISH_BASE_URL=https://norish.your.domain
+```
+
+La configurazione risolve Impostazioni > .env > nessun URL. Salva con campo
+vuoto o Cancella rimuove l'override e ripristina l'eventuale .env. Senza entrambe
+le fonti, Norish risulta non configurato senza crash. Usare HTTPS e nessuno
+slash finale sull'host; HTTP è ammesso solo su localhost per sviluppo.
+La pagina è admin-only e non espone API key. Al cambio origine avvisa di
+verificare le chiavi Norish, senza migrarle automaticamente.
+
+Limite runtime attuale: il bootstrap avvia lo scheduler dalla sola env e il
+client non legge ancora l'override DB. Il template Compose attuale richiede
+inoltre `NORISH_BASE_URL` non vuota: l'avvio senza URL descritto sopra riguarda
+il runtime applicativo, non quel template. Persistenza GUI e precedenza del resolver
+non dimostrano l'attivazione del sync tramite GUI: il collegamento runtime
+rimane lavoro dell'integrazione. Dettagli e limiti in
+[Configurazione runtime](docs/configuration.md) e
+[Contratto Impostazioni](docs/NORISH-SETTINGS.md).
 
 Health check: `GET /api/health` (app) e `GET /api/v1/health` (app + database,
 pattern norish § 5.1).
