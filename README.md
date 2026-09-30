@@ -210,6 +210,20 @@ fallback demo `NORISH_API_KEY`; gli altri richiedono chiavi per-utente. Le run
 sono auditabili in `norish_sync_runs` (`status`, `reason='auth'` su 401/403),
 senza modifiche automatiche alle credenziali.
 
+## Limiti noti del flusso utente (t_ee2705d5, per la review)
+
+- **Riassociazione chiave utente:** l'avviso di errore auth invita alla pagina
+  Impostazioni, ma l'unico flusso chiave attuale è la `NORISH_API_KEY` fallback
+  demo del primo account (env/vault) e la pagina Impostazioni è admin-only con
+  solo il campo URL. L'aggiornamento della chiave **per-utente** dall'interfaccia
+  non esiste ancora: è il seguito richiesto al flusso auth (card dedicate).
+- **Login/registrazione:** il backend Better Auth e `/api/auth` esistono, ma la
+  pagina `/login` e il bootstrap del primo admin sono scope della feature auth:
+  l'invito al login della UI resta finché quella pagina non viene consegnata.
+- **Inserimento/modifica manuale:** disattivato nella UI finché non esiste
+  un'endpoint di scrittura autenticato (i controlli demo sono rimossi, non
+  simulati); il sync Norish resta l'unica fonte attiva di voci del diario.
+
 ## Sviluppo
 
 - Architettura e decisioni di stack: `docs/ARCHITECTURE.md` (§ 3 struttura, § 4
