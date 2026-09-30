@@ -332,8 +332,11 @@ L'intero payload viene salvato in `recipes.snapshot` (JSONB).
 - **Frequenza**: ogni 30 minuti per utente con chiave configurata (node-cron in-process,
   un job per run, serializzato su Postgres con advisory lock per utente — niente
   Redis). Trigger manuale: bottone "Sincronizza ora" in settings e in dashboard.
-- **Finestra**: sync incrementale su rolling 7 giorni (today+week); backfill manuale
-  con range month alla prima connessione della chiave.
+- **Finestra**: sync incrementale `GET /planned-recipes/week` = settimana corrente
+  lato server upstream + `GET /planned-recipes/today`; backfill manuale con range
+  month alla prima connessione della chiave. NON è una rolling window client-side:
+  la settimana/mese è quella del server upstream e le date del payload vengono usate
+  così come arrivano (nessuna normalizzazione timezone client).
 - **Idempotenza**: ogni item upstream con `id` → upsert su `diary_entries` con
   conflict target `(user_id, norish_item_id) WHERE norish_item_id IS NOT NULL`
   (indice univoco parziale, [ADR-0008](adr/0008-user-scoped-norish-idempotency.md)).
@@ -346,7 +349,12 @@ L'intero payload viene salvato in `recipes.snapshot` (JSONB).
 - **Eliminazioni upstream**: in v1 il sync NON elimina voci (evitiamo di cancellare
   pasti per un glitch dell'API); vinto il compromesso: voci sync orfane (non più nel
   payload) vengono marcate `norish_deleted=true` (colonna addizionale) e mostrate con
-  icona "rimossa su norish", rimovibili in massa. Revisit se fastidioso.
+  icona "rimossa su norish", rimovibili in massa. Revisit se fastidioso. Contratto
+  riconciliazione: il marker opera sull'intersezione (utente × finestra della sync
+  corrente) e SOLO su voci `source='norish_sync'` del medesimo `user_id`; payload
+  vuoto o non valido → NESSUNA marca (nessuna evidenza = nessuna eliminazione);
+  le marche restano soft (`norish_deleted=true`, reversibile, mai DELETE fisico);
+  tutto dentro la transazione della run + advisory lock per utente.
 - **Multi-utente**: ogni utente configura la **propria** chiave norish (la casa su
   norish è per-user/household). Nel settings utente: input chiave → validate con una
   chiamata reale `GET /planned-recipes/today` → salvataggio cifrato (§ 6).
