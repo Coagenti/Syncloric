@@ -86,17 +86,20 @@ export class NorishClient {
   constructor(options: NorishClientOptions) {
     const base = options.baseUrl.replace(/\/+$/, "");
     const url = new URL(base);
+    if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.search || url.hash) {
+      throw new Error("Norish base URL must be an HTTP(S) origin without credentials, query or fragment");
+    }
     if (url.pathname !== "" && url.pathname !== "/") {
       throw new Error("NORISH_BASE_URL non deve contenere un path (il client aggiunge /api/v1)");
     }
-    this.baseUrl = base;
+    this.baseUrl = url.origin;
     this.apiKey = options.apiKey;
     this.fetchImpl = options.fetchImpl ?? fetch;
   }
 
   async getHealth(): Promise<boolean> {
     try {
-      const response = await this.request("GET", "/health", { auth: false });
+      const response = await this.request("GET", "/api/v1/health", { auth: false });
       return response.ok;
     } catch {
       return false;
@@ -120,7 +123,7 @@ export class NorishClient {
 
   /** Dettaglio ricetta per il mirror snapshot (ADR-0005). */
   async getRecipe(id: string): Promise<RecipeDetail | null> {
-    const response = await this.request("GET", `/recipes/${id}`);
+    const response = await this.request("GET", `/api/v1/recipes/${encodeURIComponent(id)}`);
     if (response.status === 404) return null; // item skippato con log (§ 5.5)
     if (!response.ok) throw await this.toApiError(response);
     const parsed = recipeResponseSchema.safeParse(await response.json());
@@ -131,11 +134,11 @@ export class NorishClient {
   }
 
   /**
-   * Ricerca ricette upstream (POST /recipes/search, § 5.1) — v1.1 feature;
-   * il POST qui sotto NON modifica dati upstream ed è l'unica post prevista.
+   * @deprecated POST search is forbidden by ADR-0006, even if semantically read-only.
+   * Retained for compatibility: always rejects before touching the transport.
    */
   async searchRecipes(params: { limit?: number; search?: string; cursor?: string } = {}) {
-    const response = await this.request("POST", "/recipes/search", {
+    const response = await this.request("POST", "/api/v1/recipes/search", {
       body: { limit: params.limit ?? 50, search: params.search, cursor: params.cursor },
     });
     if (!response.ok) throw await this.toApiError(response);
@@ -146,7 +149,7 @@ export class NorishClient {
 
   private async getPlanned(period: "today" | "week" | "month"): Promise<PlannedRecipe[]> {
     for (let attempt = 0; ; attempt += 1) {
-      const response = await this.request("GET", `/planned-recipes/${period}`);
+      const response = await this.request("GET", `/api/v1/planned-recipes/${period}`);
       if (response.ok) {
         const body: unknown = await response.json();
         if (!Array.isArray(body)) {
@@ -166,19 +169,36 @@ export class NorishClient {
     }
   }
 
-  private async request(
-    method: "GET" | "POST",
+  /** Raw response; only literal GET and canonical /api/v1/ paths are allowed. */
+  async request(
+    method: string,
     path: string,
     { body, auth = true }: { body?: unknown; auth?: boolean } = {},
   ): Promise<Response> {
+    if (method !== "GET") {
+      throw new Error("Norish client is read-only: only GET is allowed");
+    }
+    const pathname = path.split("?", 1)[0];
+    // Fail closed on encoded separators/dots/percent (including nested encoding).
+    // Query values do not participate in path resolution.
+    if (!path.startsWith("/api/v1/") || /[\\\\#\s\u0000-\u001f\u007f]/u.test(path) ||
+        /%(?:2e|2f|5c|25)/i.test(pathname) ||
+        pathname.split("/").some((segment) => segment === "." || segment === "..")) {
+      throw new Error("Norish path must stay within /api/v1/ (no traversal or ambiguous encoding)");
+    }
+    const target = new URL(path, this.baseUrl);
+    if (target.origin !== new URL(this.baseUrl).origin || !target.pathname.startsWith("/api/v1/")) {
+      throw new Error("Norish path must stay within the configured origin and /api/v1/");
+    }
     const headers: Record<string, string> = { Accept: "application/json" };
     if (auth) headers["x-api-key"] = this.apiKey; // § 5.1: header x-api-key (o Bearer equivalente)
     if (body !== undefined) headers["Content-Type"] = "application/json";
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
     try {
-      return await this.fetchImpl(`${this.baseUrl}/api/v1${path}`, {
+      return await this.fetchImpl(target.href, {
         method,
+        redirect: "manual", // Never follow Location outside the validated boundary.
         headers,
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: controller.signal,
