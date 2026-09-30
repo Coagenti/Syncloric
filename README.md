@@ -69,17 +69,47 @@ l'entrypoint elimina valori vuoti prima del bootstrap. Dettagli in
 Health check: `GET /api/health` (app) e `GET /api/v1/health` (app + database,
 pattern norish § 5.1).
 
+## Interfaccia diario (demo locale)
+
+Apri `/dashboard` (oppure `/`, che reindirizza alla dashboard), `/diary` e
+`/calendar`. Le tre viste sono mobile-first: totale kcal note e riepilogo dei
+quattro pasti, registro giornaliero con aggiunta/modifica manuale, calendario
+con i pasti marcati come importati. Seleziona il 29 settembre 2026 per vedere
+il set completo di dati dimostrativi; altri giorni contengono esempi limitati o
+nessuna voce. L'obiettivo calorico resta non configurato: non sono mostrate
+kcal residue finché il profilo reale non fornisce un target.
+
+**Questa UI non è ancora connessa all'API/DB:** dati importati e manuali sono mock,
+nessun pulsante esegue una sincronizzazione con norish. Le modifiche tentano
+il salvataggio esclusivamente nel `localStorage` di questo
+browser (`syncloric-demo-diary-v1`), non sono multiutente né sincronizzate:
+possono andare perse cancellando i dati del browser. Se lo storage è negato o
+esaurito, la voce resta visibile nella sessione ma un avviso indica esplicitamente
+che non è stata salvata: non sopravvive al ricaricamento. La pagina «Oggi» apre
+la data locale corrente; il selettore permette di consultare i mock storici.
+Non usare la demo come diario affidabile. L'integrazione reale e la
+protezione dei dati tramite sessione sono demandate al task `t_ee2705d5`.
+
+L'interfaccia grafica e i testi di demo sono stati generati con assistenza AI;
+la revisione umana del Technical Lead e del Marketing Lead è prevista prima del
+rilascio. I dati di esempio non rappresentano consigli nutrizionali.
+
 ## Test
 
 ```bash
 pnpm test:unit          # vitest: config, client norish (fetch mockato), crypto
 pnpm test:integration   # vitest + PGlite in-process (Postgres WASM) sulle stesse migrazioni
 pnpm test               # entrambi
+pnpm build              # prerequisito per i test browser
+pnpm exec playwright test tests/e2e/diary-ui.spec.ts  # avvia server locale con configurazione fittizia
 ```
 
 PGlite non richiede Docker: i test di integrazione girano su un Postgres WASM
 in-process con le stesse migrazioni drizzle dell'app. Le suite Playwright
-(`tests/e2e/`) sono previste per i flussi critici (money-path) nei task feature.
+(`tests/e2e/`) verificano i flussi demo reali nel browser (add/edit, errori storage,
+selezione date e calendario); usano valori fittizi e non chiamano norish.
+Installare Chromium Playwright (`pnpm exec playwright install chromium`) prima
+se non è già disponibile. I test E2E di integrazione reale arrivano nei task feature.
 
 ## Deploy self-hosted (Docker Compose)
 
