@@ -19,6 +19,7 @@
     "test": "pnpm test:unit && pnpm test:integration",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node scripts/run-db-migrate.cjs",
+    "sync:norish": "node scripts/run-sync-norish.cjs",
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {

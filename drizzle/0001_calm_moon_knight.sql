@@ -1,0 +1,1 @@
+ALTER TABLE "norish_sync_runs" ADD COLUMN "reason" text;

@@ -30,11 +30,11 @@ describe("bootstrap configuration", () => {
         await expect(register()).rejects.toThrow(/NORISH_BASE_URL/);
         expect(effects.migrate).not.toHaveBeenCalled();
       } else {
-        // URL assente/vuoto/spazi: l'app parte (degradata), scheduler NON avviato.
+        // URL assente/vuoto/spazi: scheduler parte, tick risolve GUI > env.
         await expect(register()).resolves.toBeUndefined();
-        expect(logSpy.mock.calls.some((args) => args.some((a) => String(a).includes("Norish disabilitato")))).toBe(true);
+        expect(logSpy.mock.calls.some((args) => args.some((a) => String(a).includes("attivazione Norish per tick")))).toBe(true);
       }
-      expect(effects.schedule).not.toHaveBeenCalled();
+      expect(effects.schedule).toHaveBeenCalledTimes(value === "not-a-url" ? 0 : 1);
     },
   );
 

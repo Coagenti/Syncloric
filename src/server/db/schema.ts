@@ -236,6 +236,7 @@ export const norishSyncRuns = pgTable(
     status: syncStatusEnum("status").notNull(),
     itemsUpserted: integer("items_upserted").notNull().default(0),
     errorMessage: text("error_message"),
+    reason: text("reason"), // 'auth' per HTTP 401/403; null per altri esiti
   },
   (t) => [index("norish_sync_runs_user_started_idx").on(t.userId, t.startedAt)],
 );

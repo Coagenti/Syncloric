@@ -8,6 +8,13 @@
       "when": 1790705701063,
       "tag": "0000_loud_mad_thinker",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790797189697,
+      "tag": "0001_calm_moon_knight",
+      "breakpoints": true
     }
   ]
 }

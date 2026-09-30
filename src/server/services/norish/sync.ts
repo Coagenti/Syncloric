@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { and } from "drizzle-orm";
 import { desc } from "drizzle-orm";
 import { sql, type SQL } from "drizzle-orm";
+import type { PgTable, PgColumn } from "drizzle-orm/pg-core";
 import type { Db } from "@/server/db";
 import { diaryEntries, norishSyncRuns, profiles, recipes } from "@/server/db/schema";
 import type { RecipeDetail } from "./client";
@@ -37,7 +38,18 @@ export interface SyncResult {
   skippedNoCalories: number;
 }
 
-/** Insert … ON CONFLICT (user_id, norish_item_id) WHERE norish_item_id IS NOT NULL (ADR-0008). */
+/**
+ * Insert … ON CONFLICT (user_id, norish_item_id) WHERE norish_item_id IS NOT NULL
+ * (ADR-0008) con semantica kcal DECISIONE UTENTE 30/9:
+ * - kcal = EXCLUDED.kcal (kcal PER PORZIONE) × servings LOCALI correnti, arrotondati
+ *   con Math.round esplicito (colonna int preesistente: comportamento intero
+ *   preservato, nessuna modifica di schema; niente moltiplicazioni upstream);
+ * - servings NON compaiono nella SET-list: il sync non tocca MAI le porzioni
+ *   locali (seed 1 solo all'import, l'utente può averle frazionarie es. 0.5);
+ * - norish_deleted torna false appena l'item è nel payload (restore);
+ * - il guard IS DISTINCT FROM salta interamente l'update se nessun dato cambia
+ *   (idempotenza: niente bump di updated_at, niente spuri nel conteggio).
+ */
 export async function upsertDiaryEntry(
   db: SqlExecutor,
   params: {
@@ -61,16 +73,17 @@ export async function upsertDiaryEntry(
     DO UPDATE SET
       date = EXCLUDED.date,
       slot = EXCLUDED.slot,
-      servings = EXCLUDED.servings,
-      kcal = EXCLUDED.kcal,
+      kcal = CASE WHEN EXCLUDED.kcal IS NULL THEN NULL
+                  ELSE ROUND(EXCLUDED.kcal * diary_entries.servings)::int END,
       recipe_id = EXCLUDED.recipe_id,
       norish_deleted = false,
       updated_at = now()
     WHERE diary_entries.source = 'norish_sync'
-      AND (diary_entries.servings, diary_entries.kcal, diary_entries.recipe_id,
-           diary_entries.date, diary_entries.slot) IS DISTINCT FROM
-          (EXCLUDED.servings, EXCLUDED.kcal, EXCLUDED.recipe_id,
-           EXCLUDED.date, EXCLUDED.slot)
+      AND (ROUND(CASE WHEN EXCLUDED.kcal IS NULL THEN NULL
+                      ELSE EXCLUDED.kcal * diary_entries.servings END)::int,
+           diary_entries.recipe_id, diary_entries.date, diary_entries.slot,
+           diary_entries.norish_deleted) IS DISTINCT FROM
+          (EXCLUDED.kcal, EXCLUDED.recipe_id, EXCLUDED.date, EXCLUDED.slot, false)
   `);
 }
 
@@ -79,31 +92,29 @@ export async function markDeletedNorishEntries(
   db: SqlExecutor,
   userId: string,
   norishItemIds: string[],
+  options: { windowStart?: string; windowEnd?: string } = {},
 ): Promise<number> {
-  // Lista vuota: nessun payload → TUTTE le voci sync attive dell'utente sono
-  // assenti upstream e vanno marcate (NOT IN () sarebbe SQL invalido).
-  if (norishItemIds.length === 0) {
-    const all = await db.execute(sql`
-      UPDATE diary_entries
-      SET norish_deleted = true, updated_at = now()
-      WHERE user_id = ${userId}::uuid
-        AND source = 'norish_sync'
-        AND norish_deleted = false
-      RETURNING id
-    `);
-    return countRows(all);
-  }
+  // Empty upstream windows are not evidence of removal.
+  if (norishItemIds.length === 0) return 0;
   const placeholders = sql.join(
     norishItemIds.map((id) => sql`${id}::uuid`),
     sql`, `,
   );
+  const windowFilter =
+    options.windowStart !== undefined
+      ? sql` AND date >= ${options.windowStart}::date`
+      : sql``;
+  const windowEndFilter =
+    options.windowEnd !== undefined
+      ? sql` AND date <= ${options.windowEnd}::date`
+      : sql``;
   const marked = await db.execute(sql`
     UPDATE diary_entries
     SET norish_deleted = true, updated_at = now()
     WHERE user_id = ${userId}::uuid
       AND source = 'norish_sync'
       AND norish_deleted = false
-      AND norish_item_id NOT IN (${placeholders})
+      AND norish_item_id NOT IN (${placeholders})${windowFilter}${windowEndFilter}
     RETURNING id
   `);
   return countRows(marked);
@@ -116,9 +127,27 @@ function countRows(result: unknown): number {
   return withRows?.rows?.length ?? 0;
 }
 
+/**
+ * Contratto minimo per mirrorRecipe: insert/update drizzle core (query builder)
+ * su QUALSIASI client drizzle — full Db lega al solo driver postgres.js e
+ * incompatibilizza PGlite (stesso principio di SqlExecutor sopra).
+ */
+export interface MirrorExecutor {
+  insert(table: PgTable): {
+    values(values: Record<string, unknown>): {
+      onConflictDoUpdate(config: {
+        target: PgColumn;
+        set: Record<string, unknown>;
+      }): {
+        returning(fields: Record<string, PgColumn>): Promise<Array<Record<string, unknown>>>;
+      };
+    };
+  };
+}
+
 /** Mirror della ricetta norish: snapshot JSONB completo, idempotente su norish_recipe_id (ADR-0005). */
 export async function mirrorRecipe(
-  db: Db,
+  db: MirrorExecutor,
   recipe: RecipeDetail,
   kcalPerServingFallback: number | null,
 ): Promise<string | null> {
@@ -143,7 +172,8 @@ export async function mirrorRecipe(
       set: values,
     })
     .returning({ id: recipes.id });
-  return upserted[0]?.id ?? null;
+  const first = upserted[0] as { id?: unknown } | undefined;
+  return typeof first?.id === "string" ? first.id : null;
 }
 
 /** Avvia un run sync per audit/circuit-breaker (§ 5.5): restituisce l'id del run. */
@@ -162,10 +192,11 @@ export async function finishSyncRun(
   status: "ok" | "error" | "partial",
   itemsUpserted: number,
   errorMessage: string | null,
+  reason: "auth" | null = null,
 ): Promise<void> {
   await db
     .update(norishSyncRuns)
-    .set({ status, itemsUpserted, errorMessage, finishedAt: new Date() })
+    .set({ status, itemsUpserted, errorMessage, reason, finishedAt: new Date() })
     .where(eq(norishSyncRuns.id, runId));
 }
 
@@ -220,6 +251,7 @@ export async function listSyncedEntries(db: Db, userId: string, limit = 50) {
     .limit(limit);
 }
 
-export function sumKcal(entries: { kcal: number | null }[]): number {
-  return entries.reduce((total, entry) => total + (entry.kcal ?? 0), 0);
+export function sumKcal(entries: { kcal: number | null; entryType?: string; servings?: string | number | null }[]): number {
+  return entries.reduce((total, entry) => total + (entry.kcal ?? 0) *
+    (entry.entryType === "recipe" ? Number(entry.servings ?? 1) : 1), 0);
 }
