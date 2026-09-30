@@ -1,6 +1,27 @@
 """Offline deployment contract; runtime checks live in smoke.py."""
 from pathlib import Path
 import unittest
+import os
+import subprocess
+import tempfile
+
+
+class EntrypointTests(unittest.TestCase):
+    def test_optional_api_key_normalization(self):
+        # Replace only the final node executable: exercise the real shell entrypoint.
+        with tempfile.TemporaryDirectory() as directory:
+            node = Path(directory) / 'node'
+            node.write_text('#!/bin/sh\nif [ "${NORISH_API_KEY+x}" = x ]; then printf "set:%s" "$NORISH_API_KEY"; else printf unset; fi\n')
+            node.chmod(0o700)
+            for value in [None, '', 'fixture-only-api-key']:
+                with self.subTest(value=value):
+                    env = {**os.environ, 'PATH': directory + os.pathsep + os.environ['PATH']}
+                    env.pop('NORISH_API_KEY', None)
+                    if value is not None:
+                        env['NORISH_API_KEY'] = value
+                    result = subprocess.run(['sh', str(ROOT / 'docker/entrypoint.sh')],
+                                            env=env, capture_output=True, text=True, check=True)
+                    self.assertEqual(result.stdout, 'set:' + value if value else 'unset')
 
 ROOT = Path(__file__).resolve().parents[2]
 
