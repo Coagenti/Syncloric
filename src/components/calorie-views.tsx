@@ -1,4 +1,4 @@
-import { dailySummary, formatDate, monthDays, slotLabels, slots, type DiaryEntry, type Slot } from "@/lib/diary";
+import { dailySummary, formatDate, monthDays, slotLabels, slots, type DiaryEntry } from "@/lib/diary";
 
 const number = (value: number) => new Intl.NumberFormat("it-IT").format(value);
 const sourceLabel = (entry: DiaryEntry) => entry.source === "norish_sync" ? "Da norish" : "Manuale";
@@ -24,15 +24,15 @@ export function DashboardView({ entries, date, target }: { entries: DiaryEntry[]
   </div>;
 }
 
-export function DiaryView({ entries, date, onEdit, onAdd }: { entries: DiaryEntry[]; date: string; onEdit: (entry: DiaryEntry) => void; onAdd: (slot: Slot) => void }) {
+export function DiaryView({ entries, date }: { entries: DiaryEntry[]; date: string }) {
   const today = entries.filter((entry) => entry.date === date);
   return <div className="view-stack"><div className="eyebrow"><span className="signal-dot" /> REGISTRO / {date}</div><div className="view-title"><div><h1>Diario<span className="title-punctuation">.</span></h1><p>Ogni pasto, al suo posto.</p></div><span className="view-index">02 / 03</span></div>
     <div className="diary-banner"><span className="section-kicker">DATA SELEZIONATA</span><strong>{formatDate(date)}</strong><span>{today.length} {today.length === 1 ? "voce" : "voci"}</span></div>
-    {today.length === 0 && <p className="empty-note">Nessuna voce per questa data. Aggiungi un pasto.</p>}
+    {today.length === 0 && <p className="empty-note">Nessuna voce per questa data.</p>}
     <div className="diary-groups">{slots.map((slot, index) => {
       const group = today.filter((entry) => entry.slot === slot);
-      return <section className="diary-group" key={slot} aria-label={slotLabels[slot]}><div className="diary-group-head"><div><span className="meal-index">0{index + 1} / PASTO</span><h2>{slotLabels[slot]}</h2></div><button className="text-action" type="button" onClick={() => onAdd(slot)}>+ Aggiungi voce</button></div>
-        {group.length ? group.map((entry) => <article key={entry.id} className="entry-row"><div className="entry-icon" aria-hidden="true">{entry.entryType === "recipe" ? "✳" : "◈"}</div><div className="entry-main"><strong>{entry.name}</strong><span>{entry.entryType === "recipe" ? `${entry.servings ?? 1} porzioni` : `${entry.quantityGrams ?? 0} g`} <span aria-hidden="true">·</span> <span className={entry.source === "norish_sync" ? "origin imported" : "origin"}>{sourceLabel(entry)}</span>{entry.norishDeleted && " · Rimossa su norish"}</span></div><div className="entry-energy">{entry.kcal === null ? <span>kcal non definite</span> : <><strong>{number(entry.kcal)}</strong><span>kcal</span></>}</div><button className="edit-action" type="button" onClick={() => onEdit(entry)} aria-label={`Modifica ${entry.name}`}>Modifica</button></article>) : <p className="empty-slot">Nessuna voce in questo pasto.</p>}
+      return <section className="diary-group" key={slot} aria-label={slotLabels[slot]}><div className="diary-group-head"><div><span className="meal-index">0{index + 1} / PASTO</span><h2>{slotLabels[slot]}</h2></div></div>
+        {group.length ? group.map((entry) => <article key={entry.id} className="entry-row"><div className="entry-icon" aria-hidden="true">{entry.entryType === "recipe" ? "✳" : "◈"}</div><div className="entry-main"><strong>{entry.name}</strong><span>{entry.entryType === "recipe" ? `${entry.servings ?? 1} porzioni` : `${entry.quantityGrams ?? 0} g`} <span aria-hidden="true">·</span> <span className={entry.source === "norish_sync" ? "origin imported" : "origin"}>{sourceLabel(entry)}</span>{entry.norishDeleted && " · Rimossa su norish"}</span></div><div className="entry-energy">{entry.kcal === null ? <span>kcal non definite</span> : <><strong>{number(entry.kcal)}</strong><span>kcal</span></>}</div></article>) : <p className="empty-slot">Nessuna voce in questo pasto.</p>}
       </section>;
     })}</div>
   </div>;

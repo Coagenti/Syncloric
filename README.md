@@ -69,30 +69,32 @@ l'entrypoint elimina valori vuoti prima del bootstrap. Dettagli in
 Health check: `GET /api/health` (app) e `GET /api/v1/health` (app + database,
 pattern norish § 5.1).
 
-## Interfaccia diario (demo locale)
+## Interfaccia diario (dati reali)
 
-Apri `/dashboard` (oppure `/`, che reindirizza alla dashboard), `/diary` e
-`/calendar`. Le tre viste sono mobile-first: totale kcal note e riepilogo dei
-quattro pasti, registro giornaliero con aggiunta/modifica manuale, calendario
-con i pasti marcati come importati. Seleziona il 29 settembre 2026 per vedere
-il set completo di dati dimostrativi; altri giorni contengono esempi limitati o
-nessuna voce. L'obiettivo calorico resta non configurato: non sono mostrate
-kcal residue finché il profilo reale non fornisce un target.
+`/dashboard`, `/diary` e `/calendar` leggono `GET /api/v1/diary?month=YYYY-MM`:
+la query richiede una sessione Better Auth valida (401 senza cookie) e filtra
+`diary_entries` e l'ultima run di sync per l'utente corrente. Non espone chiavi né
+messaggi upstream grezzi; la risposta è `private, no-store`. La data «Oggi» è
+quella locale del browser; il selettore carica il mese della data scelta. Kcal
+Norish sono per porzione, moltiplicate per le porzioni locali per la vista;
+le voci senza kcal non entrano nel totale. L'obiettivo viene dal profilo, se presente.
 
-**Questa UI non è ancora connessa all'API/DB:** dati importati e manuali sono mock,
-nessun pulsante esegue una sincronizzazione con norish. Le modifiche tentano
-il salvataggio esclusivamente nel `localStorage` di questo
-browser (`syncloric-demo-diary-v1`), non sono multiutente né sincronizzate:
-possono andare perse cancellando i dati del browser. Se lo storage è negato o
-esaurito, la voce resta visibile nella sessione ma un avviso indica esplicitamente
-che non è stata salvata: non sopravvive al ricaricamento. La pagina «Oggi» apre
-la data locale corrente; il selettore permette di consultare i mock storici.
-Non usare la demo come diario affidabile. L'integrazione reale e la
-protezione dei dati tramite sessione sono demandate al task `t_ee2705d5`.
+La UI non usa più localStorage o dati dimostrativi. Non offre inserimento/modifica
+finché manca un'API di scrittura autenticata: è un limite dichiarato, non un
+salvataggio simulato. Se l'ultima run fallisce per autenticazione, la dashboard
+mostra l'origine configurata e invita a riassociare consapevolmente la chiave in
+Impostazioni; non cambia o cancella credenziali. L'avviso non è `hostChanged`.
 
-L'interfaccia grafica e i testi di demo sono stati generati con assistenza AI;
-la revisione umana del Technical Lead e del Marketing Lead è prevista prima del
-rilascio. I dati di esempio non rappresentano consigli nutrizionali.
+**Prerequisito per la prova interattiva:** una sessione utente valida. Il backend
+auth è disponibile in `/api/auth`, ma questo branch non implementa la pagina
+`/login` né il bootstrap del primo admin: non usare il link di accesso come
+prova di registrazione completata. Lo smoke automatizzato su PGlite verifica la
+proiezione per-utente; il collaudo browser con sessione vera e il deploy su
+syncloric-test richiedono la feature auth e la review dei branch base.
+
+L'interfaccia grafica è stata generata con assistenza AI; integrazione e test sono
+stati implementati dall'agente sviluppatore. Revisione umana Technical Lead e
+Marketing Lead prevista prima del rilascio. I dati non sono consigli nutrizionali.
 
 ## Test
 
@@ -121,7 +123,9 @@ cp docker/.env.example docker/.env
 # NORISH_BASE_URL è opzionale: valorizzarla con l'URL assoluto scelto
 # oppure ometterla/lasciarla vuota per avviare senza Norish.
 # Il deployer fornisce dal vault, in ambiente o nello stesso .env protetto:
-# POSTGRES_PASSWORD, BETTER_AUTH_SECRET, ENCRYPTION_KEY.
+# POSTGRES_PASSWORD, BETTER_AUTH_SECRET, ENCRYPTION_KEY e (per sync) NORISH_API_KEY.
+# Non riportare il valore della chiave nel README, nei comandi o nei log.
+# L'API key del brief originale è revocata: usare soltanto quella corrente dal vault.
 chmod 600 docker/.env
 export SYNCLORIC_IMAGE=syncloric:release-local
 docker compose -f docker/docker-compose.yml --env-file docker/.env -p syncloric-a build app

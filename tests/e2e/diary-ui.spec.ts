@@ -1,76 +1,37 @@
 import { test, expect } from "@playwright/test";
 
 const origin = "http://127.0.0.1:3177";
-const key = "syncloric-demo-diary-v1";
+const meal = { id: "meal-1", date: "2026-09-29", slot: "Lunch", entryType: "recipe", name: "Ricetta Norish", quantityGrams: null, servings: 1, kcal: 458, protein: null, fat: null, carbs: null, source: "norish_sync", norishDeleted: false };
 
 test.beforeEach(async ({ page }) => {
-  await page.clock.setFixedTime(new Date("2026-11-05T12:00:00"));
+  await page.clock.setFixedTime(new Date("2026-09-29T12:00:00"));
 });
 
-test("Oggi selects the local current day on first visit and after navigating from history", async ({ page }) => {
-  await page.goto(`${origin}/dashboard`);
-  await expect(page.getByLabel("Seleziona data")).toHaveValue("2026-11-05");
-  await page.getByLabel("Seleziona data").fill("2026-09-29");
-  await expect(page.getByText("Yogurt greco e mirtilli")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Riepilogo del giorno." })).toBeVisible();
-  await page.getByRole("link", { name: "Diario" }).first().click();
-  await expect(page.getByRole("heading", { name: "Diario." })).toBeVisible();
-  await expect(page.getByLabel("Seleziona data")).toHaveValue("2026-09-29");
-  await page.getByRole("link", { name: "Oggi" }).first().click();
-  await expect(page.getByRole("heading", { name: "Riepilogo del giorno." })).toBeVisible();
-  await expect(page.getByLabel("Seleziona data")).toHaveValue("2026-11-05");
-});
-
-test("manual add, validation and edit persist after reload", async ({ page }) => {
-  await page.goto(`${origin}/diary`);
-  await page.getByRole("button", { name: "Oggi" }).click();
-  await expect(page.getByLabel("Seleziona data")).toHaveValue("2026-11-05");
-  await page.getByRole("region", { name: "Colazione" }).getByRole("button", { name: "Aggiungi voce" }).click();
-  const dialog = page.getByRole("dialog");
-  await dialog.getByLabel("Nome del cibo o della ricetta").fill("Avena");
-  await dialog.getByLabel("Quantità (g o porzioni)").fill("-1");
-  await dialog.getByLabel("Kcal totali").fill("190");
-  await dialog.getByRole("button", { name: "Salva voce" }).click();
-  await expect(dialog).toBeVisible();
-  await dialog.getByLabel("Quantità (g o porzioni)").fill("50");
-  await dialog.getByRole("button", { name: "Salva voce" }).click();
-  await expect(page.getByRole("status")).toContainText("Modifiche salvate in questo browser");
-  await page.getByRole("button", { name: "Modifica Avena" }).click();
-  await dialog.getByLabel("Nome del cibo o della ricetta").fill("Avena integrale");
-  await dialog.getByLabel("Kcal totali").fill("205");
-  await dialog.getByRole("button", { name: "Salva voce" }).click();
-  await page.reload();
-  await expect(page.getByText("Avena integrale")).toBeVisible();
-  await expect(page.getByRole("region", { name: "Colazione" })).toContainText("205");
-});
-
-test("calendar selection shows imported meals for the selected date", async ({ page }) => {
+test("calendar → sync feed → dashboard and diary display real kcal without demo storage", async ({ page }) => {
+  await page.route("**/api/v1/diary?month=*", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ entries: [meal], sync: { status: "ok", reason: null, origin: null }, target: null }) }));
   await page.goto(`${origin}/calendar`);
-  await expect(page.getByLabel("Seleziona data")).toHaveValue("2026-11-05");
-  await page.getByLabel("Seleziona data").fill("2026-09-29");
-  await expect(page.getByRole("heading", { name: "settembre 2026" })).toBeVisible();
-  await page.getByRole("button", { name: /2 ottobre 2026, 1 pasti importati/ }).click();
-  await expect(page.getByLabel("Seleziona data")).toHaveValue("2026-10-02");
-  await expect(page.getByRole("region", { name: "Pasti importati nella data selezionata" })).toContainText("Insalata mediterranea");
+  await expect(page.getByRole("region", { name: "Pasti importati nella data selezionata" })).toContainText("458 kcal");
+  await page.getByRole("link", { name: "Oggi" }).first().click();
+  await expect(page.getByRole("region", { name: "Bilancio energetico" })).toContainText("458");
+  await page.getByRole("link", { name: "Diario" }).first().click();
+  await expect(page.getByRole("region", { name: "Pranzo" })).toContainText("Ricetta Norish");
+  await expect(page.getByRole("region", { name: "Pranzo" })).toContainText("458");
+  expect(await page.evaluate(() => localStorage.length)).toBe(0);
 });
 
-test("failed storage writes keep edits visible but never claim persistence", async ({ page }) => {
-  await page.addInitScript((storageKey) => {
-    const original = Storage.prototype.setItem;
-    Storage.prototype.setItem = function (name, value) {
-      if (name === storageKey) throw new DOMException("quota", "QuotaExceededError");
-      return original.call(this, name, value);
-    };
-  }, key);
-  await page.goto(`${origin}/diary`);
-  await page.getByRole("region", { name: "Colazione" }).getByRole("button", { name: "Aggiungi voce" }).click();
-  const dialog = page.getByRole("dialog");
-  await dialog.getByLabel("Nome del cibo o della ricetta").fill("Non persistito");
-  await dialog.getByLabel("Kcal totali").fill("0");
-  await dialog.getByRole("button", { name: "Salva voce" }).click();
-  await expect(page.getByText("Non persistito")).toBeVisible();
-  await expect(page.getByRole("status")).toContainText("non salvate nel browser");
-  await expect(page.getByRole("status")).not.toContainText("Modifiche salvate");
-  await page.reload();
-  await expect(page.getByText("Non persistito")).toHaveCount(0);
+test("auth failure shows reassociation link and does not mutate credentials", async ({ page }) => {
+  const writes: string[] = [];
+  page.on("request", (request) => { if (request.method() !== "GET") writes.push(`${request.method()} ${request.url()}`); });
+  await page.route("**/api/v1/diary?month=*", async (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ entries: [], sync: { status: "error", reason: "auth", origin: "https://norish.example.invalid" }, target: null }) }));
+  await page.goto(`${origin}/dashboard`);
+  await expect(page.locator('.demo-alert[role="alert"]')).toContainText("Norish ha rifiutato la chiave");
+  await expect(page.getByRole("link", { name: "Impostazioni" })).toHaveAttribute("href", "/settings");
+  expect(writes).toEqual([]);
+});
+
+test("anonymous browser never sees mock meals", async ({ page }) => {
+  await page.route("**/api/v1/diary?month=*", async (route) => route.fulfill({ status: 401, contentType: "application/json", body: '{"error":"Autenticazione richiesta"}' }));
+  await page.goto(`${origin}/dashboard`);
+  await expect(page.locator('p[role="alert"]')).toContainText("Accedi per visualizzare il tuo diario");
+  await expect(page.getByText("Ricetta Norish")).toHaveCount(0);
 });

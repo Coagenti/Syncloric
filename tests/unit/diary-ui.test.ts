@@ -36,11 +36,11 @@ describe("diario calorie", () => {
     expect(html).toContain("Spuntino");
     expect(html).toContain("Cena");
   });
-  it("renders dated diary entries with imported provenance and edit controls", () => {
-    const html = renderToStaticMarkup(createElement(DiaryView, { entries: demoEntries, date: "2026-09-29", onEdit: () => {}, onAdd: () => {} }));
+  it("renders dated diary entries with imported provenance and no unsupported edit controls", () => {
+    const html = renderToStaticMarkup(createElement(DiaryView, { entries: demoEntries, date: "2026-09-29" }));
     expect(html).toContain("Da norish");
-    expect(html).toContain("Modifica");
-    expect(html).toContain("Aggiungi voce");
+    expect(html).not.toContain("Modifica");
+    expect(html).not.toContain("Aggiungi voce");
   });
   it("renders imported meals in the calendar with navigable day links", () => {
     const html = renderToStaticMarkup(createElement(CalendarView, { entries: demoEntries, date: "2026-09-29", onSelect: () => {} }));
