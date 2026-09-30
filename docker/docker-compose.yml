@@ -27,7 +27,8 @@ services:
       DATABASE_URL: postgres://syncloric:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD richiesta (§ 6)}@db:5432/syncloric
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET richiesta (§ 6)}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY richiesta (§ 6)}
-      NORISH_BASE_URL: ${NORISH_BASE_URL:?NORISH_BASE_URL richiesta (§ 5.0, § 9.2)}
+      # Opzionale: assente/vuota => Norish disabilitato, nessun default (ADR-0007).
+      NORISH_BASE_URL: ${NORISH_BASE_URL-}
       # Opzionale (§ 5.4): entrypoint rimuove il valore vuoto prima del bootstrap;
       # lo schema applicativo continua a rifiutare chiavi presenti ma vuote.
       NORISH_API_KEY: ${NORISH_API_KEY-}

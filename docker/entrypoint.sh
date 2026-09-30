@@ -7,4 +7,10 @@
 if [ -z "${NORISH_API_KEY:-}" ]; then
   unset NORISH_API_KEY
 fi
+# Optional upstream: whitespace-only input means unset; preserve any explicit
+# value unchanged so the application still rejects malformed URLs fail-fast.
+case "${NORISH_BASE_URL:-}" in
+  *[![:space:]]*) ;;
+  *) unset NORISH_BASE_URL ;;
+esac
 exec node /app/server.js
