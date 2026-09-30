@@ -15,15 +15,28 @@ describe("bootstrap configuration", () => {
     resetEnvConfigCache();
   });
 
-  it.each([undefined, "", "   ", "not-a-url"])("rejects %j before startup side effects", async (value) => {
-    vi.stubEnv("NEXT_RUNTIME", "nodejs");
-    vi.stubEnv("NEXT_PHASE", "");
-    vi.stubEnv("NORISH_BASE_URL", value);
-    await expect(register()).rejects.toThrow(/ADR-0007/);
-    await expect(register()).rejects.toThrow(/NORISH_BASE_URL/);
-    expect(effects.migrate).not.toHaveBeenCalled();
-    expect(effects.schedule).not.toHaveBeenCalled();
-  });
+  it.each([undefined, "", "   ", "not-a-url"])(
+    "bootstrap con NORISH_BASE_URL=%j: solo i valori malformati fermano l'avvio",
+    async (value) => {
+      vi.stubEnv("NEXT_RUNTIME", "nodejs");
+      vi.stubEnv("NEXT_PHASE", "");
+      vi.stubEnv("NORISH_BASE_URL", value);
+      vi.stubEnv("DATABASE_URL", "postgres://localhost/syncloric_test");
+      vi.stubEnv("BETTER_AUTH_SECRET", "x".repeat(64));
+      vi.stubEnv("ENCRYPTION_KEY", "a".repeat(64));
+      const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+      if (value === "not-a-url") {
+        await expect(register()).rejects.toThrow(/ADR-0007/);
+        await expect(register()).rejects.toThrow(/NORISH_BASE_URL/);
+        expect(effects.migrate).not.toHaveBeenCalled();
+      } else {
+        // URL assente/vuoto/spazi: l'app parte (degradata), scheduler NON avviato.
+        await expect(register()).resolves.toBeUndefined();
+        expect(logSpy.mock.calls.some((args) => args.some((a) => String(a).includes("Norish disabilitato")))).toBe(true);
+      }
+      expect(effects.schedule).not.toHaveBeenCalled();
+    },
+  );
 
   it("loads process env at bootstrap and exposes it to the HTTP client", async () => {
     vi.stubEnv("NEXT_RUNTIME", "nodejs");
