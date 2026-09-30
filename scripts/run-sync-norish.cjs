@@ -19,6 +19,7 @@ build({
   target: "node22",
   format: "cjs",
   outfile: path.join(root, "node_modules/.cache/syncloric-sync-norish.cjs"),
+  packages: "external",
   external: ["pg-native", "pino-pretty"],
   alias: { "@": path.join(root, "src") },
   logLevel: "warning",

@@ -33,23 +33,22 @@ pnpm dev                  # http://localhost:3000
 
 All'avvio il bootstrap (`src/instrumentation.ts`) valida l'env: senza
 `DATABASE_URL`, `BETTER_AUTH_SECRET` o `ENCRYPTION_KEY` l'app non parte.
-`NORISH_BASE_URL` è opzionale e senza default: se assente o vuota l'app parte
-con Norish disabilitato e scheduler non avviato; un URL esplicitamente malformato
-resta un errore. Con URL env valido avvia lo scheduler in-process (ADR-0004).
+`NORISH_BASE_URL` è opzionale e senza default: l'app avvia lo scheduler
+in-process (ADR-0004) dopo le migrazioni; ogni tick salta Norish se l'URL
+effettivo non è configurato. Un URL env esplicitamente malformato resta un errore.
 
 ## Configurare l'URL Norish
 
 Via preferita: un amministratore autenticato apre Impostazioni (`/settings`),
-inserisce `https://norish.your.domain` nel campo Norish URL e preme Salva.
+inserisce l'URL HTTPS della propria istanza nel campo Norish URL e preme Salva.
 Il placeholder è `your norish url`: non è un valore di default. La GUI non
 precompila il valore env. Il valore salvato è globale per istanza e persistente
 nel DB, anche dopo ricaricamento o riavvio del database.
 
 In alternativa, nel file `.env` (sviluppo) oppure `docker/.env` (Compose):
 
-```dotenv
-NORISH_BASE_URL=https://norish.your.domain
-```
+Impostare `NORISH_BASE_URL` sull'origine HTTPS effettiva, senza slash finale;
+non usare valori di esempio come default di deployment.
 
 La configurazione risolve Impostazioni > .env > nessun URL. Salva con campo
 vuoto o Cancella rimuove l'override e ripristina l'eventuale .env. Senza entrambe
@@ -58,10 +57,12 @@ slash finale sull'host; HTTP è ammesso solo su localhost per sviluppo.
 La pagina è admin-only e non espone API key. Al cambio origine avvisa di
 verificare le chiavi Norish, senza migrarle automaticamente.
 
-Limite runtime attuale: il bootstrap avvia lo scheduler dalla sola env e il
-client non legge ancora l'override DB. Persistenza GUI e precedenza del resolver
-non dimostrano l'attivazione del sync tramite GUI: il collegamento runtime
-rimane lavoro dell'integrazione. Dettagli e limiti in
+Lo scheduler risolve GUI > env a ogni tick (ogni 30 minuti): salvare un URL
+attiva il sync al tick successivo senza riavvio; cambiare host reindirizza il
+successivo; cancellarlo disabilita il sync se non rimane l'env. Senza URL non
+registra run né contatta l'upstream. Il client non legge le settings: riceve
+l'URL effettivo dal runner. Compose passa URL assente/vuota senza default;
+l'entrypoint elimina valori vuoti prima del bootstrap. Dettagli in
 [Configurazione runtime](docs/configuration.md) e
 [Contratto Impostazioni](docs/NORISH-SETTINGS.md).
 
@@ -164,6 +165,16 @@ sempre fornita tramite variabile d'ambiente (`NORISH_API_KEY`, bootstrap/demo
 dell'istanza § 5.4) o come chiave per-utente salvata cifrata (AES-256-GCM, § 6.2) —
 sempre **mai committata nel repository**. Il `.gitignore` esclude i file `.env*`
 (ad eccezione di `.env.example`): nessun valore reale finisce nel repo.
+
+Per il trigger manuale, applicare prima `pnpm db:migrate` e poi
+`pnpm sync:norish --user <uuid> [--period week|month]` con `DATABASE_URL`,
+`BETTER_AUTH_SECRET`, `ENCRYPTION_KEY` e `NORISH_API_KEY` dall'env sicuro
+(oppure chiave cifrata per-utente). Il comando usa l'URL GUI > env della run;
+`month` è il backfill esplicito, `week` è l'incrementale (settimana server +
+oggi). Non passare chiavi in argv. Il primo account è il solo destinatario del
+fallback demo `NORISH_API_KEY`; gli altri richiedono chiavi per-utente. Le run
+sono auditabili in `norish_sync_runs` (`status`, `reason='auth'` su 401/403),
+senza modifiche automatiche alle credenziali.
 
 ## Sviluppo
 

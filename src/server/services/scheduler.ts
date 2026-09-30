@@ -34,13 +34,13 @@ function rows(result: unknown): Record<string, unknown>[] {
 }
 
 /** Il fallback demo è assegnato solo all'utente bootstrap, mai a tutti gli utenti. */
-export function resolveNorishClient(config: SyncloricConfig, setting: { key: string; value: unknown } | undefined): NorishClient | null {
+export function resolveNorishClient(config: SyncloricConfig, setting: { key: string; value: unknown } | undefined, demoAllowed = true): NorishClient | null {
   if (setting !== undefined) {
     const encrypted = setting.value as { ciphertext?: string } | null;
     if (typeof encrypted?.ciphertext !== "string") return null;
     return new NorishClient({ baseUrl: config.NORISH_BASE_URL, apiKey: decryptSecret(encrypted.ciphertext, config.ENCRYPTION_KEY) });
   }
-  return config.NORISH_API_KEY ? new NorishClient({ baseUrl: config.NORISH_BASE_URL, apiKey: config.NORISH_API_KEY }) : null;
+  return demoAllowed && config.NORISH_API_KEY ? new NorishClient({ baseUrl: config.NORISH_BASE_URL, apiKey: config.NORISH_API_KEY }) : null;
 }
 
 const defaults: SchedulerDeps = {

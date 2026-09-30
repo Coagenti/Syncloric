@@ -3,8 +3,8 @@
 ## URL Norish: Impostazioni (via preferita) oppure .env
 
 Non esiste alcun URL di default. Un amministratore autenticato può aprire
-Impostazioni (`/settings`), inserire un URL completo come
-`https://norish.your.domain` nel campo Norish URL e premere Salva.
+Impostazioni (`/settings`), inserire l'URL HTTPS completo della propria
+istanza nel campo Norish URL e premere Salva.
 Il placeholder `your norish url` è soltanto un suggerimento: non è un valore
 precompilato né un indirizzo valido da salvare. Il valore è globale per istanza
 ed è persistito nel database in `admin_settings['norish.base_url']`;
@@ -12,9 +12,8 @@ ricaricare la pagina o riaprire il database non lo cancella.
 
 In alternativa, impostare nel file `.env` di sviluppo:
 
-```dotenv
-NORISH_BASE_URL=https://norish.your.domain
-```
+Assegnare a `NORISH_BASE_URL` l'origine HTTPS reale (senza slash finale).
+Nessun host di esempio è un valore di default.
 
 Next.js carica il file nel proprio ambiente. Nei deploy Compose usare
 `docker/.env` con `--env-file` (vedi README). Non è necessario ricostruire
@@ -48,7 +47,9 @@ L'API key non si configura in questo campo e non è restituita dalla settings AP
 Queste variabili restano obbligatorie. La decisione utente/TL sulle card
 `t_797de62f` e `t_2bd5557f` supera la precedente prescrizione ADR-0007 di
 fail-fast sull'URL assente: `NORISH_BASE_URL` assente/vuota/spazi non impedisce
-l'avvio; il bootstrap segnala Norish disabilitato e non avvia lo scheduler.
+l'avvio; lo scheduler si avvia dopo il tentativo di migrazioni, ma ogni tick
+salta il sync quando non c'è un URL effettivo. Se le migrazioni non sono
+applicate, il tick esce con log senza run né egress.
 Il template `docker/docker-compose.yml` è allineato: usa
 `${NORISH_BASE_URL-}`, senza default e senza URL incorporati. Con `--env-file`
 il valore assente o vuoto è passato come stringa vuota; `docker/entrypoint.sh`
@@ -58,12 +59,15 @@ non è normalizzato a unset e continua a impedire l'avvio. Non occorre inserire
 un URL fittizio per avviare lo stack senza Norish. Le altre variabili obbligatorie
 restano richieste da Compose e dal bootstrap.
 
-Limite attuale: il bootstrap decide l'avvio dello scheduler dalla sola env,
-non legge l'override DB. Il client riceve un `baseUrl` dal chiamante, non legge autonomamente le settings.
-Il salvataggio GUI e la precedenza del resolver sono
-implementati, ma non equivalgono ancora all'applicazione dell'override nel
-flusso sync. Non promettere attivazione o cambio upstream del sync tramite
-GUI fino al completamento del relativo collegamento runtime.
+Il tick legge `admin_settings['norish.base_url']` e risolve GUI > env > unset
+prima di selezionare utenti o avviare run. Un URL GUI-only attiva il sync al
+tick successivo (massimo 30 minuti); un cambio host cambia il target del tick
+successivo; svuotare/cancellare disabilita in assenza di env. Un override
+malformato viene ignorato in favore della env. Il runner riceve l'URL risolto:
+il client non accede alle settings. Un 401/403 registra `status=error` e
+`reason=auth`, senza retry o modifica delle credenziali; rete/5xx sono errori
+generici. La UI può leggere l'ultima run lato server (l'avviso in pagina è
+oggetto di una card separata).
 
 L'ambiente è cached per processo: una modifica .env richiede riavvio del server;
 con Compose usare `up -d --no-build`, non `restart` (conserva il vecchio env).
@@ -78,7 +82,7 @@ eseguono il bootstrap; si può costruire l'immagine senza segreti di deployment.
   senza URL/con URL valido, cinque deployment sulla stessa immagine e log
   `Norish disabilitato` nei casi senza URL; nessuna API upstream reale.
 - `pnpm test:unit`: vero file .env temporaneo tramite dotenv, URL presente,
-  assente e vuoto, precedenza GUI e bootstrap senza URL/scheduler disabilitato.
+  assente e vuoto, precedenza GUI e bootstrap sempre attivo con gating nel tick.
 - `pnpm test:integration`: API admin-only, persistenza DB e rimozione override.
 - `pnpm exec playwright install chromium` e `pnpm test:settings-browser`:
   componente React reale, handler HTTP reali, PGlite su disco; salvataggio,

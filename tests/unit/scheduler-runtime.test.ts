@@ -26,6 +26,13 @@ beforeEach(() => {
   resetEnvConfigCache();
 });
 describe("scheduler runtime URL and auth", () => {
+  it("manual fallback must not fan out demo env key to a different user", async () => {
+    const { resolveNorishClient } = await import("@/server/services/scheduler");
+    const { loadEnvConfig } = await import("@/server/config");
+    const config = { ...loadEnvConfig(), NORISH_BASE_URL: "https://gui.example" };
+    expect(resolveNorishClient(config, undefined, false)).toBeNull();
+    expect(resolveNorishClient(config, undefined, true)).not.toBeNull();
+  });
   it("GUI only activates tick; host changes on next tick; clearing skips before breaker or run", async () => {
     const { runSchedulerTick } = await import("@/server/services/scheduler");
     const d = deps();

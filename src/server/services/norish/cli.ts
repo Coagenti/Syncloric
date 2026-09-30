@@ -30,7 +30,9 @@ async function main(): Promise<void> {
   const config = { ...loadEnvConfig(), NORISH_BASE_URL: baseUrl };
   const settingRows = await db.execute(sql`SELECT key, value FROM admin_settings WHERE key = ${`norish.key.${userId}`} LIMIT 1`);
   const setting = Array.isArray(settingRows) ? settingRows[0] : (settingRows as { rows?: Array<{ key: string; value: unknown }> }).rows?.[0];
-  const client = resolveNorishClient(config, setting as { key: string; value: unknown } | undefined);
+  const firstRows = await db.execute(sql`SELECT id FROM users ORDER BY created_at, id LIMIT 1`);
+  const firstId = (Array.isArray(firstRows) ? firstRows[0] : (firstRows as { rows?: Array<{ id: string }> }).rows?.[0])?.id;
+  const client = resolveNorishClient(config, setting as { key: string; value: unknown } | undefined, firstId === userId);
   if (!client) throw new Error("chiave Norish non disponibile per l'utente richiesto");
   const runId = await startSyncRun(db, userId);
   try {

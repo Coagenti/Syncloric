@@ -1,6 +1,6 @@
 import { sql, type SQL } from "drizzle-orm";
 import { upsertDiaryEntry, markDeletedNorishEntries, mirrorRecipe } from "./sync";
-import type { PlannedRecipe, RecipeDetail } from "./client";
+import { NorishApiError, type PlannedRecipe, type RecipeDetail } from "./client";
 
 /**
  * Sync engine runner § 5.4 — orchestrates fetch→mirror→upsert→mark per user,
@@ -103,7 +103,10 @@ export async function runNorishSync(options: {
         const week = await client.getPlannedRecipesWeek();
         try {
           payload = [...week, ...(await client.getPlannedRecipesToday())];
-        } catch {
+        } catch (error) {
+          // Auth non è un fetch parziale recuperabile: deve arrivare al run
+          // come reason=auth anche se /week aveva già risposto 200.
+          if (error instanceof NorishApiError && (error.status === 401 || error.status === 403)) throw error;
           // fetch parziale: i dati settimana restano validi, ma NON è un payload
           // completo → nessuna marca norish_deleted su questo run (§ 5.5).
           partial = true;

@@ -129,6 +129,19 @@ describe("runNorishSync — runner engine (§ 5.4, decisioni 30/9)", () => {
     expect(changed).toEqual({ imported: 0, updated: 1, skipped: 0, marked: 0 });
   });
 
+  it("updates kcal-only changes and remains idempotent with fractional local servings", async () => {
+    await runNorishSync({ db, userId: U1, client: makeClient([item()]) });
+    await db.execute(sql`UPDATE diary_entries SET servings = 0.5 WHERE user_id = ${U1}::uuid AND norish_item_id = ${ITEM}::uuid`);
+    const changed = makeClient([item({ calories: 500 })]);
+    expect((await runNorishSync({ db, userId: U1, client: changed })).updated).toBe(1);
+    const before = await db.execute(sql`SELECT kcal, servings::text AS s, updated_at FROM diary_entries WHERE user_id = ${U1}::uuid AND norish_item_id = ${ITEM}::uuid`);
+    expect((await rows(before))[0].kcal).toBe(500); // kcal per porzione, non × servings
+    const again = await runNorishSync({ db, userId: U1, client: changed });
+    expect(again.updated).toBe(0);
+    const after = await db.execute(sql`SELECT kcal, servings::text AS s, updated_at FROM diary_entries WHERE user_id = ${U1}::uuid AND norish_item_id = ${ITEM}::uuid`);
+    expect((await rows(after))[0]).toEqual((await rows(before))[0]);
+  });
+
   it("marks only when payload CHANGED from prior state (norish_deleted restore counts as updated)", async () => {
     await runNorishSync({ db, userId: U1, client: makeClient([item()], { recipes: { [R]: recipeDetail(R) } }) });
     // item disappears from a NON-EMPTY later payload → marked
@@ -189,7 +202,7 @@ describe("runNorishSync — runner engine (§ 5.4, decisioni 30/9)", () => {
     const q = await db.execute(sql`SELECT servings::text AS s, kcal FROM diary_entries WHERE user_id = ${U1}::uuid AND norish_item_id = ${ITEM}::uuid`);
     const row = (await rows(q))[0];
     expect(Number(row.s)).toBe(0.5);
-    expect(row.kcal).toBe(229);
+    expect(row.kcal).toBe(458);
   });
 
   it("owner-override entries (source='manual') untouched", async () => {

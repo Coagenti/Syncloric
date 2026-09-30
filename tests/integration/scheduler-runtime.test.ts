@@ -4,6 +4,7 @@ import { makeTestDb, resetTables, closeTestDb, type TestDb } from "./setup";
 import { runSchedulerTick } from "@/server/services/scheduler";
 import { NorishClient } from "@/server/services/norish/client";
 import { resetEnvConfigCache, NORISH_SETTINGS_KEY } from "@/server/config";
+import { encryptSecret } from "@/server/services/norish/crypto";
 
 const USER = "11111111-1111-4111-8111-111111111111";
 const KEY = "fixture-key-never-in-logs";
@@ -73,4 +74,43 @@ describe("scheduler with persisted GUI setting and HTTP mocked", () => {
     expect(rows(await db.execute(sql`SELECT value FROM admin_settings WHERE key=${NORISH_SETTINGS_KEY}`))[0].value).toBe("https://gui.example");
     log.mockRestore();
   }, 40000);
+  it("401 only on today after successful week is still auth (not partial)", async () => {
+    await db.execute(sql`INSERT INTO admin_settings (key,value) VALUES (${NORISH_SETTINGS_KEY}, ${JSON.stringify("https://gui.example")}::jsonb)`);
+    fetchMock = vi.fn(async (input: string | URL | Request) =>
+      new Response(String(input).endsWith("/today") ? JSON.stringify({ message: "unauthorized" }) : "[]",
+        { status: String(input).endsWith("/today") ? 401 : 200 })) as typeof fetch;
+    await runSchedulerTick(new Date(), { db: db as never, deps: deps() });
+    const last = rows(await db.execute(sql`SELECT status, reason FROM norish_sync_runs ORDER BY started_at DESC LIMIT 1`))[0];
+    expect(last).toMatchObject({ status: "error", reason: "auth" });
+  });
+  it("encrypted per-user key remains unchanged after 403 auth failure", async () => {
+    const ciphertext = encryptSecret(KEY, "a".repeat(64));
+    await db.execute(sql`INSERT INTO admin_settings (key,value) VALUES (${NORISH_SETTINGS_KEY}, ${JSON.stringify("https://gui.example")}::jsonb),
+      (${`norish.key.${USER}`}, ${JSON.stringify({ ciphertext })}::jsonb)`);
+    code = 403;
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      await runSchedulerTick(new Date(), { db: db as never });
+      const last = rows(await db.execute(sql`SELECT status, reason, error_message FROM norish_sync_runs ORDER BY started_at DESC LIMIT 1`))[0];
+      expect(last).toMatchObject({ status: "error", reason: "auth" });
+      expect(JSON.stringify(last)).not.toContain(KEY);
+      expect(rows(await db.execute(sql`SELECT value FROM admin_settings WHERE key=${`norish.key.${USER}`}`))[0].value).toEqual({ ciphertext });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+  it("env demo key gets auth classification on first account only", async () => {
+    code = 401;
+    await db.execute(sql`INSERT INTO admin_settings (key,value) VALUES (${NORISH_SETTINGS_KEY}, ${JSON.stringify("https://gui.example")}::jsonb)`);
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      expect(await runSchedulerTick(new Date(), { db: db as never })).toHaveLength(1);
+      const last = rows(await db.execute(sql`SELECT status, reason, error_message FROM norish_sync_runs ORDER BY started_at DESC LIMIT 1`))[0];
+      expect(last).toMatchObject({ status: "error", reason: "auth" });
+      expect(JSON.stringify(last)).not.toContain(KEY);
+      expect(process.env.NORISH_API_KEY).toBe(KEY);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

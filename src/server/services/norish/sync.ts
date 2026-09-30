@@ -41,9 +41,8 @@ export interface SyncResult {
 /**
  * Insert … ON CONFLICT (user_id, norish_item_id) WHERE norish_item_id IS NOT NULL
  * (ADR-0008) con semantica kcal DECISIONE UTENTE 30/9:
- * - kcal = EXCLUDED.kcal (kcal PER PORZIONE) × servings LOCALI correnti, arrotondati
- *   con Math.round esplicito (colonna int preesistente: comportamento intero
- *   preservato, nessuna modifica di schema; niente moltiplicazioni upstream);
+ * - kcal = EXCLUDED.kcal PER PORZIONE, già arrotondate dal runner; le servings
+ *   locali sono applicate solo al totale in sumKcal (mai due volte);
  * - servings NON compaiono nella SET-list: il sync non tocca MAI le porzioni
  *   locali (seed 1 solo all'import, l'utente può averle frazionarie es. 0.5);
  * - norish_deleted torna false appena l'item è nel payload (restore);
@@ -73,15 +72,12 @@ export async function upsertDiaryEntry(
     DO UPDATE SET
       date = EXCLUDED.date,
       slot = EXCLUDED.slot,
-      kcal = CASE WHEN EXCLUDED.kcal IS NULL THEN NULL
-                  ELSE ROUND(EXCLUDED.kcal * diary_entries.servings)::int END,
+      kcal = EXCLUDED.kcal,
       recipe_id = EXCLUDED.recipe_id,
       norish_deleted = false,
       updated_at = now()
     WHERE diary_entries.source = 'norish_sync'
-      AND (ROUND(CASE WHEN EXCLUDED.kcal IS NULL THEN NULL
-                      ELSE EXCLUDED.kcal * diary_entries.servings END)::int,
-           diary_entries.recipe_id, diary_entries.date, diary_entries.slot,
+      AND (diary_entries.kcal, diary_entries.recipe_id, diary_entries.date, diary_entries.slot,
            diary_entries.norish_deleted) IS DISTINCT FROM
           (EXCLUDED.kcal, EXCLUDED.recipe_id, EXCLUDED.date, EXCLUDED.slot, false)
   `);
