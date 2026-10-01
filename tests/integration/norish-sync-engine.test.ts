@@ -9,8 +9,8 @@ import type { PlannedRecipe } from "@/server/services/norish/client";
  * - upsert con seed servings=1 SOLO all'importazione, mai sovrascritto;
  * - kcal = calories PER PORZIONE (round esplicito su colonna int);
  * - conteggio imported (INSERT) vs updated (UPDATE), no spuri quando nulla cambia;
- * - marca norish_deleted SOLO norish_sync stesso utente nella finestra osservata;
- * - payload vuoto/non valido o fetch parziale → nessuna marca;
+ * - marca norish_deleted SOLO norish_sync stesso utente nella partizione calendario;
+ * - payload vuoto senza TZ upstream o fetch parziale → nessuna marca;
  * - owner-override (source='manual') e altri utenti intoccabili;
  * - restore norish_deleted quando l'item torna nel payload.
  */
@@ -83,6 +83,16 @@ describe("runNorishSync — runner engine (§ 5.4, decisioni 30/9)", () => {
   async function rows(q: Awaited<ReturnType<TestDb["execute"]>>): Promise<Array<Record<string, unknown>>> {
     return (q as unknown as { rows?: Array<Record<string, unknown>> }).rows ?? (q as unknown as Array<Record<string, unknown>>);
   }
+
+  it("gap antico: removal of Monday is marked even when only Thursday remains", async () => {
+    await runNorishSync({ db, userId: U1, client: makeClient([
+      item({ date: "2026-09-28" }), item({ id: ITEM2, date: "2026-10-01" }),
+    ]) });
+    const result = await runNorishSync({ db, userId: U1, client: makeClient([
+      item({ id: ITEM2, date: "2026-10-01" }),
+    ]) });
+    expect(result.marked).toBe(1);
+  });
 
   it("imports week payload, seeds servings=1, imports kcal per serving, mirrors recipe", async () => {
     const res = await runNorishSync({
@@ -162,6 +172,23 @@ describe("runNorishSync — runner engine (§ 5.4, decisioni 30/9)", () => {
     expect(restored.updated).toBe(1);
     const delQ2 = await db.execute(sql`SELECT norish_deleted AS deleted FROM diary_entries WHERE user_id = ${U1}::uuid AND norish_item_id = ${ITEM}::uuid`);
     expect((await rows(delQ2))[0].deleted).toBe(false);
+  });
+
+  it("today payload anchors the week rather than an older observed date", async () => {
+    await runNorishSync({ db, userId: U1, client: makeClient([item({ date: "2026-09-28" })]) });
+    const result = await runNorishSync({ db, userId: U1, client: {
+      ...makeClient([item({ id: ITEM2, date: "2026-09-20" })]),
+      getPlannedRecipesToday: async () => [item({ id: "0f0e6f5e-1111-4aaa-8bbb-000000000003", date: "2026-10-01" })],
+    } });
+    expect(result.marked).toBe(1);
+  });
+
+  it("empty UTC payload marks the entire upstream week, not dates outside it", async () => {
+    await runNorishSync({ db, userId: U1, client: makeClient([
+      item({ date: "2026-09-28" }), item({ id: ITEM2, date: "2026-10-04" }),
+    ]) });
+    const result = await runNorishSync({ db, userId: U1, client: makeClient([]), upstreamTimeZone: "UTC", now: () => new Date("2026-10-01T23:30:00Z") });
+    expect(result.marked).toBe(2);
   });
 
   it("empty payload: no marking, zero counts", async () => {

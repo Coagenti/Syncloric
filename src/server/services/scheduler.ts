@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { getDb, type Db } from "@/server/db";
 import { logger } from "@/server/logging";
 import { decryptSecret } from "./norish/crypto";
-import { loadEnvConfig, norishBaseUrl, NORISH_SETTINGS_KEY, type SyncloricConfig } from "@/server/config";
+import { loadEnvConfig, norishBaseUrl, norishUpstreamTimeZone, NORISH_SETTINGS_KEY, type SyncloricConfig } from "@/server/config";
 import { getAdminSetting } from "@/server/db/repositories/settings";
 import { buildAdminSettingsOverride } from "./settings/norish-url";
 import { NorishClient, NorishApiError } from "./norish/client";
@@ -20,13 +20,14 @@ type Reason = "auth" | null;
 interface SchedulerDeps {
   migrationsReady(db: Db): Promise<boolean>;
   resolveBaseUrl(db: Db): Promise<string>;
+  resolveUpstreamTimeZone(): string | undefined;
   listUserIds(db: Db): Promise<string[]>;
   isBreakerOpen(db: Db, userId: string, now: Date): Promise<boolean>;
   acquireLock(tx: unknown, userId: string): Promise<boolean>;
   startSyncRun(db: Db, userId: string): Promise<string>;
   finishSyncRun(db: Db, runId: string, status: Status, items: number, message: string | null, reason?: Reason): Promise<void>;
   resolveClient(config: SyncloricConfig, userId: string, db: Db): Promise<NorishClient | null>;
-  runNorishSync(options: { db: Db; userId: string; client: NorishClient }): Promise<{ imported: number; updated: number; skipped: number; marked: number; partial?: true }>;
+  runNorishSync(options: { db: Db; userId: string; client: NorishClient; upstreamTimeZone?: string }): Promise<{ imported: number; updated: number; skipped: number; marked: number; partial?: true }>;
 }
 
 function rows(result: unknown): Record<string, unknown>[] {
@@ -44,6 +45,7 @@ export function resolveNorishClient(config: SyncloricConfig, setting: { key: str
 }
 
 const defaults: SchedulerDeps = {
+  resolveUpstreamTimeZone: () => norishUpstreamTimeZone(process.env, (message) => logger.warn(message)),
   async migrationsReady(db) {
     // Guard before any read/write of application tables, including when migrateLatest failed.
     const result = rows(await db.execute(sql`SELECT EXISTS (
@@ -124,6 +126,7 @@ export async function runSchedulerTick(now: Date = new Date(), options?: { deps?
       return [];
     }
     const config = { ...loadEnvConfig(), NORISH_BASE_URL: baseUrl };
+    const upstreamTimeZone = deps.resolveUpstreamTimeZone();
     const runIds: string[] = [];
     for (const userId of await deps.listUserIds(db)) {
       try {
@@ -141,7 +144,7 @@ export async function runSchedulerTick(now: Date = new Date(), options?: { deps?
           if (!client) return;
           const runId = await deps.startSyncRun(tx, userId);
           try {
-            const result = await deps.runNorishSync({ db: tx, userId, client });
+            const result = await deps.runNorishSync({ db: tx, userId, client, upstreamTimeZone });
             await deps.finishSyncRun(tx, runId, result.partial ? "partial" : "ok", result.imported + result.updated, null);
             logger.info({ user_id: userId, run_id: runId, imported: result.imported, updated: result.updated }, "[scheduler] tick completato");
           } catch (error) {
