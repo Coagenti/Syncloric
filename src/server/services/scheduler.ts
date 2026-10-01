@@ -1,120 +1,165 @@
 import cron from "node-cron";
-import { desc, eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { getDb, type Db } from "@/server/db";
 import { logger } from "@/server/logging";
-import { norishSyncRuns } from "@/server/db/schema";
+import { decryptSecret } from "./norish/crypto";
+import { loadEnvConfig, norishBaseUrl, NORISH_SETTINGS_KEY, type SyncloricConfig } from "@/server/config";
+import { getAdminSetting } from "@/server/db/repositories/settings";
+import { buildAdminSettingsOverride } from "./settings/norish-url";
+import { NorishClient, NorishApiError } from "./norish/client";
+import { runNorishSync, NorishSyncError } from "./norish/runner";
 import { finishSyncRun, startSyncRun } from "./norish/sync";
 
-/**
- * Scheduler in-process (ADR-0004, § 5.4): node-cron, un job per run, ogni 30
- * minuti. Serializzato su Postgres con advisory lock XACT per utente dentro una
- * transazione — niente Redis in v1. Il lock a livello di transazione evita la
- * trappola del pool postgres.js: con pg_try_advisory_lock di SESSIONE il lock
- * e l'unlock possono finire su connessioni diverse (lock mai rilasciato).
- * Circuit breaker § 5.5: 3 sync consecutive fallite → pausa 30 min
- * (stato dedotto da norish_sync_runs).
- *
- * Avvio: src/instrumentation.ts (bootstrap Next). La sync reale per-utente
- * (decrypt chiavi, client, upsert) è work della card feature t_849137b2:
- * qui ossatura del job, lock e audit.
- */
+const SYNC_CRON = "*/30 * * * *";
 
-const SYNC_CRON = "*/30 * * * *"; // ogni 30 minuti (§ 5.4)
 const BREAKER_THRESHOLD = 3;
-const BREAKER_COOLDOWN_MS = 30 * 60 * 1_000;
+const BREAKER_COOLDOWN_MS = 30 * 60_000;
+type Status = "ok" | "error" | "partial";
+type Reason = "auth" | null;
 
-export interface SchedulerHandle {
-  stop: () => void;
+interface SchedulerDeps {
+  migrationsReady(db: Db): Promise<boolean>;
+  resolveBaseUrl(db: Db): Promise<string>;
+  listUserIds(db: Db): Promise<string[]>;
+  isBreakerOpen(db: Db, userId: string, now: Date): Promise<boolean>;
+  acquireLock(tx: unknown, userId: string): Promise<boolean>;
+  startSyncRun(db: Db, userId: string): Promise<string>;
+  finishSyncRun(db: Db, runId: string, status: Status, items: number, message: string | null, reason?: Reason): Promise<void>;
+  resolveClient(config: SyncloricConfig, userId: string, db: Db): Promise<NorishClient | null>;
+  runNorishSync(options: { db: Db; userId: string; client: NorishClient }): Promise<{ imported: number; updated: number; skipped: number; marked: number; partial?: true }>;
 }
 
-export function startScheduler(): SchedulerHandle {
+function rows(result: unknown): Record<string, unknown>[] {
+  return Array.isArray(result) ? result : (result as { rows?: Record<string, unknown>[] })?.rows ?? [];
+}
+
+/** Il fallback demo è assegnato solo all'utente bootstrap, mai a tutti gli utenti. */
+export function resolveNorishClient(config: SyncloricConfig, setting: { key: string; value: unknown } | undefined, demoAllowed = true): NorishClient | null {
+  if (setting !== undefined) {
+    const encrypted = setting.value as { ciphertext?: string } | null;
+    if (typeof encrypted?.ciphertext !== "string") return null;
+    return new NorishClient({ baseUrl: config.NORISH_BASE_URL, apiKey: decryptSecret(encrypted.ciphertext, config.ENCRYPTION_KEY) });
+  }
+  return demoAllowed && config.NORISH_API_KEY ? new NorishClient({ baseUrl: config.NORISH_BASE_URL, apiKey: config.NORISH_API_KEY }) : null;
+}
+
+const defaults: SchedulerDeps = {
+  async migrationsReady(db) {
+    // Guard before any read/write of application tables, including when migrateLatest failed.
+    const result = rows(await db.execute(sql`SELECT EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'norish_sync_runs' AND column_name = 'reason'
+    ) AS ready`));
+    return result[0]?.ready === true;
+  },
+  async resolveBaseUrl(db) {
+    const saved = await getAdminSetting<string>(db, NORISH_SETTINGS_KEY);
+    return norishBaseUrl(buildAdminSettingsOverride(saved ?? undefined));
+  },
+  async listUserIds(db) {
+    // Il primo account è il destinatario del bootstrap demo (se presente).
+    // Altri account richiedono una propria chiave cifrata, mai fanout env.
+    const result = rows(await db.execute(sql`SELECT id AS user_id FROM users
+      WHERE id = (SELECT id FROM users ORDER BY created_at, id LIMIT 1)
+      OR EXISTS (SELECT 1 FROM admin_settings WHERE key = 'norish.key.' || users.id::text)`));
+    return [...new Set(result.map((row) => String(row.user_id)))];
+  },
+  async isBreakerOpen(db, userId, now) {
+    const recent = rows(await db.execute(sql`SELECT status, finished_at FROM norish_sync_runs
+      WHERE user_id = ${userId}::uuid ORDER BY started_at DESC, id DESC LIMIT ${BREAKER_THRESHOLD}`));
+    if (recent.length < BREAKER_THRESHOLD || !recent.every((r) => r.status === "error")) return false;
+    const finished = recent[0].finished_at;
+    return !!finished && now.getTime() - new Date(String(finished)).getTime() < BREAKER_COOLDOWN_MS;
+  },
+  async acquireLock(tx, userId) {
+    const result = rows(await (tx as Db).execute(sql`SELECT pg_try_advisory_xact_lock(hashtext(${userId})) AS acquired`));
+    return result[0]?.acquired === true;
+  },
+  startSyncRun,
+  finishSyncRun,
+  async resolveClient(config, userId, db) {
+    const result = rows(await db.execute(sql`SELECT key, value FROM admin_settings WHERE key = ${`norish.key.${userId}`} LIMIT 1`));
+    if (result.length) return resolveNorishClient(config, result[0] as { key: string; value: unknown });
+    const first = rows(await db.execute(sql`SELECT id FROM users ORDER BY created_at, id LIMIT 1`))[0]?.id;
+    return first === userId ? resolveNorishClient(config, undefined) : null;
+  },
+  runNorishSync: (options) => runNorishSync(options),
+};
+
+/** La callback cron non può produrre una unhandled rejection. L'URL si risolve a ogni tick. */
+export function startScheduler(): { stop: () => void } {
   const task = cron.schedule(SYNC_CRON, () => {
-    void runSchedulerTick();
+    void runSchedulerTick().catch(() => logger.error("[scheduler] tick fallito prima della run; verificare migrazioni/DB"));
   });
-  logger.info({ cron: SYNC_CRON }, "[scheduler] sync norish avviata (§ 5.4)");
+  logger.info({ cron: SYNC_CRON }, "[scheduler] attivo; Norish abilitato per tick");
   return { stop: () => task.stop() };
 }
 
-export async function runSchedulerTick(now: Date = new Date()): Promise<string[]> {
-  const db = getDb();
-  const runIds: string[] = [];
-  // NOTA: SELECT DISTINCT non ammette ORDER BY su colonne fuori dalla select
-  // list (SQL invalido su Postgres): la dedup è comunque fatta lato JS sotto.
-  const rows = await db
-    .selectDistinct({ userId: norishSyncRuns.userId })
-    .from(norishSyncRuns)
-    .limit(100);
-  const distinctUserIds = [...new Set(rows.map((r) => r.userId))];
-  for (const userId of distinctUserIds) {
-    if (await isBreakerOpen(db, userId, now)) {
-      logger.warn({ user_id: userId }, "[scheduler] circuit breaker aperto: pausa 30 min");
-      continue;
-    }
-    try {
-      // Lock transaction-scoped: acquisito e rilasciato sulla STESSA connessione
-      // riservata dalla transazione (auto-release al commit/rollback).
-      await db.transaction(async (tx) => {
-        const locked = await firstRow(
-          tx.execute(sql`SELECT pg_try_advisory_xact_lock(hashtext(${userId})) AS acquired`),
-        );
-        if (!locked?.acquired) {
-          logger.info({ user_id: userId }, "[scheduler] run già in corso: skip");
-          return;
-        }
-        const runId = await startSyncRun(tx as unknown as Db, userId);
-        try {
-          // Card feature t_849137b2: qui il lavoro concreto per-utente (fetch + upsert).
-          await finishSyncRun(tx as unknown as Db, runId, "ok", 0, null);
-          logger.info({ user_id: userId, run_id: runId }, "[scheduler] tick completato");
-        } catch (error) {
-          await finishSyncRun(
-            tx as unknown as Db,
-            runId,
-            "error",
-            0,
-            error instanceof Error ? error.message : String(error),
-          );
-          logger.error({ user_id: userId, run_id: runId }, "[scheduler] tick fallito");
-        }
-        runIds.push(runId);
-      });
-    } catch (error) {
-      logger.error({
-        user_id: userId,
-        err: error instanceof Error ? error.message : String(error),
-      }, "[scheduler] transazione tick fallita");
-    }
-  }
-  return runIds;
+function authError(error: unknown): boolean {
+  if (error instanceof NorishApiError) return error.status === 401 || error.status === 403;
+  if (error instanceof NorishSyncError && error.cause) return authError(error.cause);
+  return false;
 }
 
-/** Circuit breaker § 5.5: le ultime N sync dell'utente sono fallite entro la finestra. */
-async function isBreakerOpen(db: Db, userId: string, now: Date): Promise<boolean> {
-  const rows = await db
-    .select({ status: norishSyncRuns.status, finishedAt: norishSyncRuns.finishedAt })
-    .from(norishSyncRuns)
-    .where(eq(norishSyncRuns.userId, userId))
-    .orderBy(desc(norishSyncRuns.startedAt))
-    .limit(BREAKER_THRESHOLD);
-  if (rows.length < BREAKER_THRESHOLD) return false;
-  const allFailed = rows.every((row) => row.status === "error");
-  if (!allFailed) return false;
-  const last = rows[0].finishedAt;
-  if (!last) return false;
-  return now.getTime() - last.getTime() < BREAKER_COOLDOWN_MS;
+/** Solo diagnostica controllata: mai propagare testo upstream, key, URL o eccezioni SQL. */
+function safeError(error: unknown): string {
+  if (authError(error)) return "Norish authentication failed (HTTP 401/403)";
+  if (error instanceof NorishApiError) return `Norish API HTTP ${error.status}`;
+  if (error instanceof NorishSyncError) return `Norish ${error.phase} failed`;
+  return "Norish sync failed";
 }
 
-/**
- * Estrae la prima riga di un result di db.execute che cambia forma a seconda
- * del driver (postgres.js: RowList-array; altri: { rows }).
- */
-async function firstRow(
-  result: Promise<unknown> | unknown,
-): Promise<Record<string, unknown> | undefined> {
-  const resolved = await result;
-  if (Array.isArray(resolved)) {
-    return resolved[0] as Record<string, unknown> | undefined;
+export async function runSchedulerTick(now: Date = new Date(), options?: { deps?: Partial<SchedulerDeps>; db?: Db }): Promise<string[]> {
+  const deps = { ...defaults, ...options?.deps };
+  const fullyInjected = options?.deps && Object.keys(defaults).every((key) => key in options.deps!);
+  const db = options?.db ?? (fullyInjected ? ({} as Db) : getDb());
+  try {
+    if (!(await deps.migrationsReady(db))) {
+      logger.warn("[scheduler] migrazioni non applicate: tick saltato");
+      return [];
+    }
+    const baseUrl = await deps.resolveBaseUrl(db);
+    if (!baseUrl) {
+      logger.info("[scheduler] Norish disabilitato: nessun URL configurato; tick saltato");
+      return [];
+    }
+    const config = { ...loadEnvConfig(), NORISH_BASE_URL: baseUrl };
+    const runIds: string[] = [];
+    for (const userId of await deps.listUserIds(db)) {
+      try {
+        if (await deps.isBreakerOpen(db, userId, now)) continue;
+        const work = async (tx: Db) => {
+          if (!(await deps.acquireLock(tx, userId))) return;
+          // Risolvere la chiave prima di aprire la run: nessuna run fittizia per utenti non configurati.
+          let client: NorishClient | null;
+          try {
+            client = await deps.resolveClient(config, userId, tx);
+          } catch {
+            logger.error({ user_id: userId }, "[scheduler] chiave cifrata non utilizzabile");
+            return;
+          }
+          if (!client) return;
+          const runId = await deps.startSyncRun(tx, userId);
+          try {
+            const result = await deps.runNorishSync({ db: tx, userId, client });
+            await deps.finishSyncRun(tx, runId, result.partial ? "partial" : "ok", result.imported + result.updated, null);
+            logger.info({ user_id: userId, run_id: runId, imported: result.imported, updated: result.updated }, "[scheduler] tick completato");
+          } catch (error) {
+            const message = safeError(error);
+            await deps.finishSyncRun(tx, runId, "error", 0, message, authError(error) ? "auth" : null);
+            logger.error({ user_id: userId, run_id: runId, reason: authError(error) ? "auth" : "sync" }, "[scheduler] tick fallito");
+          }
+          runIds.push(runId);
+        };
+        if (fullyInjected && !options?.db) await work({} as Db);
+        else await db.transaction(async (tx) => work(tx as unknown as Db));
+      } catch {
+        logger.error({ user_id: userId }, "[scheduler] transazione tick fallita");
+      }
+    }
+    return runIds;
+  } catch {
+    logger.warn("[scheduler] database non disponibile o migrazioni non applicate: tick saltato");
+    return [];
   }
-  const withRows = resolved as { rows?: unknown[] };
-  return withRows?.rows?.[0] as Record<string, unknown> | undefined;
 }

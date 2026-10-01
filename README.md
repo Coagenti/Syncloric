@@ -33,23 +33,22 @@ pnpm dev                  # http://localhost:3000
 
 All'avvio il bootstrap (`src/instrumentation.ts`) valida l'env: senza
 `DATABASE_URL`, `BETTER_AUTH_SECRET` o `ENCRYPTION_KEY` l'app non parte.
-`NORISH_BASE_URL` è opzionale e senza default: se assente o vuota l'app parte
-con Norish disabilitato e scheduler non avviato; un URL esplicitamente malformato
-resta un errore. Con URL env valido avvia lo scheduler in-process (ADR-0004).
+`NORISH_BASE_URL` è opzionale e senza default: l'app avvia lo scheduler
+in-process (ADR-0004) dopo le migrazioni; ogni tick salta Norish se l'URL
+effettivo non è configurato. Un URL env esplicitamente malformato resta un errore.
 
 ## Configurare l'URL Norish
 
 Via preferita: un amministratore autenticato apre Impostazioni (`/settings`),
-inserisce `https://norish.your.domain` nel campo Norish URL e preme Salva.
+inserisce l'URL HTTPS della propria istanza nel campo Norish URL e preme Salva.
 Il placeholder è `your norish url`: non è un valore di default. La GUI non
 precompila il valore env. Il valore salvato è globale per istanza e persistente
 nel DB, anche dopo ricaricamento o riavvio del database.
 
 In alternativa, nel file `.env` (sviluppo) oppure `docker/.env` (Compose):
 
-```dotenv
-NORISH_BASE_URL=https://norish.your.domain
-```
+Impostare `NORISH_BASE_URL` sull'origine HTTPS effettiva, senza slash finale;
+non usare valori di esempio come default di deployment.
 
 La configurazione risolve Impostazioni > .env > nessun URL. Salva con campo
 vuoto o Cancella rimuove l'override e ripristina l'eventuale .env. Senza entrambe
@@ -58,15 +57,44 @@ slash finale sull'host; HTTP è ammesso solo su localhost per sviluppo.
 La pagina è admin-only e non espone API key. Al cambio origine avvisa di
 verificare le chiavi Norish, senza migrarle automaticamente.
 
-Limite runtime attuale: il bootstrap avvia lo scheduler dalla sola env e il
-client non legge ancora l'override DB. Persistenza GUI e precedenza del resolver
-non dimostrano l'attivazione del sync tramite GUI: il collegamento runtime
-rimane lavoro dell'integrazione. Dettagli e limiti in
+Lo scheduler risolve GUI > env a ogni tick (ogni 30 minuti): salvare un URL
+attiva il sync al tick successivo senza riavvio; cambiare host reindirizza il
+successivo; cancellarlo disabilita il sync se non rimane l'env. Senza URL non
+registra run né contatta l'upstream. Il client non legge le settings: riceve
+l'URL effettivo dal runner. Compose passa URL assente/vuota senza default;
+l'entrypoint elimina valori vuoti prima del bootstrap. Dettagli in
 [Configurazione runtime](docs/configuration.md) e
 [Contratto Impostazioni](docs/NORISH-SETTINGS.md).
 
 Health check: `GET /api/health` (app) e `GET /api/v1/health` (app + database,
 pattern norish § 5.1).
+
+## Interfaccia diario (dati reali)
+
+`/dashboard`, `/diary` e `/calendar` leggono `GET /api/v1/diary?month=YYYY-MM`:
+la query richiede una sessione Better Auth valida (401 senza cookie) e filtra
+`diary_entries` e l'ultima run di sync per l'utente corrente. Non espone chiavi né
+messaggi upstream grezzi; la risposta è `private, no-store`. La data «Oggi» è
+quella locale del browser; il selettore carica il mese della data scelta. Kcal
+Norish sono per porzione, moltiplicate per le porzioni locali per la vista;
+le voci senza kcal non entrano nel totale. L'obiettivo viene dal profilo, se presente.
+
+La UI non usa più localStorage o dati dimostrativi. Non offre inserimento/modifica
+finché manca un'API di scrittura autenticata: è un limite dichiarato, non un
+salvataggio simulato. Se l'ultima run fallisce per autenticazione, la dashboard
+mostra l'origine configurata e invita a riassociare consapevolmente la chiave in
+Impostazioni; non cambia o cancella credenziali. L'avviso non è `hostChanged`.
+
+**Prerequisito per la prova interattiva:** una sessione utente valida. Il backend
+auth è disponibile in `/api/auth`, ma questo branch non implementa la pagina
+`/login` né il bootstrap del primo admin: non usare il link di accesso come
+prova di registrazione completata. Lo smoke automatizzato su PGlite verifica la
+proiezione per-utente; il collaudo browser con sessione vera e il deploy su
+syncloric-test richiedono la feature auth e la review dei branch base.
+
+L'interfaccia grafica è stata generata con assistenza AI; integrazione e test sono
+stati implementati dall'agente sviluppatore. Revisione umana Technical Lead e
+Marketing Lead prevista prima del rilascio. I dati non sono consigli nutrizionali.
 
 ## Test
 
@@ -74,11 +102,16 @@ pattern norish § 5.1).
 pnpm test:unit          # vitest: config, client norish (fetch mockato), crypto
 pnpm test:integration   # vitest + PGlite in-process (Postgres WASM) sulle stesse migrazioni
 pnpm test               # entrambi
+pnpm build              # prerequisito per i test browser
+pnpm exec playwright test tests/e2e/diary-ui.spec.ts  # avvia server locale con configurazione fittizia
 ```
 
 PGlite non richiede Docker: i test di integrazione girano su un Postgres WASM
 in-process con le stesse migrazioni drizzle dell'app. Le suite Playwright
-(`tests/e2e/`) sono previste per i flussi critici (money-path) nei task feature.
+(`tests/e2e/`) verificano i flussi demo reali nel browser (add/edit, errori storage,
+selezione date e calendario); usano valori fittizi e non chiamano norish.
+Installare Chromium Playwright (`pnpm exec playwright install chromium`) prima
+se non è già disponibile. I test E2E di integrazione reale arrivano nei task feature.
 
 ## Deploy self-hosted (Docker Compose)
 
@@ -90,7 +123,9 @@ cp docker/.env.example docker/.env
 # NORISH_BASE_URL è opzionale: valorizzarla con l'URL assoluto scelto
 # oppure ometterla/lasciarla vuota per avviare senza Norish.
 # Il deployer fornisce dal vault, in ambiente o nello stesso .env protetto:
-# POSTGRES_PASSWORD, BETTER_AUTH_SECRET, ENCRYPTION_KEY.
+# POSTGRES_PASSWORD, BETTER_AUTH_SECRET, ENCRYPTION_KEY e (per sync) NORISH_API_KEY.
+# Non riportare il valore della chiave nel README, nei comandi o nei log.
+# L'API key del brief originale è revocata: usare soltanto quella corrente dal vault.
 chmod 600 docker/.env
 export SYNCLORIC_IMAGE=syncloric:release-local
 docker compose -f docker/docker-compose.yml --env-file docker/.env -p syncloric-a build app
@@ -164,6 +199,30 @@ sempre fornita tramite variabile d'ambiente (`NORISH_API_KEY`, bootstrap/demo
 dell'istanza § 5.4) o come chiave per-utente salvata cifrata (AES-256-GCM, § 6.2) —
 sempre **mai committata nel repository**. Il `.gitignore` esclude i file `.env*`
 (ad eccezione di `.env.example`): nessun valore reale finisce nel repo.
+
+Per il trigger manuale, applicare prima `pnpm db:migrate` e poi
+`pnpm sync:norish --user <uuid> [--period week|month]` con `DATABASE_URL`,
+`BETTER_AUTH_SECRET`, `ENCRYPTION_KEY` e `NORISH_API_KEY` dall'env sicuro
+(oppure chiave cifrata per-utente). Il comando usa l'URL GUI > env della run;
+`month` è il backfill esplicito, `week` è l'incrementale (settimana server +
+oggi). Non passare chiavi in argv. Il primo account è il solo destinatario del
+fallback demo `NORISH_API_KEY`; gli altri richiedono chiavi per-utente. Le run
+sono auditabili in `norish_sync_runs` (`status`, `reason='auth'` su 401/403),
+senza modifiche automatiche alle credenziali.
+
+## Limiti noti del flusso utente (t_ee2705d5, per la review)
+
+- **Riassociazione chiave utente:** l'avviso di errore auth invita alla pagina
+  Impostazioni, ma l'unico flusso chiave attuale è la `NORISH_API_KEY` fallback
+  demo del primo account (env/vault) e la pagina Impostazioni è admin-only con
+  solo il campo URL. L'aggiornamento della chiave **per-utente** dall'interfaccia
+  non esiste ancora: è il seguito richiesto al flusso auth (card dedicate).
+- **Login/registrazione:** il backend Better Auth e `/api/auth` esistono, ma la
+  pagina `/login` e il bootstrap del primo admin sono scope della feature auth:
+  l'invito al login della UI resta finché quella pagina non viene consegnata.
+- **Inserimento/modifica manuale:** disattivato nella UI finché non esiste
+  un'endpoint di scrittura autenticato (i controlli demo sono rimossi, non
+  simulati); il sync Norish resta l'unica fonte attiva di voci del diario.
 
 ## Sviluppo
 

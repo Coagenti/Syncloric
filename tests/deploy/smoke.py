@@ -75,7 +75,9 @@ def main():
                     "const fs=require('fs'); if(fs.existsSync('/app/.env') || fs.existsSync('/app/docker/.env')) process.exit(1)")
                 logs = run(*cmd, 'logs', '--no-color', 'app').stdout
                 if suffix in ['unset', 'empty', 'spaces']:
-                    assert 'Norish disabilitato' in logs, logs
+                    # Bootstrap always schedules: GUI can enable Norish on the next tick.
+                    # An unset env URL alone is no longer evidence of disabled sync.
+                    assert 'attivazione Norish per tick' in logs, logs
                     run(*cmd, 'exec', '-T', 'app', 'node', '-e',
                         "const fs=require('fs'); const env=fs.readFileSync('/proc/1/environ','utf8').split('\\0'); if(env.some(v=>v.startsWith('NORISH_BASE_URL='))) process.exit(1)")
                 print(f'PASS: {suffix}: runtime env, non-root, app/DB health, no dotenv in image', flush=True)

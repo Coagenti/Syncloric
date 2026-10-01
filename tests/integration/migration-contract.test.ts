@@ -96,7 +96,7 @@ describe("migrazione iniziale — contratto dati (ADR-0008)", () => {
     `);
     const row = Array.isArray(res) ? res[0] : (res as { rows: Array<Record<string, unknown>> }).rows[0];
     expect(String(row?.d)).toBe("2026-09-30"); // date/slot aggiornati (fuori dalla chiave)
-    expect(Number(row?.s)).toBe(2); // numeric(8,2) → PGlite lo rende "2.00"
+    expect(Number(row?.s)).toBe(1); // local servings survive upstream updates
     expect(Number(row?.kcal)).toBe(916);
   });
 
@@ -116,14 +116,14 @@ describe("migrazione iniziale — contratto dati (ADR-0008)", () => {
     expect(Number(row?.n)).toBe(3);
   });
 
-  it("no-autodelete: il payload vuoto marca tutte le voci sync (senza NOT IN ())", async () => {
+  it("empty payload never marks missing entries", async () => {
     await insertUser(db, U1);
     await upsertDiaryEntry(db, {
       user_id: U1, norish_item_id: ITEM, date: "2026-09-29", slot: "Snack",
       recipe_id: null, servings: 1, kcal: 100,
     });
     const marked = await markDeletedNorishEntries(db, U1, []);
-    expect(marked).toBe(1);
+    expect(marked).toBe(0);
   });
 
   it("markDeleted con payload NON tocca le voci ancora presenti", async () => {

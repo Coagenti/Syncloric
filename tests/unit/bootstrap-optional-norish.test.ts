@@ -10,7 +10,7 @@ vi.mock("@/server/services/scheduler", () => ({ startScheduler: effects.schedule
 /**
  * Bootstrap con Norish OPZIONALE (decisione utente/TL 2026-09-30, supersede
  * fail-fast ADR-0007 per NORISH_BASE_URL): l'app deve avviarsi senza la
- * variabile, con scheduler NON avviato e log chiaro di degradazione.
+ * variabile, con scheduler avviato: l'attivazione Norish si decide nel tick.
  */
 describe("bootstrap con Norish opzionale", () => {
   afterEach(() => {
@@ -29,14 +29,14 @@ describe("bootstrap con Norish opzionale", () => {
     vi.stubEnv("ENCRYPTION_KEY", "a".repeat(64));
   }
 
-  it("parte senza NORISH_BASE_URL: migrazioni OK, scheduler NON avviato, log degradato", async () => {
+  it("parte senza NORISH_BASE_URL: scheduler avviato per tick", async () => {
     stubBootstrapEnv(undefined);
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     await expect(register()).resolves.toBeUndefined();
     expect(effects.migrate).toHaveBeenCalledOnce();
-    expect(effects.schedule).not.toHaveBeenCalled();
+    expect(effects.schedule).toHaveBeenCalledOnce();
     expect(
-      logSpy.mock.calls.some((args) => args.some((a) => String(a).includes("Norish disabilitato"))),
+      logSpy.mock.calls.some((args) => args.some((a) => String(a).includes("attivazione Norish per tick"))),
     ).toBe(true);
   });
 
@@ -44,9 +44,9 @@ describe("bootstrap con Norish opzionale", () => {
     stubBootstrapEnv("   ");
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
     await expect(register()).resolves.toBeUndefined();
-    expect(effects.schedule).not.toHaveBeenCalled();
+    expect(effects.schedule).toHaveBeenCalledOnce();
     expect(
-      logSpy.mock.calls.some((args) => args.some((a) => String(a).includes("Norish disabilitato"))),
+      logSpy.mock.calls.some((args) => args.some((a) => String(a).includes("attivazione Norish per tick"))),
     ).toBe(true);
   });
 
