@@ -79,9 +79,10 @@ quella locale del browser; il selettore carica il mese della data scelta. Kcal
 Norish sono per porzione, moltiplicate per le porzioni locali per la vista;
 le voci senza kcal non entrano nel totale. L'obiettivo viene dal profilo, se presente.
 
-La UI non usa più localStorage o dati dimostrativi. Non offre inserimento/modifica
-finché manca un'API di scrittura autenticata: è un limite dichiarato, non un
-salvataggio simulato. Se l'ultima run fallisce per autenticazione, la dashboard
+La UI non usa più localStorage o dati dimostrativi. L'API autenticata
+`POST /api/v1/diary` crea voci manuali food/recipe visibili nel feed
+([contratto](docs/DIARY-WRITES.md)); i dialog di aggiunta/modifica sono scope
+delle card UI successive e non sono ancora disponibili. Se l'ultima run fallisce per autenticazione, la dashboard
 mostra l'origine configurata e invita a riassociare consapevolmente la chiave in
 Impostazioni; non cambia o cancella credenziali. L'avviso non è `hostChanged`.
 
@@ -220,9 +221,9 @@ senza modifiche automatiche alle credenziali.
 - **Login/registrazione:** il backend Better Auth e `/api/auth` esistono, ma la
   pagina `/login` e il bootstrap del primo admin sono scope della feature auth:
   l'invito al login della UI resta finché quella pagina non viene consegnata.
-- **Inserimento/modifica manuale:** disattivato nella UI finché non esiste
-  un'endpoint di scrittura autenticato (i controlli demo sono rimossi, non
-  simulati); il sync Norish resta l'unica fonte attiva di voci del diario.
+- **Inserimento/modifica manuale:** POST autenticato disponibile
+  ([contratto](docs/DIARY-WRITES.md)), con voci manuali nel feed; dialog UI e
+  PATCH/DELETE sono scope delle card successive, senza salvataggi simulati.
 
 ## Sviluppo
 
