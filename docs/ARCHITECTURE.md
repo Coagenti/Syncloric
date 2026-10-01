@@ -51,7 +51,7 @@ copyleft su Syncloric. Se in futuro si copiassero porzioni di codice dai pacchet
 | UI | **Tailwind CSS v4 + HeroUI v3 + TanStack Query 5** | Coerenza con lo stack norish (il team conosce gli stessi tool); Tailwind per il theming cyberpunk; TanStack Query per cache e stato server |
 | ORM/DB | **PostgreSQL 17 + Drizzle ORM** (drizzle-kit per le migrazioni) | JSONB per gli snapshot d'import, vincoli e indici dichiarati in TS, migrazioni versionate; stesso combo di norish |
 | Auth | **Better Auth (username+password senza email)** | Stessa libreria di norish; plugin `username`, session cookie httpOnly; plugin `admin` per i ruoli; nessuna dipendenza da SMTP |
-| AI (fornitore configurabile) | OpenAI / Anthropic / Ollama tramite un unico modulo `ai/runtime` | Stessa filosofia di norish (ADR-0015): un unico modulo che parla col modello, prompt amministrabili, nessun provider hard-coded nel feature code |
+| AI (fornitore configurabile) | OpenAI / Anthropic / Ollama tramite `services/ai/` | Label vision: config globale admin, chiavi solo env, prompt JSON-only, validazione strict e bozza da confermare (decisioni TL `t_46f2e79f`; [contratto](AI-LABEL.md)). Il legacy runtime testuale resta separato e non è usato dal label-scan. |
 | Test | Vitest (unit+integration) + Playwright (e2e) | Standard TS; vitest per il client norish con fetch mockato; Playwright per il flusso import → dashboard |
 | CI | GitHub Actions | Lint + typecheck + test + build su ogni PR; main protetto |
 | Scheduler | node-cron in-process | Sync ogni 30 min per utente; Redis/BullMQ NON in v1 (vedi ADR-0004) |
@@ -236,8 +236,8 @@ norish_sync_runs id, user_id FK, started_at, finished_at NULL,
                  error_message TEXT NULL
 
 admin_settings   key TEXT PK, value JSONB          -- singleton:
-                 # ai.provider ('openai'|'anthropic'|'ollama'), ai.model,
-                 # ai.base_url_ollama, ai.api_key (cifrata, vedi § 6),
+                 # ai.provider ('openai'|'anthropic'|'ollama' oppure assente), ai.enabled,
+                 # nessun segreto AI: chiavi e override modello/URL Ollama solo env (decisione TL t_46f2e79f),
                  # barcode.lookup_source ('openfoodfacts')
 ```
 

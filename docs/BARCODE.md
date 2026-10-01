@@ -6,7 +6,9 @@ BarcodeDetector nativo, senza polyfill: richiede browser compatibile, contesto
 sicuro HTTPS e consenso. In caso di indisponibilità/permesso negato resta
 l'input manuale. I frame vengono analizzati sul dispositivo: nessuna foto è
 inviata al server. Chiusura, annullamento e unmount fermano le tracce camera.
-La scansione AI dell'etichetta non è implementata in questa feature.
+La scansione AI facoltativa è un flusso separato nel form nuovo prodotto:
+[foto, invio al provider e conferma assistiva](AI-LABEL.md). Non cambia la
+privacy dello scanner barcode; la foto etichetta viene inviata solo su richiesta.
 
 ## API autenticata e dati
 

@@ -92,6 +92,42 @@ Il browser harness inietta una sessione admin: non copre il login Better Auth,
 la pagina Next completa o il sync. Non effettua chiamate all'upstream.
 Dettagli API: [NORISH-SETTINGS.md](NORISH-SETTINGS.md).
 
+## AI etichetta: configurazione globale
+
+| Configurazione | Fonte | Default / comportamento |
+| --- | --- | --- |
+| `ai.provider` | admin_settings via GUI | null: AI disabilitata; scelta esplicita openai/anthropic/ollama |
+| `ai.enabled` | admin_settings via GUI | false/assente: disabilitata |
+| `OPENAI_API_KEY` | env, segreto dal vault | opzionale; richiesta per OpenAI |
+| `ANTHROPIC_API_KEY` | env, segreto dal vault | opzionale; richiesta per Anthropic |
+| `OLLAMA_BASE_URL` | env, non segreta | http://localhost:11434; HTTP(S), nessuna credenziale/query/fragment |
+| `SYNCLORIC_AI_MODEL` | env, non segreta | override del modello vision; vuota/assente usa default per provider |
+
+Nessun AI_PROVIDER env: il provider è scelto dall'admin, non inferito da chiavi
+presenti. GUI globale persistente, riletta ad ogni richiesta (nessun riavvio).
+Le chiavi cloud non sono mai salvate in admin_settings né restituite dalle API:
+solo booleani di presenza. Variabili opzionali vuote/spazi sono assenti. In
+sviluppo Next legge .env; in Compose aggiungerle a docker/.env (gitignored):
+il template inoltra le quattro env senza valori di default incorporati.
+Dopo cambio env ricreare il container con up -d --no-build, non restart.
+Il default Ollama è applicativo e non abilita automaticamente la feature;
+localhost in Docker è il container app, non l'host. L'URL Ollama è controllato
+esclusivamente dall'operatore tramite env, mai da un parametro HTTP utente.
+
+Modelli predefiniti: gpt-4.1-mini, claude-haiku-4-5-20251001, llama3.2-vision.
+Scegliere un modello multimodale compatibile con il protocollo del provider;
+nessun costo è hard-coded e nessuna chiamata reale avviene nei test.
+Disabilitare dalla GUI (ai.enabled=false) per impedire nuove estrazioni; una
+richiesta già inviata non può essere ritirata dal provider.
+
+Privacy: solo il pulsante Scansiona etichetta invia la foto al provider scelto.
+OpenAI/Anthropic sono cloud; Ollama riceve comunque la foto sul server env
+configurato, che l'operatore deve mantenere self-hosted se desidera egress locale.
+Syncloric non conserva/logga le foto né i payload AI. Il provider può conservarli
+secondo le sue politiche. File JPEG/PNG/WebP fino a 5 MB, no SVG/HEIC; crop solo
+etichetta, nessun dato personale. Preview locale e conferma/edit obbligatori.
+Dettagli e limiti in [AI-LABEL.md](AI-LABEL.md).
+
 ## Provenienza
 
 Test e aggiornamenti documentali generati con assistenza AI (Hermes).

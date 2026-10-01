@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { LabelScan } from "./label-scan";
 
 type Product = { name: string; brand: string | null; kcalPer100g: number | null; proteinPer100g: number | string | null; fatPer100g: number | string | null; carbsPer100g: number | string | null; source?: string };
 type Detector = { detect: (video: HTMLVideoElement) => Promise<{ rawValue: string }[]> };
@@ -19,6 +20,8 @@ export function BarcodeEntry({ date, onSaved }: { date: string; onSaved: () => v
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [camera, setCamera] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
+  const productForm = useRef<HTMLFormElement>(null);
   const request = useRef<AbortController | null>(null);
 
   function stopCamera() {
@@ -28,7 +31,7 @@ export function BarcodeEntry({ date, onSaved }: { date: string; onSaved: () => v
     setCamera(false);
   }
   function close() {
-    request.current?.abort(); stopCamera(); dialog.current?.close(); setBusy(false); trigger.current?.focus();
+    request.current?.abort(); stopCamera(); dialog.current?.close(); setBusy(false); setAiBusy(false); setProduct(null); trigger.current?.focus();
   }
   useEffect(() => () => {
     request.current?.abort(); cameraRun.current++; stream.current?.getTracks().forEach(track => track.stop());
@@ -73,7 +76,7 @@ export function BarcodeEntry({ date, onSaved }: { date: string; onSaved: () => v
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); if (busy) return;
+    event.preventDefault(); if (busy || aiBusy) return;
     // Invalidate pending detection/permission before sharing the POST controller.
     stopCamera();
     const values = new FormData(event.currentTarget);
@@ -94,19 +97,28 @@ export function BarcodeEntry({ date, onSaved }: { date: string; onSaved: () => v
     <button ref={trigger} className="primary-cta" type="button" onClick={() => { setCode(""); setProduct(null); setOrigin(""); setError(""); dialog.current?.showModal(); }}>Scansiona</button>
     <dialog ref={dialog} className="editor-panel barcode-dialog" aria-labelledby="barcode-title" onCancel={event => { event.preventDefault(); close(); }}>
       <div className="editor-heading"><h2 id="barcode-title">Registra un prodotto</h2><button className="close-editor" type="button" aria-label="Chiudi scanner" onClick={close}>×</button></div>
-      <p className="form-help">Inserisci il codice o usa la fotocamera. Nessuna foto viene inviata all’esterno.</p>
+      <p className="form-help">Inserisci il codice o usa la fotocamera. Lo scanner barcode non invia foto; la scansione AI dell’etichetta è separata e facoltativa.</p>
       <form onSubmit={event => { event.preventDefault(); void lookup(code); }}>
-        <label>Codice a barre<input autoFocus inputMode="numeric" pattern="[0-9]{8,14}" required value={code} onChange={event => { setCode(event.target.value); setProduct(null); }} disabled={busy} /></label>
-        <button className="secondary-btn" disabled={busy} type="submit">Cerca prodotto</button>
-        <button className="secondary-btn" disabled={busy} type="button" onClick={() => void startCamera()}>Usa fotocamera</button>
+        <label>Codice a barre<input autoFocus inputMode="numeric" pattern="[0-9]{8,14}" required value={code} onChange={event => { setCode(event.target.value); setProduct(null); }} disabled={busy || aiBusy} /></label>
+        <button className="secondary-btn" disabled={busy || aiBusy} type="submit">Cerca prodotto</button>
+        <button className="secondary-btn" disabled={busy || aiBusy} type="button" onClick={() => void startCamera()}>Usa fotocamera</button>
       </form>
       <video ref={video} hidden={!camera} muted playsInline style={{ width: "100%" }} aria-label="Anteprima scanner" />
       {camera && <button type="button" className="secondary-btn" onClick={stopCamera}>Ferma fotocamera</button>}
       {busy && <p role="status">Operazione in corso…</p>}
       {error && <p role="alert">{error}</p>}
-      {product && <form key={`${code}-${origin}`} onSubmit={save}>
+      {product && <form ref={productForm} key={`${code}-${origin}`} onSubmit={save}>
+        <fieldset disabled={busy || aiBusy}>
         <p className="form-help">{origin === "local" ? "Prodotto nel catalogo locale." : origin === "off" ? "Dati da Open Food Facts: verifica prima di confermare." : "Prodotto non trovato: registra come nuovo."}</p>
         {(origin === "off" || product.source === "barcode_off") && <a href={`https://world.openfoodfacts.org/product/${code}`} target="_blank" rel="noreferrer">Open Food Facts · ODbL / DbCL</a>}
+        {origin !== "local" && <LabelScan onBusy={value => { if (value) stopCamera(); setAiBusy(value); }} onExtract={label => {
+          stopCamera();
+          const values = { name: label.name, brand: label.brand ?? "", kcal: Math.round(label.per100g.kcal), protein: Math.round(label.per100g.protein * 100) / 100, fat: Math.round(label.per100g.fat * 100) / 100, carbs: Math.round(label.per100g.carbs * 100) / 100 };
+          for (const [key, value] of Object.entries(values)) {
+            const input = productForm.current?.elements.namedItem(key);
+            if (input instanceof HTMLInputElement) input.value = String(value);
+          }
+        }} />}
         <label>Nome prodotto<input name="name" required maxLength={200} defaultValue={product.name} readOnly={origin === "local"} /></label>
         <label>Marca<input name="brand" maxLength={200} defaultValue={product.brand ?? ""} readOnly={origin === "local"} /></label>
         <label>Kcal per 100 g<input name="kcal" type="number" required min="0" max="10000" step="1" defaultValue={product.kcalPer100g ?? ""} readOnly={origin === "local"} /></label>
@@ -114,7 +126,8 @@ export function BarcodeEntry({ date, onSaved }: { date: string; onSaved: () => v
         <label>Grammi registrati<input name="grams" type="number" required min="0.01" max="100000" step="0.01" defaultValue="100" /></label>
         <label>Pasto<select name="slot" defaultValue="Snack"><option value="Breakfast">Colazione</option><option value="Lunch">Pranzo</option><option value="Snack">Spuntino</option><option value="Dinner">Cena</option></select></label>
         <p className="form-help">Nutrienti per 100 g; calorie del diario proporzionali ai grammi. I campi facoltativi vuoti restano sconosciuti.</p>
-        <button type="submit" className="primary-btn" disabled={busy}>Registra nel diario</button>
+        <button type="submit" className="primary-btn" disabled={busy || aiBusy}>Registra nel diario</button>
+        </fieldset>
       </form>}
     </dialog>
   </>;
