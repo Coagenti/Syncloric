@@ -1,8 +1,10 @@
+import { randomUUID } from "node:crypto";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, username } from "better-auth/plugins";
 import { getDb } from "@/server/db";
 import * as schema from "@/server/db/schema";
+import { bootstrapFirstAdmin } from "@/server/db/repositories/auth";
 import { loadEnvConfig } from "@/server/config";
 
 /**
@@ -12,7 +14,7 @@ import { loadEnvConfig } from "@/server/config";
  * - plugin `admin` per i ruoli (§ 6.4): l'amministratore gestisce ban/ruoli
  *   dal pannello (app)/admin/** (§ 4.1);
  * - bootstrap admin § 4.1 (il primo utente su istanza vuota diventa admin):
- *   logica di registrazione nella card auth feature, non in un hook globale.
+ *   bootstrap server-side serializzato nel repository auth dopo la creazione utente.
  *
  * Costruito lazily: import del modulo non tocca l'env; il fail fast avviene
  * nel bootstrap del server (src/instrumentation.ts).
@@ -47,9 +49,14 @@ function createAuth() {
         role: { type: "string", required: false, input: false, defaultValue: "user" },
       },
     },
-    session: {
-      cookieCache: { enabled: true, maxAge: 5 * 60 },
+    advanced: { database: { generateId: () => randomUUID() } },
+    databaseHooks: {
+      user: { create: { after: async user => { await bootstrapFirstAdmin(getDb(), user.id); } } },
+      // Retry only for the original first user after a transient post-create failure.
+      session: { create: { before: async session => { await bootstrapFirstAdmin(getDb(), session.userId); } } },
     },
+    // Always read the database: logout, bans and role changes must apply immediately.
+    session: { cookieCache: { enabled: false } },
     plugins: [username(), admin()],
   });
 }

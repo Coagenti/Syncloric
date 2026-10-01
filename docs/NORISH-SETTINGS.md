@@ -1,8 +1,10 @@
 # Norish URL: pagina Impostazioni
 
-Solo un amministratore autenticato può leggere o modificare `/settings` e
-`/api/v1/settings/norish-url`. L'URL è globale per l'istanza, non per utente
-(decisione TL del 2026-09-30 16:29 UTC, card t_2bd5557f).
+Solo un amministratore autenticato può leggere o modificare la configurazione via
+`/api/v1/settings/norish-url`. `/settings` richiede una sessione, ma risponde anche
+agli utenti standard con «Richiede amministratore», senza valori o input di modifica.
+URL e chiave API sono globali per l’istanza: nessuna chiave personale da riassociare
+(decisione TL card t_ded2dd56).
 
 Il campo `Norish URL` non precompila il valore da ambiente e usa il placeholder
 `your norish url`. Incolla un URL completo HTTPS senza slash finale (HTTP ammesso
@@ -16,10 +18,11 @@ valore da `.env` torna effettivo. Non c'è un URL di default.
 
 Salva e Cancella mostrano conferma e aggiornano l'indicazione della fonte. Se
 cambia l'origine effettiva (protocollo + host + porta), compare
-`URL aggiornato: verifica le tue chiavi Norish`. Le credenziali per-utente NON
-sono migrate o cancellate. L'API key non è mai inclusa nei payload della pagina
-né dell'API. La gestione dei messaggi di riassociazione nel flusso di sync rimane
-responsabilità dell'integrazione sync: questa pagina non implementa tale flusso.
+`URL aggiornato: verifica le tue chiavi Norish`. La credenziale globale NON
+viene migrata o cancellata. L'API key non è mai inclusa nei payload della pagina
+né dell'API. In caso di errore auth, SyncNotice rimanda tutti a Impostazioni:
+l’utente standard chiede all’amministratore di verificare la configurazione;
+solo il responsabile del server aggiorna il segreto nell’ambiente.
 
 ## Contratto HTTP
 

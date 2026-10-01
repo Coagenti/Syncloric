@@ -37,6 +37,29 @@ All'avvio il bootstrap (`src/instrumentation.ts`) valida l'env: senza
 in-process (ADR-0004) dopo le migrazioni; ogni tick salta Norish se l'URL
 effettivo non è configurato. Un URL env esplicitamente malformato resta un errore.
 
+## Accessi e ruoli
+
+Apri `/login` per accedere o creare un account con username e password (8–128
+caratteri). Non serve SMTP e non viene chiesta un’email: Better Auth conserva un
+indirizzo tecnico con username codificato in esadecimale nel dominio `users.invalid`, non un recapito per recupero password.
+La registrazione è abilitata; questa versione non espone un interruttore per
+chiuderla né un flusso di recupero password via email. Proteggi l’accesso iniziale
+all’istanza finché il proprietario non ha creato il primo account.
+
+Il primo utente dell’istanza diventa amministratore; gli altri sono utenti
+standard. `/dashboard`, `/diary`, `/calendar` e `/settings` richiedono una sessione
+server valida e redirigono a `/login` quando manca. `/login` resta raggiungibile
+anche con sessione attiva. La sessione vive in cookie HTTP-only, non in
+localStorage; Esci revoca la sessione server e torna al login. I ruoli sono letti
+ dal database, senza cookie cache di autorizzazione.
+
+Impostazioni è raggiungibile da tutti gli utenti autenticati: gli utenti standard
+vedono «Richiede amministratore», senza valori sensibili o controlli di scrittura.
+Le API di configurazione rimangono admin-only (403 per utenti standard). La
+chiave Norish è globale per istanza: un errore auth rimanda all’amministratore,
+non alla registrazione di una chiave personale. Il segreto si aggiorna solo
+nell’ambiente server, mai nella pagina o nel repository.
+
 ## Configurare l'URL Norish
 
 Via preferita: un amministratore autenticato apre Impostazioni (`/settings`),
@@ -54,7 +77,7 @@ La configurazione risolve Impostazioni > .env > nessun URL. Salva con campo
 vuoto o Cancella rimuove l'override e ripristina l'eventuale .env. Senza entrambe
 le fonti, Norish risulta non configurato senza crash. Usare HTTPS e nessuno
 slash finale sull'host; HTTP è ammesso solo su localhost per sviluppo.
-La pagina è admin-only e non espone API key. Al cambio origine avvisa di
+La configurazione è modificabile solo dall’admin e non espone API key. Al cambio origine avvisa di
 verificare le chiavi Norish, senza migrarle automaticamente.
 
 Lo scheduler risolve GUI > env a ogni tick (ogni 30 minuti): salvare un URL
@@ -82,15 +105,14 @@ le voci senza kcal non entrano nel totale. L'obiettivo viene dal profilo, se pre
 La UI non usa più localStorage o dati dimostrativi. Non offre inserimento/modifica
 finché manca un'API di scrittura autenticata: è un limite dichiarato, non un
 salvataggio simulato. Se l'ultima run fallisce per autenticazione, la dashboard
-mostra l'origine configurata e invita a riassociare consapevolmente la chiave in
-Impostazioni; non cambia o cancella credenziali. L'avviso non è `hostChanged`.
+mostra l'origine configurata e invita a chiedere all’amministratore di verificare
+la chiave globale in Impostazioni; non cambia o cancella credenziali.
+L'avviso non è `hostChanged`.
 
-**Prerequisito per la prova interattiva:** una sessione utente valida. Il backend
-auth è disponibile in `/api/auth`, ma questo branch non implementa la pagina
-`/login` né il bootstrap del primo admin: non usare il link di accesso come
-prova di registrazione completata. Lo smoke automatizzato su PGlite verifica la
-proiezione per-utente; il collaudo browser con sessione vera e il deploy su
-syncloric-test richiedono la feature auth e la review dei branch base.
+La prova browser auth usa Chromium reale, componenti di produzione, handler
+Better Auth reali e PGlite migrato. L’harness HTTP adatta solo headers/redirect
+Next: verifica registrazione, cookie persistente, logout/relogin, guard pagine
+e Impostazioni non-admin. Non contatta API esterne e non simula sessioni.
 
 L'interfaccia grafica è stata generata con assistenza AI; integrazione e test sono
 stati implementati dall'agente sviluppatore. Revisione umana Technical Lead e
@@ -103,7 +125,7 @@ pnpm test:unit          # vitest: config, client norish (fetch mockato), crypto
 pnpm test:integration   # vitest + PGlite in-process (Postgres WASM) sulle stesse migrazioni
 pnpm test               # entrambi
 pnpm build              # prerequisito per i test browser
-pnpm exec playwright test tests/e2e/diary-ui.spec.ts  # avvia server locale con configurazione fittizia
+pnpm exec vitest run --config vitest.e2e.config.ts tests/e2e/auth.spec.ts # auth reale, file isolato
 ```
 
 PGlite non richiede Docker: i test di integrazione girano su un Postgres WASM
