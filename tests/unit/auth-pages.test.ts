@@ -14,6 +14,7 @@ describe.each(["dashboard", "diary", "calendar"] as const)("/%s server guard", r
   it("redirects anonymous visitors before rendering private UI", async () => {
     session.mockResolvedValue(null);
     const page = await pages[route]();
+    expect(page.dynamic).toBe("force-dynamic");
     await expect(Promise.resolve().then(() => page.default())).rejects.toThrow("redirect:/login");
   });
   it("keeps authenticated visitors on the requested page", async () => {

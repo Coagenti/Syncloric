@@ -101,13 +101,17 @@ it("browser: signup → persistent diary → logout → login, protected routes 
     const logoutResponse = page.waitForResponse(response => response.url().endsWith("/api/auth/sign-out"));
     await page.getByRole("button", { name: "Esci", exact: true }).click();
     const logout = await logoutResponse;
-    expect(logout.status(), await logout.text()).toBe(200);
+    // Navigation unloads the fetch document; reading its response body can hang in Chromium.
+    // Status plus the protected-page redirect below verifies successful server-side revocation.
+    expect(logout.status()).toBe(200);
     await expect(page).toHaveURL(`${url}/login`);
     await page.goto(`${url}/diary`); await expect(page).toHaveURL(`${url}/login`);
     await page.getByLabel("Username", { exact: true }).fill("first_user");
     await page.getByLabel("Password", { exact: true }).fill("wrong-password-123");
+    const invalidLogin = page.waitForResponse(response => response.url().endsWith("/api/auth/sign-in/username"));
     await page.getByRole("button", { name: "Accedi", exact: true }).click();
-    await expect(page.getByRole("alert")).toContainText("Username o password");
+    expect((await invalidLogin).status()).toBe(401);
+    await expect(page.getByRole("alert")).toContainText("Username o password", { timeout: 30_000 });
     await expect(page.getByRole("alert")).toBeFocused();
     await page.getByLabel("Password", { exact: true }).fill("test-password-123");
     await page.getByRole("button", { name: "Accedi", exact: true }).click();

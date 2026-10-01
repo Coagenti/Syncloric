@@ -34,6 +34,7 @@ export function LoginForm() {
         return;
       }
       // Full navigation discards private client state and refreshes the server session boundary.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- Auth must reset the document rather than reuse Next's client route cache.
       window.location.assign("/diary");
     } catch { fail("Connessione non disponibile. Riprova tra poco."); }
     finally { setBusy(false); }

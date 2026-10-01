@@ -51,7 +51,9 @@ standard. `/dashboard`, `/diary`, `/calendar` e `/settings` richiedono una sessi
 server valida e redirigono a `/login` quando manca. `/login` resta raggiungibile
 anche con sessione attiva. La sessione vive in cookie HTTP-only, non in
 localStorage; Esci revoca la sessione server e torna al login. I ruoli sono letti
- dal database, senza cookie cache di autorizzazione.
+dal database, senza cookie cache di autorizzazione. Se il bootstrap del primo
+admin fallisce temporaneamente dopo la registrazione, il suo login lo ritenta:
+non è necessario registrare un altro account.
 
 Impostazioni è raggiungibile da tutti gli utenti autenticati: gli utenti standard
 vedono «Richiede amministratore», senza valori sensibili o controlli di scrittura.
@@ -115,8 +117,10 @@ Next: verifica registrazione, cookie persistente, logout/relogin, guard pagine
 e Impostazioni non-admin. Non contatta API esterne e non simula sessioni.
 
 L'interfaccia grafica è stata generata con assistenza AI; integrazione e test sono
-stati implementati dall'agente sviluppatore. Revisione umana Technical Lead e
-Marketing Lead prevista prima del rilascio. I dati non sono consigli nutrizionali.
+stati implementati dall'agente sviluppatore. Contributo umano verificato: brief
+utente e autorizzazione operatore sul modello. I profili Technical Lead e Marketing
+Lead forniscono decisioni e review agentiche; la supervisione umana finale resta
+richiesta prima del rilascio. I dati non sono consigli nutrizionali.
 
 ## Test
 
@@ -129,11 +133,11 @@ pnpm exec vitest run --config vitest.e2e.config.ts tests/e2e/auth.spec.ts # auth
 ```
 
 PGlite non richiede Docker: i test di integrazione girano su un Postgres WASM
-in-process con le stesse migrazioni drizzle dell'app. Le suite Playwright
-(`tests/e2e/`) verificano i flussi demo reali nel browser (add/edit, errori storage,
-selezione date e calendario); usano valori fittizi e non chiamano norish.
-Installare Chromium Playwright (`pnpm exec playwright install chromium`) prima
-se non è già disponibile. I test E2E di integrazione reale arrivano nei task feature.
+in-process con le stesse migrazioni drizzle dell'app. I test browser Vitest
+(`tests/e2e/`) usano Chromium reale con componenti e handler HTTP di produzione:
+settings (sessione admin iniettata), diario/feed e auth (sessioni Better Auth reali).
+Non chiamano Norish. Installare Chromium Playwright
+(`pnpm exec playwright install chromium`) prima se non è già disponibile.
 
 ## Deploy self-hosted (Docker Compose)
 
