@@ -40,6 +40,22 @@ it("label photo preview, explicit extraction, prefill without save, edit confirm
     await page.getByRole("button",{name:"Scansiona etichetta",exact:true}).click();
     await page.waitForFunction(() => (document.querySelector('input[name="name"]') as HTMLInputElement)?.value === "AI Snack");
     expect(saves).toBe(0); expect(extractions).toBe(1);
+    const confirmation = page.getByRole("checkbox", { name: "Ho verificato i valori proposti dall’AI" });
+    const saveButton = page.getByRole("button", { name: "Registra nel diario" });
+    expect(await saveButton.isDisabled()).toBe(true);
+    expect(await confirmation.isChecked()).toBe(false);
+    await page.getByLabel("Nome prodotto").press("Enter");
+    await page.locator('form:has(input[name="name"])').evaluate(form => form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+    expect(saves).toBe(0);
+    await confirmation.check();
+    expect(await saveButton.isEnabled()).toBe(true);
+    await input.setInputFiles({ name: "label2.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgo=", "base64") });
+    await page.getByRole("button", { name: "Scansiona etichetta", exact: true }).click();
+    await page.waitForFunction(() => !document.querySelector('input[type="file"]')?.hasAttribute('disabled') && !document.querySelector('img[alt="Anteprima etichetta"]'));
+    expect(extractions).toBe(2);
+    expect(await confirmation.isChecked()).toBe(false);
+    expect(await saveButton.isDisabled()).toBe(true);
+    await confirmation.check();
     expect(await page.getByLabel("Kcal per 100 g").inputValue()).toBe("400");
     expect(await page.getByLabel("Proteine per 100 g").inputValue()).toBe("8.33");
     expect(await page.getByLabel("Grassi per 100 g").inputValue()).toBe("12.35");
@@ -54,5 +70,10 @@ it("label photo preview, explicit extraction, prefill without save, edit confirm
     await page.getByLabel("Foto etichetta").setInputFiles({name:"label.png",mimeType:"image/png",buffer:Buffer.from("iVBORw0KGgo=","base64")});
     await page.getByRole("button",{name:"Scansiona etichetta",exact:true}).click(); await page.getByRole("alert").waitFor();
     expect(await page.getByLabel("Nome prodotto").inputValue()).toBe("Manuale mantenuto"); expect(saves).toBe(1);
+    expect(await confirmation.count()).toBe(0);
+    await page.getByLabel("Kcal per 100 g").fill("100");
+    expect(await saveButton.isEnabled()).toBe(true);
+    await saveButton.click(); await page.waitForFunction(() => !document.querySelector('dialog[open]'));
+    expect(saves).toBe(2); expect(last).toMatchObject({ name: "Manuale mantenuto", kcalPer100g: 100 });
   } finally { await browser.close(); await new Promise<void>(resolve => server.close(()=>resolve())); }
 },600000);

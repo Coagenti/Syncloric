@@ -42,6 +42,16 @@ async function main() {
       await page.getByRole('button',{name:'Scansiona etichetta',exact:true}).click();await page.getByText(/Valori proposti da AI/).waitFor();
       await page.getByLabel('Nome prodotto').scrollIntoViewIfNeeded();
       await page.screenshot({path:path.join(out,`ai-label-filled-${width}.png`)});
+      await page.getByRole('button',{name:'Registra nel diario'}).scrollIntoViewIfNeeded();
+      const confirmation=page.getByRole('checkbox',{name:'Ho verificato i valori proposti dall’AI'});
+      if(await confirmation.isChecked() || !await page.getByRole('button',{name:'Registra nel diario'}).isDisabled()) throw new Error('AI confirmation missing or bypassed');
+      const toggle=await confirmation.boundingBox();
+      if(toggle.width<24 || toggle.width>30 || toggle.height<24 || toggle.height>30) throw new Error('Checkbox dimensions invalid');
+      await page.screenshot({path:path.join(out,`ai-label-bottom-${width}.png`)});
+      await confirmation.check();
+      if(!await page.getByRole('button',{name:'Registra nel diario'}).isEnabled()) throw new Error('Confirmed save not enabled');
+      metrics.push({width,confirmation:{uncheckedByDefault:true,saveBlocked:true,saveAfterCheck:true,toggle}});
+      await page.screenshot({path:path.join(out,`ai-label-confirmed-${width}.png`)});
       const layout=await page.locator('dialog').evaluate(el=>({overflow:el.scrollWidth>el.clientWidth,centerX:el.getBoundingClientRect().x+el.getBoundingClientRect().width/2,viewport:innerWidth}));metrics.push({width,label:layout});
       await page.keyboard.press('Escape');if(!await page.getByRole('button',{name:'Scansiona',exact:true}).evaluate(el=>document.activeElement===el))throw new Error('focus not restored');
       await page.close();

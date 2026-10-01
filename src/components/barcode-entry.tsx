@@ -21,6 +21,8 @@ export function BarcodeEntry({ date, onSaved }: { date: string; onSaved: () => v
   const [busy, setBusy] = useState(false);
   const [camera, setCamera] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
+  const [aiApplied, setAiApplied] = useState(false);
+  const [aiConfirmed, setAiConfirmed] = useState(false);
   const productForm = useRef<HTMLFormElement>(null);
   const request = useRef<AbortController | null>(null);
 
@@ -31,14 +33,14 @@ export function BarcodeEntry({ date, onSaved }: { date: string; onSaved: () => v
     setCamera(false);
   }
   function close() {
-    request.current?.abort(); stopCamera(); dialog.current?.close(); setBusy(false); setAiBusy(false); setProduct(null); trigger.current?.focus();
+    request.current?.abort(); stopCamera(); dialog.current?.close(); setBusy(false); setAiBusy(false); setProduct(null); setAiApplied(false); setAiConfirmed(false); trigger.current?.focus();
   }
   useEffect(() => () => {
     request.current?.abort(); cameraRun.current++; stream.current?.getTracks().forEach(track => track.stop());
   }, []);
 
   async function lookup(barcode: string) {
-    stopCamera(); setCode(barcode); setBusy(true); setError(""); setProduct(null);
+    stopCamera(); setCode(barcode); setBusy(true); setError(""); setProduct(null); setAiApplied(false); setAiConfirmed(false);
     request.current?.abort(); const controller = new AbortController(); request.current = controller;
     try {
       const response = await fetch(`/api/v1/barcode?code=${encodeURIComponent(barcode)}`, { signal: controller.signal, cache: "no-store" });
@@ -76,7 +78,7 @@ export function BarcodeEntry({ date, onSaved }: { date: string; onSaved: () => v
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); if (busy || aiBusy) return;
+    event.preventDefault(); if (busy || aiBusy || (aiApplied && !aiConfirmed)) return;
     // Invalidate pending detection/permission before sharing the POST controller.
     stopCamera();
     const values = new FormData(event.currentTarget);
@@ -94,12 +96,12 @@ export function BarcodeEntry({ date, onSaved }: { date: string; onSaved: () => v
   }
 
   return <>
-    <button ref={trigger} className="primary-cta" type="button" onClick={() => { setCode(""); setProduct(null); setOrigin(""); setError(""); dialog.current?.showModal(); }}>Scansiona</button>
+    <button ref={trigger} className="primary-cta" type="button" onClick={() => { setCode(""); setProduct(null); setOrigin(""); setError(""); setAiApplied(false); setAiConfirmed(false); dialog.current?.showModal(); }}>Scansiona</button>
     <dialog ref={dialog} className="editor-panel barcode-dialog" aria-labelledby="barcode-title" onCancel={event => { event.preventDefault(); close(); }}>
       <div className="editor-heading"><h2 id="barcode-title">Registra un prodotto</h2><button className="close-editor" type="button" aria-label="Chiudi scanner" onClick={close}>×</button></div>
       <p className="form-help">Inserisci il codice o usa la fotocamera. Lo scanner barcode non invia foto; la scansione AI dell’etichetta è separata e facoltativa.</p>
       <form onSubmit={event => { event.preventDefault(); void lookup(code); }}>
-        <label>Codice a barre<input autoFocus inputMode="numeric" pattern="[0-9]{8,14}" required value={code} onChange={event => { setCode(event.target.value); setProduct(null); }} disabled={busy || aiBusy} /></label>
+        <label>Codice a barre<input autoFocus inputMode="numeric" pattern="[0-9]{8,14}" required value={code} onChange={event => { setCode(event.target.value); setProduct(null); setAiApplied(false); setAiConfirmed(false); }} disabled={busy || aiBusy} /></label>
         <button className="secondary-btn" disabled={busy || aiBusy} type="submit">Cerca prodotto</button>
         <button className="secondary-btn" disabled={busy || aiBusy} type="button" onClick={() => void startCamera()}>Usa fotocamera</button>
       </form>
@@ -113,6 +115,7 @@ export function BarcodeEntry({ date, onSaved }: { date: string; onSaved: () => v
         {(origin === "off" || product.source === "barcode_off") && <a href={`https://world.openfoodfacts.org/product/${code}`} target="_blank" rel="noreferrer">Open Food Facts · ODbL / DbCL</a>}
         {origin !== "local" && <LabelScan onBusy={value => { if (value) stopCamera(); setAiBusy(value); }} onExtract={label => {
           stopCamera();
+          setAiApplied(true); setAiConfirmed(false);
           const values = { name: label.name, brand: label.brand ?? "", kcal: Math.round(label.per100g.kcal), protein: Math.round(label.per100g.protein * 100) / 100, fat: Math.round(label.per100g.fat * 100) / 100, carbs: Math.round(label.per100g.carbs * 100) / 100 };
           for (const [key, value] of Object.entries(values)) {
             const input = productForm.current?.elements.namedItem(key);
@@ -126,7 +129,8 @@ export function BarcodeEntry({ date, onSaved }: { date: string; onSaved: () => v
         <label>Grammi registrati<input name="grams" type="number" required min="0.01" max="100000" step="0.01" defaultValue="100" /></label>
         <label>Pasto<select name="slot" defaultValue="Snack"><option value="Breakfast">Colazione</option><option value="Lunch">Pranzo</option><option value="Snack">Spuntino</option><option value="Dinner">Cena</option></select></label>
         <p className="form-help">Nutrienti per 100 g; calorie del diario proporzionali ai grammi. I campi facoltativi vuoti restano sconosciuti.</p>
-        <button type="submit" className="primary-btn" disabled={busy || aiBusy}>Registra nel diario</button>
+        {aiApplied && <label className="ai-confirmation"><input type="checkbox" checked={aiConfirmed} onChange={event => setAiConfirmed(event.target.checked)} />Ho verificato i valori proposti dall’AI</label>}
+        <button type="submit" className="primary-btn" disabled={busy || aiBusy || (aiApplied && !aiConfirmed)}>Registra nel diario</button>
         </fieldset>
       </form>}
     </dialog>
