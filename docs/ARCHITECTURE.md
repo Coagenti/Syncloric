@@ -414,9 +414,12 @@ chiari e strutturati (livello, user_id, run_id, fase), mai il valore della chiav
 | AI scan etichetta | camera → provider configurato → bozza cibo (§ ADR-0003) | v1.1 |
 | Ricette norish in pasti | ricerca `POST /recipes/search` → aggiunta a pasto | v1.1 |
 
-Il barcode/AI scan sono richiesti dal brief originario ma non assegnati a un task
-di questa ondata: restano nel design della piattaforma (ADR incluse) e si schedulano
-dopo l'E2E `t_ee2705d5`.
+Il barcode è implementato dalla card `t_849eeb34`: endpoint autenticati
+`GET/POST /api/v1/barcode`, catalogo locale-first, GET-only Open Food Facts,
+form confermato e snapshot calorie proporzionale ai grammi. Indice parziale
+`foods.barcode IS NOT NULL`, nessuna chiave provider. Contratto e dettagli di
+rate-limit/cache, privacy/licenze e verifiche in [BARCODE.md](BARCODE.md).
+Lo scan AI dell'etichetta resta nella card dedicata successiva.
 
 ---
 

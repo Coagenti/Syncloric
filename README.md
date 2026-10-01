@@ -79,9 +79,12 @@ quella locale del browser; il selettore carica il mese della data scelta. Kcal
 Norish sono per porzione, moltiplicate per le porzioni locali per la vista;
 le voci senza kcal non entrano nel totale. L'obiettivo viene dal profilo, se presente.
 
-La UI non usa più localStorage o dati dimostrativi. Non offre inserimento/modifica
-finché manca un'API di scrittura autenticata: è un limite dichiarato, non un
-salvataggio simulato. Se l'ultima run fallisce per autenticazione, la dashboard
+La UI non usa più localStorage o dati dimostrativi. Il Diario offre **Scansiona**:
+codice manuale sempre disponibile, camera nativa dove supportata, ricerca
+locale-first + Open Food Facts e conferma prodotto/grammi con scrittura reale
+nel diario. Nessuna AI in questo flusso. Contratto, licenze, privacy, limiti
+camera e test in [Barcode](docs/BARCODE.md). Altre modifiche al diario sono
+gestite dalle feature dedicate. Se l'ultima run fallisce per autenticazione, la dashboard
 mostra l'origine configurata e invita a riassociare consapevolmente la chiave in
 Impostazioni; non cambia o cancella credenziali. L'avviso non è `hostChanged`.
 
@@ -103,15 +106,16 @@ pnpm test:unit          # vitest: config, client norish (fetch mockato), crypto
 pnpm test:integration   # vitest + PGlite in-process (Postgres WASM) sulle stesse migrazioni
 pnpm test               # entrambi
 pnpm build              # prerequisito per i test browser
-pnpm exec playwright test tests/e2e/diary-ui.spec.ts  # avvia server locale con configurazione fittizia
+pnpm test:settings-browser  # Chromium reale + componenti/API/PGlite, upstream mockati
 ```
 
 PGlite non richiede Docker: i test di integrazione girano su un Postgres WASM
-in-process con le stesse migrazioni drizzle dell'app. Le suite Playwright
-(`tests/e2e/`) verificano i flussi demo reali nel browser (add/edit, errori storage,
-selezione date e calendario); usano valori fittizi e non chiamano norish.
+in-process con le stesse migrazioni drizzle dell'app. Gli harness Chromium
+(`tests/e2e/`, driver vitest) verificano componenti e API reali con PGlite:
+settings, feed Norish e barcode manuale; sessione iniettata solo nel confine test,
+provider HTTP mockati. Non sono una prova del login né della camera hardware.
 Installare Chromium Playwright (`pnpm exec playwright install chromium`) prima
-se non è già disponibile. I test E2E di integrazione reale arrivano nei task feature.
+se non è già disponibile.
 
 ## Deploy self-hosted (Docker Compose)
 

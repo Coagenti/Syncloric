@@ -1,0 +1,12 @@
+{
+  "name": "Nuova merenda",
+  "brand": "",
+  "kcalPer100g": 250,
+  "proteinPer100g": 10,
+  "fatPer100g": 8,
+  "carbsPer100g": 40,
+  "servingGrams": 50,
+  "slot": "Lunch",
+  "grams": 80,
+  "date": "2026-09-29"
+}
