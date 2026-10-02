@@ -97,12 +97,14 @@ La UI non usa più localStorage o dati dimostrativi. Le API autenticate
 voci manuali nel feed. Il Diario offre **Scansiona** per il barcode: codice
 manuale sempre disponibile, camera nativa dove supportata, ricerca
 locale-first + Open Food Facts e conferma prodotto/grammi con scrittura reale
-nel diario. Nessuna AI in questo flusso: contratto, licenze, privacy, limiti
-camera e test in [Barcode](docs/BARCODE.md). I dialog di aggiunta/modifica
-restano scope delle card UI successive e non sono ancora disponibili. Le
-voci importate (`norish_sync`) restano di proprietà del sync: qualsiasi PATCH o
-DELETE su di esse risponde 403 con messaggio dedicato. Se l'ultima run
-fallisce per autenticazione, la dashboard
+nel diario. Nel form nuovo prodotto è disponibile la scansione AI facoltativa
+con preview e conferma, senza salvataggio automatico. Contratto, licenze,
+privacy, limiti camera e test in [Barcode](docs/BARCODE.md) e
+[AI etichetta](docs/AI-LABEL.md). I dialog di aggiunta/modifica restano scope
+delle card UI successive e non sono ancora disponibili. Le voci importate
+(`norish_sync`) restano di proprietà del sync: qualsiasi PATCH o DELETE su di
+esse risponde 403 con messaggio dedicato. Se l'ultima run fallisce per
+autenticazione, la dashboard
 mostra l'origine configurata e invita a riassociare consapevolmente la chiave in
 Impostazioni; non cambia o cancella credenziali. L'avviso non è `hostChanged`.
 
@@ -140,6 +142,28 @@ Provenienza di questo delta v2: codice, test e documentazione generati con
 assistenza AI (Hermes); contributo umano: requisiti e decisioni D1–D6 del
 Technical Lead, inclusa l'autorizzazione al percorso lista vuota in sync.ts.
 Review e merge finale del TL non sono dichiarati già effettuati.
+
+## Scansione etichetta con AI
+
+Un admin sceglie esplicitamente il provider globale in Impostazioni > Scansione
+etichetta con AI e abilita la funzione. Senza provider o con ai.enabled=false,
+la scansione resta disabilitata; il form manuale funziona comunque.
+OpenAI/Anthropic richiedono la rispettiva chiave nell'ambiente, provisionata dal
+vault (mai in DB o repo); la GUI mostra solo se è rilevata. Ollama non richiede
+chiavi, usa OLLAMA_BASE_URL (default http://localhost:11434). In Compose localhost
+è il container app: configurare un indirizzo Ollama raggiungibile da lì.
+Modelli vision default: gpt-4.1-mini, claude-haiku-4-5-20251001, llama3.2-vision;
+SYNCLORIC_AI_MODEL permette un override compatibile con il provider selezionato.
+
+Nel form nuovo prodotto: foto/upload JPEG/PNG/WebP (5 MB), preview locale,
+Scansiona etichetta, verifica/modifica, Registra nel diario. La selezione della
+foto non la invia: occorre premere il pulsante. La UI dichiara il destinatario;
+OpenAI e Anthropic ricevono la foto nel cloud, Ollama sul server configurato.
+Syncloric non salva/logga le foto; la conservazione lato provider dipende dalle
+sue politiche. Non includere dati personali. AI assistiva, non consigli dietetici:
+una lettura errata non deve essere confermata. Nessun test/CI chiama AI reale.
+Dettagli, privacy, API e smoke opt-in in [AI-LABEL.md](docs/AI-LABEL.md);
+variabili e disabilitazione in [configuration.md](docs/configuration.md).
 
 ## Test
 

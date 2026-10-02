@@ -1,4 +1,4 @@
-import { eq, type SQL } from "drizzle-orm";
+import { eq, inArray, type SQL } from "drizzle-orm";
 import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
 import { adminSettings } from "../schema";
 
@@ -36,6 +36,16 @@ interface SettingsClient {
       returning(fields: Record<string, PgColumn>): Promise<Array<{ key?: unknown }>>;
     };
   };
+}
+
+/** Read related settings from a single statement snapshot; absent keys stay absent. */
+export async function getAdminSettings(
+  db: { select: SettingsClient["select"] },
+  keys: string[],
+): Promise<Record<string, unknown>> {
+  const rows = await db.select({ key: adminSettings.key, value: adminSettings.value })
+    .from(adminSettings).where(inArray(adminSettings.key, keys));
+  return Object.fromEntries(rows.map(row => [String(row.key), row.value]));
 }
 
 /** Lettura puntuale di una chiave: `null` se assente (mai default impliciti). */
