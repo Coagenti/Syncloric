@@ -1,2 +1,7 @@
 import { CalorieApp } from "@/components/calorie-app";
-export default function DiaryPage() { return <CalorieApp view="diary" />; }
+import { requirePageSession } from "@/server/auth/page-session";
+export const dynamic = "force-dynamic";
+export default async function DiaryPage() {
+  await requirePageSession();
+  return <CalorieApp view="diary" />;
+}

@@ -10,7 +10,7 @@ import { buildAdminSettingsOverride } from "./norish-url";
 export async function settingsPageProps(db?: Parameters<typeof getAdminSetting>[0]) {
   const session = await getAuth().api.getSession({ headers: await headers() });
   if (!session?.user) redirect("/login");
-  if (session.user.role !== "admin") redirect("/");
+  if (session.user.role !== "admin") return { access: "requires-admin" as const };
   const saved = await getAdminSetting<string>(db ?? getDb(), NORISH_SETTINGS_KEY);
   return {
     initialSaved: saved,

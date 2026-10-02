@@ -53,7 +53,7 @@ describe("settingsPageProps", () => {
 
   it("nega la lettura DB a un non admin", async () => {
     session.mockResolvedValue({ user: { id: "user", role: "user" } });
-    await expect(settingsPageProps({} as never)).rejects.toThrow("redirect:/");
+    await expect(settingsPageProps({} as never)).resolves.toEqual({ access: "requires-admin" });
     expect(getAdminSetting).not.toHaveBeenCalled();
   });
   it("con chiave assente: initialSaved null e stato unset", async () => {
@@ -62,6 +62,7 @@ describe("settingsPageProps", () => {
     } as never;
     (getAdminSetting as ReturnType<typeof vi.fn>).mockResolvedValue(null);
     const props = await settingsPageProps(db as never);
+    if (!props.initialStatus) throw new Error("Expected administrator settings");
     expect(props.initialSaved).toBeNull();
     expect(props.initialStatus.enabled).toBe(false);
     expect(props.initialStatus.source).toBe("unset");
@@ -71,6 +72,7 @@ describe("settingsPageProps", () => {
   it("con chiave salvata: initialSaved = valore e stato source=gui via norishConfigStatus", async () => {
     (getAdminSetting as ReturnType<typeof vi.fn>).mockResolvedValue("https://gui.example.invalid");
     const props = await settingsPageProps({} as never);
+    if (!props.initialStatus) throw new Error("Expected administrator settings");
     expect(props.initialSaved).toBe("https://gui.example.invalid");
     expect(props.initialStatus.source).toBe("gui");
     expect(props.initialStatus.enabled).toBe(true);
