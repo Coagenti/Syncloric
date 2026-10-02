@@ -33,7 +33,15 @@ it("profile: server preview, save/reload, target switch and dashboard without/wi
     const root=createRoot(document.getElementById('root'));
     if(location.pathname==='/profile') fetch('/api/v1/profile').then(r=>r.json()).then(p=>root.render(<ProfileForm initialProfile={p.profile}/>));
     else fetch('/api/v1/diary?month=2026-01').then(r=>r.json()).then(p=>root.render(<DashboardView entries={p.entries} date='2026-01-01' target={p.target}/>));`, resolveDir: process.cwd(), loader: "tsx" }, bundle: true, write: false, platform: "browser", loader: { ".css": "empty" }, jsx: "automatic", define: { "process.env.NODE_ENV": '"production"' } });
-  const css = await readFile("src/app/globals.css", "utf8") + await readFile("src/components/profile.css", "utf8");
+  let css = await readFile("src/app/globals.css", "utf8") + await readFile("src/components/profile.css", "utf8");
+  if (process.env.PROFILE_VISUAL === "1") {
+    // Compile the real production Tailwind/PostCSS pipeline for visual evidence.
+    const { createRequire } = await import("node:module");
+    const require = createRequire(path.resolve("package.json"));
+    const postcss = createRequire(require.resolve("@tailwindcss/postcss"))("postcss");
+    const tailwind = (await import("@tailwindcss/postcss")).default;
+    css = (await postcss([tailwind()]).process(await readFile("src/app/globals.css", "utf8"), { from: path.resolve("src/app/globals.css") })).css + await readFile("src/components/profile.css", "utf8");
+  }
   const server = createServer(async (req, res) => {
     try {
       if (req.url === "/app.js") { res.setHeader("Content-Type", "application/javascript"); res.end(bundle.outputFiles[0].text); return; }
@@ -51,6 +59,7 @@ it("profile: server preview, save/reload, target switch and dashboard without/wi
   const browser = await chromium.launch({ headless: true, args: ["--no-sandbox"] });
   try {
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    page.setDefaultTimeout(60000);
     const errors: string[] = []; page.on("pageerror", e => errors.push(e.message));
     await page.goto(base + "/dashboard");
     await expect(page.getByRole("link", { name: "Configura obiettivo" })).toBeVisible();
@@ -81,6 +90,72 @@ it("profile: server preview, save/reload, target switch and dashboard without/wi
       await expect(page.getByRole("heading", { name: "Il tuo obiettivo." })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await page.screenshot({ path: path.resolve("..", `profile-${width}.png`), fullPage: true });
+    }
+    await page.goto(base + "/profile");
+    await page.getByLabel("Anno di nascita").fill("1800");
+    const save = page.getByRole("button", { name: "Salva profilo" });
+    let release!: () => void;
+    const delayed = new Promise<void>(resolve => { release = resolve; });
+    await page.route("**/api/v1/profile", async route => {
+      if (route.request().method() === "PUT") await delayed;
+      await route.continue();
+    });
+    await save.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("button", { name: "Salvataggio…" })).toBeDisabled();
+    release();
+    await expect(page.getByLabel("Anno di nascita")).toHaveAttribute("aria-invalid", "true");
+    await expect(page.getByLabel("Anno di nascita")).toBeFocused();
+    await page.unroute("**/api/v1/profile");
+    await expect(page.locator("#error-birthYear")).toContainText("Inserisci un anno di nascita intero tra");
+    for (const width of [320, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await page.screenshot({ path: path.resolve("..", `profile-error-${width}.png`), fullPage: true });
+    }
+    await page.keyboard.press("Tab");
+    await expect(page.getByLabel("Livello di attività")).toBeFocused();
+    await page.getByLabel("Anno di nascita").fill(String(new Date().getFullYear() - 30));
+    await save.click();
+    await expect(page.getByRole("status")).toContainText("Modifiche salvate");
+    await expect(save).toBeFocused();
+    await page.route("**/api/v1/profile", route => route.request().method() === "PUT"
+      ? route.fulfill({ status: 503, contentType: "text/html", body: "Gateway unavailable" }) : route.continue());
+    await save.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("status")).toContainText("Servizio temporaneamente non disponibile");
+    await expect(page.getByRole("status")).not.toContainText("Controlla i dati");
+    await expect(save).toBeFocused();
+    await expect(page.getByLabel("Peso (kg)")).toHaveValue("80");
+    await page.unroute("**/api/v1/profile");
+    await page.route("**/api/v1/profile", route => route.request().method() === "PUT" ? route.abort() : route.continue());
+    await save.click();
+    await expect(page.getByRole("status")).toContainText("Connessione non riuscita");
+    await expect(save).toBeFocused();
+    await page.unroute("**/api/v1/profile");
+    await save.click();
+    await expect(page.getByRole("status")).toContainText("Modifiche salvate");
+    await expect(save).toBeFocused();
+    for (const moveFocus of [false, true]) {
+      let complete!: () => void;
+      const waiting = new Promise<void>(resolve => { complete = resolve; });
+      let puts = 0;
+      await page.route("**/api/v1/profile", async route => {
+        if (route.request().method() === "PUT") { puts++; await waiting; }
+        await route.continue();
+      });
+      const weight = page.getByLabel("Peso (kg)");
+      await weight.focus();
+      await page.keyboard.press("Enter");
+      await expect(page.getByRole("button", { name: "Salvataggio…" })).toBeDisabled();
+      await page.locator("form").evaluate(form => form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+      const back = page.getByRole("link", { name: "Torna alla dashboard" });
+      if (moveFocus) await back.focus();
+      complete();
+      await expect(page.getByRole("status")).toContainText("Modifiche salvate");
+      await expect(moveFocus ? back : weight).toBeFocused();
+      expect(puts).toBe(1);
+      await page.unroute("**/api/v1/profile");
     }
     expect(errors).toEqual([]);
   } finally { await browser.close(); await new Promise<void>(resolve => server.close(() => resolve())); await client.close(); await rm(dir, { recursive: true, force: true }); process.env = oldEnv; resetEnvConfigCache(); }
