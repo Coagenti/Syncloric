@@ -45,7 +45,7 @@ export function buildDiaryFeedHandlers(deps: {
           id: entry.id, date: entry.date, slot: entry.slot, entryType: entry.entryType,
           name: recipeName ?? foodName ?? "Voce senza nome", quantityGrams: entry.quantityGrams === null ? null : Number(entry.quantityGrams),
           servings: entry.servings === null ? null : Number(entry.servings),
-          kcal: entry.kcal === null ? null : entry.entryType === "recipe" ? Math.round(entry.kcal * Number(entry.servings ?? 1)) : entry.kcal,
+          kcal: entry.kcal === null ? null : entry.entryType === "recipe" && entry.source === "norish_sync" ? Math.round(entry.kcal * Number(entry.servings ?? 1)) : entry.kcal,
           protein: entry.protein === null ? null : Number(entry.protein), fat: entry.fat === null ? null : Number(entry.fat),
           carbs: entry.carbs === null ? null : Number(entry.carbs), source: entry.source, norishDeleted: entry.norishDeleted,
         })),
