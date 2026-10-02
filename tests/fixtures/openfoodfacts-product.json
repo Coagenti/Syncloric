@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "product_name": "Nutella Ferrero",
+  "brands": "Ferrero, Ferrero SpA",
+  "label_tags": [],
+  "categories_tags": ["breakfast-cereals"],
+  "serving_size": "15 g",
+  "product_name_it": "Nutella",
+  "nutriments": {
+    "energy-kcal_100g": 539,
+    "energy_100g": 2255,
+    "proteins_100g": 6.3,
+    "fat_100g": 30.9,
+    "carbohydrates_100g": 57.5,
+    "fiber_100g": 3.4,
+    "sodium_100g": 0.107,
+    "sugars_100g": 56.3,
+    "salt_100g": 0.265
+  }
+}

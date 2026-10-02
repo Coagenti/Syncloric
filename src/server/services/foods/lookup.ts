@@ -7,7 +7,7 @@ import { z } from "zod";
  */
 
 const offProductSchema = z.object({
-  code: z.string(),
+  code: z.string().optional(),
   product_name: z.string().nullish(),
   brands: z.string().nullish(),
   serving_size: z.string().nullish(),
@@ -21,6 +21,22 @@ const offProductSchema = z.object({
     .nullish(),
 });
 export type OffProduct = z.infer<typeof offProductSchema>;
+export type OffProductPayload = Partial<OffProduct>;
+
+/** Missing nutrients remain unknown, never fabricated as zero. */
+export function normalizeOffProduct(product: OffProductPayload) {
+  const nutrient = (value: unknown) => typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
+  const kcal = nutrient(product.nutriments?.["energy-kcal_100g"]);
+  return {
+    name: product.product_name?.trim() || "",
+    brand: product.brands?.split(",")[0]?.trim() || null,
+    kcalPer100g: kcal === null ? null : Math.round(kcal),
+    proteinPer100g: nutrient(product.nutriments?.proteins_100g),
+    fatPer100g: nutrient(product.nutriments?.fat_100g),
+    carbsPer100g: nutrient(product.nutriments?.carbohydrates_100g),
+    servingGrams: parseServingGrams(product.serving_size),
+  };
+}
 
 export interface FoodLookupResult {
   barcode: string;
@@ -37,6 +53,19 @@ export interface FoodLookupResult {
 const CACHE_TTL_MS = 24 * 60 * 60 * 1_000; // 24h: risposta pubblica, serve a limitare le chiamate (§ 6.6)
 
 const cache = new Map<string, { result: FoodLookupResult | null; expiresAt: number }>();
+class PermanentLookupError extends Error {}
+let queue: Promise<void> = Promise.resolve();
+let nextRequest = 0;
+
+/** One request start per second per instance, including retries/concurrent callers. */
+async function throttle() {
+  const turn = queue.then(async () => {
+    await new Promise(resolve => setTimeout(resolve, Math.max(0, nextRequest - Date.now())));
+    nextRequest = Date.now() + 1000;
+  });
+  queue = turn.catch(() => {});
+  await turn;
+}
 
 function parseServingGrams(servingSize: string | null | undefined): number | null {
   if (!servingSize) return null;
@@ -55,19 +84,23 @@ export async function lookupBarcode(
   const cached = cache.get(barcode);
   if (cached && cached.expiresAt > Date.now()) return cached.result;
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 10_000);
-  try {
+  if (!/^\d{8,14}$/.test(barcode)) throw new Error("Invalid barcode");
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await throttle();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10_000);
+    try {
     const response = await fetchImpl(
       `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json`,
-      { headers: { Accept: "application/json" }, signal: controller.signal },
+      { method: "GET", headers: { Accept: "application/json", "User-Agent": "Syncloric/1.0 (self-hosted calorie diary)" }, signal: controller.signal },
     );
     if (response.status === 404) {
       cache.set(barcode, { result: null, expiresAt: Date.now() + CACHE_TTL_MS });
       return null;
     }
     if (!response.ok) {
-      throw new Error(`Open Food Facts: HTTP ${response.status}`);
+      if (attempt === 0 && (response.status === 429 || response.status >= 500)) continue;
+      throw new PermanentLookupError(`Open Food Facts: HTTP ${response.status}`);
     }
     const json = (await response.json()) as { status?: number; product?: unknown };
     // status 0 = prodotto non trovato (risposta 200 con status flag)
@@ -76,21 +109,18 @@ export async function lookupBarcode(
       return null;
     }
     const parsed = offProductSchema.parse(json.product);
-    const nutriments = parsed.nutriments ?? {};
     const result: FoodLookupResult = {
-      barcode: parsed.code,
-      name: parsed.product_name?.trim() || "Prodotto senza nome",
-      brand: parsed.brands?.split(",")[0]?.trim() ?? null,
-      kcalPer100g: nutriments["energy-kcal_100g"] ?? null,
-      proteinPer100g: nutriments.proteins_100g ?? null,
-      fatPer100g: nutriments.fat_100g ?? null,
-      carbsPer100g: nutriments.carbohydrates_100g ?? null,
-      servingGrams: parseServingGrams(parsed.serving_size),
+      barcode,
+      ...normalizeOffProduct(parsed),
       raw: parsed,
     };
     cache.set(barcode, { result, expiresAt: Date.now() + CACHE_TTL_MS });
     return result;
-  } finally {
-    clearTimeout(timer);
+    } catch (error) {
+      if (attempt === 1 || error instanceof z.ZodError || error instanceof PermanentLookupError) throw error;
+    } finally {
+      clearTimeout(timer);
+    }
   }
+  throw new Error("Lookup unavailable");
 }

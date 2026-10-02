@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CalendarView, DashboardView, DiaryView } from "@/components/calorie-views";
 import { SyncNotice, type SyncState } from "@/components/sync-notice";
+import { BarcodeEntry } from "@/components/barcode-entry";
 import { formatDate, localDateKey, shiftDate, type DiaryEntry } from "@/lib/diary";
 
 type View = "dashboard" | "diary" | "calendar";
@@ -20,6 +21,7 @@ export function CalorieApp({ view }: { view: View }) {
   const [feed, setFeed] = useState<Feed | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [revision, setRevision] = useState(0);
   useEffect(() => { queueMicrotask(() => setDate(localDateKey())); }, []);
   useEffect(() => {
     if (!date) return;
@@ -35,12 +37,13 @@ export function CalorieApp({ view }: { view: View }) {
       .catch((cause: unknown) => { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Impossibile caricare i pasti."); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
-  }, [date]);
+  }, [date, revision]);
   const entries = feed?.entries ?? [];
   return <div className="app-shell">
     <aside className="sidebar"><Link href="/dashboard" className="brand" aria-label="Syncloric, vai alla dashboard"><span className="brand-icon">S<span>↗</span></span><span>SYN<span className="brand-accent">CLORIC</span><small>CALORIE / IN FOCUS</small></span></Link><div className="side-divider" /><span className="side-label">ESPLORA</span><nav className="side-nav" aria-label="Navigazione principale">{navigation.map((item) => <Link key={item.id} href={item.href} aria-current={view === item.id ? "page" : undefined} className={`nav-link ${view === item.id ? "active" : ""}`}><span aria-hidden="true">{item.symbol}</span>{item.label}{view === item.id && <i aria-hidden="true" />}</Link>)}</nav><div className="side-bottom"><span className="side-label">IL TUO SPAZIO</span><p>Una panoramica semplice di quello che registri. Nessun giudizio, solo dati.</p><div className="side-build">SYNC / LIVE <span>●</span> V.01</div></div></aside>
     <div className="app-main"><header className="topbar"><div className="topbar-path"><span>SYNCLORIC</span><span aria-hidden="true">/</span><strong>{navigation.find((item) => item.id === view)?.label.toUpperCase()}</strong></div><div className="topbar-right"><span className="live-label"><i /> DATI REALI</span></div></header>
       <main className="content"><div className="date-toolbar"><div><span className="section-kicker">GIORNO SELEZIONATO</span><strong>{date ? formatDate(date, { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "Oggi"}</strong></div><div className="date-actions"><button type="button" aria-label="Giorno precedente" disabled={!date} onClick={() => setDate(shiftDate(date, -1))}>←</button><button type="button" onClick={() => setDate(localDateKey())}>Oggi</button><button type="button" aria-label="Giorno successivo" disabled={!date} onClick={() => setDate(shiftDate(date, 1))}>→</button><label className="date-picker">Data <input type="date" aria-label="Seleziona data" value={date} onChange={(event) => { if (event.target.value) setDate(event.target.value); }} /></label></div></div>
+      {view === "diary" && <BarcodeEntry date={date} onSaved={() => setRevision(value => value + 1)} />}
       {loading && <p role="status">Caricamento pasti…</p>}
       {error && <p role="alert">{error} {error.startsWith("Accedi") && <Link href="/login">Vai al login</Link>}</p>}
       {feed && <><SyncNotice sync={feed.sync} />
