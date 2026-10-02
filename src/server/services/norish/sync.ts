@@ -90,12 +90,15 @@ export async function markDeletedNorishEntries(
   norishItemIds: string[],
   options: { windowStart?: string; windowEnd?: string } = {},
 ): Promise<number> {
-  // Empty upstream windows are not evidence of removal.
-  if (norishItemIds.length === 0) return 0;
+  // Removal requires both boundaries of an authoritative upstream window.
+  if (options.windowStart == null || options.windowEnd == null) return 0;
   const placeholders = sql.join(
     norishItemIds.map((id) => sql`${id}::uuid`),
     sql`, `,
   );
+  const absentFilter = norishItemIds.length > 0
+    ? sql` AND norish_item_id NOT IN (${placeholders})`
+    : sql``;
   const windowFilter =
     options.windowStart !== undefined
       ? sql` AND date >= ${options.windowStart}::date`
@@ -110,7 +113,7 @@ export async function markDeletedNorishEntries(
     WHERE user_id = ${userId}::uuid
       AND source = 'norish_sync'
       AND norish_deleted = false
-      AND norish_item_id NOT IN (${placeholders})${windowFilter}${windowEndFilter}
+      ${absentFilter}${windowFilter}${windowEndFilter}
     RETURNING id
   `);
   return countRows(marked);

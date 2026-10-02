@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { sql } from "drizzle-orm";
-import { loadEnvConfig, norishBaseUrl, NORISH_SETTINGS_KEY } from "@/server/config";
+import { loadEnvConfig, norishBaseUrl, norishUpstreamTimeZone, NORISH_SETTINGS_KEY } from "@/server/config";
 import { getAdminSetting } from "@/server/db/repositories/settings";
 import { buildAdminSettingsOverride } from "../settings/norish-url";
 import { NorishApiError } from "./client";
@@ -28,6 +28,7 @@ async function main(): Promise<void> {
     return;
   }
   const config = { ...loadEnvConfig(), NORISH_BASE_URL: baseUrl };
+  const upstreamTimeZone = norishUpstreamTimeZone();
   const settingRows = await db.execute(sql`SELECT key, value FROM admin_settings WHERE key = ${`norish.key.${userId}`} LIMIT 1`);
   const setting = Array.isArray(settingRows) ? settingRows[0] : (settingRows as { rows?: Array<{ key: string; value: unknown }> }).rows?.[0];
   const firstRows = await db.execute(sql`SELECT id FROM users ORDER BY created_at, id LIMIT 1`);
@@ -36,7 +37,7 @@ async function main(): Promise<void> {
   if (!client) throw new Error("chiave Norish non disponibile per l'utente richiesto");
   const runId = await startSyncRun(db, userId);
   try {
-    const result = await runNorishSync({ db, userId, client, period });
+    const result = await runNorishSync({ db, userId, client, period, upstreamTimeZone });
     await finishSyncRun(db, runId, result.partial ? "partial" : "ok", result.imported + result.updated, null);
     console.log(`[sync:norish] imported=${result.imported} updated=${result.updated} skipped=${result.skipped} marked=${result.marked}`);
   } catch (error) {

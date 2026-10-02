@@ -337,6 +337,21 @@ L'intero payload viene salvato in `recipes.snapshot` (JSONB).
   month alla prima connessione della chiave. NON è una rolling window client-side:
   la settimana/mese è quella del server upstream e le date del payload vengono usate
   così come arrivano (nessuna normalizzazione timezone client).
+  Contratto v2 pinnato a **Norish v0.24.0-beta**: week inclusiva lunedì–domenica,
+  month dal primo all'ultimo giorno. Anchor week = data dell'item `/today` se
+  presente, altrimenti minima data osservata; anchor month = minima data osservata.
+  I boundary si derivano con `Date.UTC` date-only: niente DST, orologio locale o
+  estensione all'oggi Syncloric. La data upstream può differire da quella locale.
+  Un singolo item a metà settimana/mese autorizza l'intera partizione, non soltanto
+  l'intervallo min/max dei record osservati.
+  Payload vuoto: nessuna marca per default. `NORISH_UPSTREAM_TZ` opzionale,
+  **env-only senza default**, consente di ottenere T nel fuso del server con
+  `Intl.DateTimeFormat` (Node full-ICU) e derivare la partizione anche a vuoto.
+  Fuso invalido = unset con warning controllato, mai crash; risoluzione/iniezione
+  per tick e CLI, nessun accesso alle settings dal client. Per l'istanza Coagenti
+  il TL ha verificato UTC; non assumere UTC per altre istanze.
+  **Orizzonte limitato** alla settimana/mese correnti: voci anteriori alla
+  partizione non vengono marcate. Sweep retroattivo eventuale v3, fuori scope.
 - **Idempotenza**: ogni item upstream con `id` → upsert su `diary_entries` con
   conflict target `(user_id, norish_item_id) WHERE norish_item_id IS NOT NULL`
   (indice univoco parziale, [ADR-0008](adr/0008-user-scoped-norish-idempotency.md)).
@@ -351,10 +366,18 @@ L'intero payload viene salvato in `recipes.snapshot` (JSONB).
   payload) vengono marcate `norish_deleted=true` (colonna addizionale) e mostrate con
   icona "rimossa su norish", rimovibili in massa. Revisit se fastidioso. Contratto
   riconciliazione: il marker opera sull'intersezione (utente × finestra della sync
-  corrente) e SOLO su voci `source='norish_sync'` del medesimo `user_id`; payload
-  vuoto o non valido → NESSUNA marca (nessuna evidenza = nessuna eliminazione);
+  corrente) e SOLO su voci `source='norish_sync'` del medesimo `user_id`.
+  Solo fetch completo (`week` + `today`, oppure `month` per backfill) autorizza
+  il marchio: today fallito non-auth = partial, import week ma zero marche;
+  401/403 = error con `reason=auth`, errore totale = error, entrambi zero marche.
+  Payload 200 vuoto con TZ upstream valida e fetch completo marca tutte le voci
+  sync nella partizione; senza TZ o finestra derivabile non marca nulla.
+  Richiesti entrambi i boundary inclusivi; lista vuota non genera `NOT IN ()`.
+  Il filtro `norish_deleted=false` evita re-marchi e churn di `updated_at`;
+  un item che riappare viene ripristinato dall'upsert.
   le marche restano soft (`norish_deleted=true`, reversibile, mai DELETE fisico);
   tutto dentro la transazione della run + advisory lock per utente.
+  Nessuna write upstream (ADR-0006): validazione con HTTP mockato e PGlite.
 - **Multi-utente**: ogni utente configura la **propria** chiave norish (la casa su
   norish è per-user/household). Nel settings utente: input chiave → validate con una
   chiamata reale `GET /planned-recipes/today` → salvataggio cifrato (§ 6).

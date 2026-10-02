@@ -96,6 +96,30 @@ L'interfaccia grafica è stata generata con assistenza AI; integrazione e test s
 stati implementati dall'agente sviluppatore. Revisione umana Technical Lead e
 Marketing Lead prevista prima del rilascio. I dati non sono consigli nutrizionali.
 
+## Integrazione Norish: riconciliazione v2
+
+Contratto pinnato a Norish v0.24.0-beta: sync week + today riconcilia l'intera
+settimana lunedì–domenica, backfill month l'intero mese, con boundary inclusivi
+ancorati alle date del payload (week preferisce l'item /today). Nessuna estensione
+all'oggi locale: il fuso del server upstream può essere diverso da Syncloric.
+Solo le voci `norish_sync` dell'utente nella partizione vengono marcate come
+rimosse, mai cancellate fisicamente; ritorno dell'item = restore.
+
+Con payload vuoto il default è zero marche. Per autorizzare il marchio a vuoto,
+configurare `NORISH_UPSTREAM_TZ` nell'ambiente con il fuso effettivamente verificato
+del server Norish (UTC per l'istanza Coagenti, non un default). È env-only, senza
+campo GUI, risolto a ogni tick/CLI; valori invalidi sono ignorati con warning.
+Solo fetch completo abilita le marche: today fallito non-auth = partial senza
+marchio; 401/403 = error reason auth; errore totale = nessuna marca.
+Date precedenti alla settimana/mese corrente sono fuori orizzonte (sweep v3 fuori
+scope). Test HTTP mockati, nessuna chiamata reale o write upstream. Dettagli in
+[ARCHITECTURE § 5.4](docs/ARCHITECTURE.md#54-progettazione-della-sincronizzazione).
+
+Provenienza di questo delta v2: codice, test e documentazione generati con
+assistenza AI (Hermes); contributo umano: requisiti e decisioni D1–D6 del
+Technical Lead, inclusa l'autorizzazione al percorso lista vuota in sync.ts.
+Review e merge finale del TL non sono dichiarati già effettuati.
+
 ## Test
 
 ```bash
