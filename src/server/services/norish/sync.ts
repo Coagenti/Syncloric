@@ -224,14 +224,13 @@ export function calculateCalorieTarget(input: {
 }): number {
   const currentYear = new Date().getFullYear();
   const age = Math.min(Math.max(currentYear - input.birthYear, 10), 100);
-  const bmr = Math.round(
-    10 * input.weightKg + 6.25 * input.heightCm - 5 * age + (input.sex === "m" ? 5 : -161),
-  );
-  const tdee = Math.round(bmr * ACTIVITY_FACTORS[input.activityLevel]);
+  // TL ADR-0009 (card target): female offset −166; round only the final result.
+  const bmr = 10 * input.weightKg + 6.25 * input.heightCm - 5 * age + (input.sex === "m" ? 5 : -166);
+  const tdee = bmr * ACTIVITY_FACTORS[input.activityLevel];
   const perGoal =
     input.goal === "lose" ? tdee - 500 : input.goal === "gain" ? tdee + 300 : tdee;
   const floor = input.sex === "f" ? 1200 : 1500;
-  return Math.max(perGoal, floor);
+  return Math.round(Math.max(perGoal, floor) / 5) * 5;
 }
 
 /** Ultimo profilo noto dell'utente (per il fallback kcal mancanti di § 4.4). */

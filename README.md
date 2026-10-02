@@ -69,6 +69,18 @@ l'entrypoint elimina valori vuoti prima del bootstrap. Dettagli in
 Health check: `GET /api/health` (app) e `GET /api/v1/health` (app + database,
 pattern norish § 5.1).
 
+## Obiettivo calorico personale
+
+Apri `/profile` dalla CTA «Configura obiettivo» in dashboard. Inserisci sesso per
+il calcolo, altezza, peso, anno di nascita, attività e obiettivo (perdita peso,
+mantenimento o massa). La preview è calcolata sul server e non salva i dati.
+Scegli Calcolato oppure Manuale; in quest'ultimo caso inserisci un numero positivo
+di kcal. «Salva profilo» persiste i dati soltanto per il tuo utente. Puoi cambiare
+fonte senza creare un secondo profilo; dashboard e feed usano il target selezionato.
+Senza profilo il riepilogo non mostra kcal di differenza. I numeri sono informativi,
+non prescrizioni nutrizionali. Nessuna nuova variabile d'ambiente o migrazione.
+Formula, limiti, API e contributi AI/umani: [ADR-0009](docs/adr/0009-calorie-target.md).
+
 ## Interfaccia diario (dati reali)
 
 `/dashboard`, `/diary` e `/calendar` leggono `GET /api/v1/diary?month=YYYY-MM`:
