@@ -42,6 +42,28 @@ L'API key non si configura in questo campo e non è restituita dalla settings AP
 
 ## Bootstrap e limiti dell'integrazione
 
+| Variabile Norish | Fonte / default | Semantica |
+| --- | --- | --- |
+| `NORISH_BASE_URL` | GUI > env > unset, nessun default | Origine upstream; unset disabilita il tick |
+| `NORISH_API_KEY` | Solo env, opzionale | Bootstrap/demo per il primo utente; mai loggata |
+| `NORISH_UPSTREAM_TZ` | Solo env, opzionale, nessun default | Fuso verificato del server upstream, es. UTC; invalido ignorato con warning |
+
+`NORISH_UPSTREAM_TZ` non è una setting GUI e non modifica la precedenza dell'URL.
+È risolta e iniettata nel runner a ogni tick e dal comando `pnpm sync:norish`,
+senza dipendenze aggiuntive (Node full-ICU, `Intl.DateTimeFormat`). Il client non
+legge la configurazione. Ometterla/vuota = payload vuoto non autorevole e zero
+marche; valore invalido = stessa semantica, con warning che non stampa l'input.
+Valorizzarla solo dopo aver verificato il fuso reale del SERVER upstream; UTC è
+stato verificato dal TL per Coagenti, ma non è un default applicativo.
+
+La riconciliazione v2 (Norish v0.24.0-beta) usa week lun–dom o month 1–fine mese
+inclusivi. Payload non vuoto: anchor /today, altrimenti minima data (month sempre
+minima data); nessun orologio locale. Payload 200 vuoto + TZ valida: T nel fuso
+upstream autorizza la partizione calendario; fetch parziale/fallito non marca
+mai. Solo user/source sync nella partizione, senza churn sulle voci già marcate.
+L'orizzonte non copre date anteriori alla partizione corrente (eventuale sweep v3).
+Vedi [ARCHITECTURE § 5.4](ARCHITECTURE.md#54-progettazione-della-sincronizzazione).
+
 `register()` in `src/instrumentation.ts` valida `DATABASE_URL`,
 `BETTER_AUTH_SECRET` ed `ENCRYPTION_KEY` prima di migrazioni e scheduler.
 Queste variabili restano obbligatorie. La decisione utente/TL sulle card

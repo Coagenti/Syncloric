@@ -6,6 +6,7 @@
  * Uso: pnpm sync:norish --user <uuid> [--period week|month]
  * La chiave arriva da env NORISH_API_KEY o dalla chiave cifrata per-utente
  * (mai argv, mai log); l'URL è risolto GUI > env al momento del comando.
+ * NORISH_UPSTREAM_TZ opzionale è risolta dalla CLI (env-only, nessun default).
  */
 const { build } = require("esbuild");
 const path = require("path");

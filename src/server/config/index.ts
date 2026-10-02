@@ -82,6 +82,24 @@ export function loadEnvConfig(env: NodeJS.ProcessEnv = process.env): SyncloricCo
   return cached;
 }
 
+/** Env-only, resolved afresh per tick/CLI; no default and no settings access.
+ * Never log the untrusted value (it could contain sensitive data).
+ */
+export function norishUpstreamTimeZone(
+  env: Record<string, string | undefined> = process.env,
+  warn: (message: string) => void = console.warn,
+): string | undefined {
+  const value = env.NORISH_UPSTREAM_TZ?.trim();
+  if (!value) return undefined;
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: value });
+    return value;
+  } catch {
+    warn("[norish] NORISH_UPSTREAM_TZ non riconosciuta: ignorata; payload vuoto non autorevole");
+    return undefined;
+  }
+}
+
 /** Reset della cache config (uso: test). */
 export function resetEnvConfigCache(): void {
   cached = null;

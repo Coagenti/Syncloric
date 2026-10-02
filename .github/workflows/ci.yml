@@ -53,3 +53,6 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Calendar contrast and keyboard regression (Playwright, built feed UI)
+        run: pnpm exec playwright test

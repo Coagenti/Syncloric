@@ -8,6 +8,7 @@ let saved: string | undefined;
 const deps = () => ({
   migrationsReady: vi.fn(async () => true),
   resolveBaseUrl: vi.fn(async () => saved ?? process.env.NORISH_BASE_URL ?? ""),
+  resolveUpstreamTimeZone: vi.fn(() => process.env.NORISH_UPSTREAM_TZ),
   listUserIds: vi.fn(async () => [USER]),
   isBreakerOpen: vi.fn(async () => false),
   acquireLock: vi.fn(async () => true),
@@ -23,9 +24,22 @@ beforeEach(() => {
   vi.stubEnv("ENCRYPTION_KEY", "a".repeat(64));
   vi.stubEnv("NORISH_API_KEY", KEY);
   vi.stubEnv("NORISH_BASE_URL", undefined);
+  vi.stubEnv("NORISH_UPSTREAM_TZ", undefined);
   resetEnvConfigCache();
 });
 describe("scheduler runtime URL and auth", () => {
+  it("resolves and injects env-only upstream timezone afresh per tick", async () => {
+    const { runSchedulerTick } = await import("@/server/services/scheduler");
+    const d = deps();
+    saved = "https://a.example";
+    vi.stubEnv("NORISH_UPSTREAM_TZ", "UTC");
+    await runSchedulerTick(new Date(), { deps: d });
+    vi.stubEnv("NORISH_UPSTREAM_TZ", "Pacific/Kiritimati");
+    await runSchedulerTick(new Date(), { deps: d });
+    expect(d.resolveUpstreamTimeZone).toHaveBeenCalledTimes(2);
+    expect(d.runNorishSync).toHaveBeenNthCalledWith(1, expect.objectContaining({ upstreamTimeZone: "UTC" }));
+    expect(d.runNorishSync).toHaveBeenNthCalledWith(2, expect.objectContaining({ upstreamTimeZone: "Pacific/Kiritimati" }));
+  });
   it("manual fallback must not fan out demo env key to a different user", async () => {
     const { resolveNorishClient } = await import("@/server/services/scheduler");
     const { loadEnvConfig } = await import("@/server/config");

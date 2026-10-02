@@ -69,6 +69,18 @@ l'entrypoint elimina valori vuoti prima del bootstrap. Dettagli in
 Health check: `GET /api/health` (app) e `GET /api/v1/health` (app + database,
 pattern norish § 5.1).
 
+## Obiettivo calorico personale
+
+Apri `/profile` dalla CTA «Configura obiettivo» in dashboard. Inserisci sesso per
+il calcolo, altezza, peso, anno di nascita, attività e obiettivo (perdita peso,
+mantenimento o massa). La preview è calcolata sul server e non salva i dati.
+Scegli Calcolato oppure Manuale; in quest'ultimo caso inserisci un numero positivo
+di kcal. «Salva profilo» persiste i dati soltanto per il tuo utente. Puoi cambiare
+fonte senza creare un secondo profilo; dashboard e feed usano il target selezionato.
+Senza profilo il riepilogo non mostra kcal di differenza. I numeri sono informativi,
+non prescrizioni nutrizionali. Nessuna nuova variabile d'ambiente o migrazione.
+Formula, limiti, API e contributi AI/umani: [ADR-0009](docs/adr/0009-calorie-target.md).
+
 ## Interfaccia diario (dati reali)
 
 `/dashboard`, `/diary` e `/calendar` leggono `GET /api/v1/diary?month=YYYY-MM`:
@@ -79,12 +91,18 @@ quella locale del browser; il selettore carica il mese della data scelta. Kcal
 Norish sono per porzione, moltiplicate per le porzioni locali per la vista;
 le voci senza kcal non entrano nel totale. L'obiettivo viene dal profilo, se presente.
 
-La UI non usa più localStorage o dati dimostrativi. Il Diario offre **Scansiona**:
-codice manuale sempre disponibile, camera nativa dove supportata, ricerca
+La UI non usa più localStorage o dati dimostrativi. Le API autenticate
+`POST /api/v1/diary` ([contratto](docs/DIARY-WRITES.md)), `PATCH` e
+`DELETE /api/v1/diary/:id` ([contratto](docs/DIARY-MUTATE.md)) gestiscono le
+voci manuali nel feed. Il Diario offre **Scansiona** per il barcode: codice
+manuale sempre disponibile, camera nativa dove supportata, ricerca
 locale-first + Open Food Facts e conferma prodotto/grammi con scrittura reale
-nel diario. Nessuna AI in questo flusso. Contratto, licenze, privacy, limiti
-camera e test in [Barcode](docs/BARCODE.md). Altre modifiche al diario sono
-gestite dalle feature dedicate. Se l'ultima run fallisce per autenticazione, la dashboard
+nel diario. Nessuna AI in questo flusso: contratto, licenze, privacy, limiti
+camera e test in [Barcode](docs/BARCODE.md). I dialog di aggiunta/modifica
+restano scope delle card UI successive e non sono ancora disponibili. Le
+voci importate (`norish_sync`) restano di proprietà del sync: qualsiasi PATCH o
+DELETE su di esse risponde 403 con messaggio dedicato. Se l'ultima run
+fallisce per autenticazione, la dashboard
 mostra l'origine configurata e invita a riassociare consapevolmente la chiave in
 Impostazioni; non cambia o cancella credenziali. L'avviso non è `hostChanged`.
 
@@ -98,6 +116,30 @@ syncloric-test richiedono la feature auth e la review dei branch base.
 L'interfaccia grafica è stata generata con assistenza AI; integrazione e test sono
 stati implementati dall'agente sviluppatore. Revisione umana Technical Lead e
 Marketing Lead prevista prima del rilascio. I dati non sono consigli nutrizionali.
+
+## Integrazione Norish: riconciliazione v2
+
+Contratto pinnato a Norish v0.24.0-beta: sync week + today riconcilia l'intera
+settimana lunedì–domenica, backfill month l'intero mese, con boundary inclusivi
+ancorati alle date del payload (week preferisce l'item /today). Nessuna estensione
+all'oggi locale: il fuso del server upstream può essere diverso da Syncloric.
+Solo le voci `norish_sync` dell'utente nella partizione vengono marcate come
+rimosse, mai cancellate fisicamente; ritorno dell'item = restore.
+
+Con payload vuoto il default è zero marche. Per autorizzare il marchio a vuoto,
+configurare `NORISH_UPSTREAM_TZ` nell'ambiente con il fuso effettivamente verificato
+del server Norish (UTC per l'istanza Coagenti, non un default). È env-only, senza
+campo GUI, risolto a ogni tick/CLI; valori invalidi sono ignorati con warning.
+Solo fetch completo abilita le marche: today fallito non-auth = partial senza
+marchio; 401/403 = error reason auth; errore totale = nessuna marca.
+Date precedenti alla settimana/mese corrente sono fuori orizzonte (sweep v3 fuori
+scope). Test HTTP mockati, nessuna chiamata reale o write upstream. Dettagli in
+[ARCHITECTURE § 5.4](docs/ARCHITECTURE.md#54-progettazione-della-sincronizzazione).
+
+Provenienza di questo delta v2: codice, test e documentazione generati con
+assistenza AI (Hermes); contributo umano: requisiti e decisioni D1–D6 del
+Technical Lead, inclusa l'autorizzazione al percorso lista vuota in sync.ts.
+Review e merge finale del TL non sono dichiarati già effettuati.
 
 ## Test
 
@@ -224,9 +266,11 @@ senza modifiche automatiche alle credenziali.
 - **Login/registrazione:** il backend Better Auth e `/api/auth` esistono, ma la
   pagina `/login` e il bootstrap del primo admin sono scope della feature auth:
   l'invito al login della UI resta finché quella pagina non viene consegnata.
-- **Inserimento/modifica manuale:** disattivato nella UI finché non esiste
-  un'endpoint di scrittura autenticato (i controlli demo sono rimossi, non
-  simulati); il sync Norish resta l'unica fonte attiva di voci del diario.
+- **Inserimento/modifica manuale:** POST autenticato disponibile
+  ([contratto](docs/DIARY-WRITES.md)), con voci manuali nel feed; PATCH e DELETE
+  autenticati solo-manual disponibili ([contratto](docs/DIARY-MUTATE.md)) con
+  `norish_sync` protetto (403); dialog UI e sync on-demand sono scope delle card
+  successive, senza salvataggi simulati.
 
 ## Sviluppo
 

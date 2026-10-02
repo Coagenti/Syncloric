@@ -14,10 +14,10 @@ import { NorishApiError, type PlannedRecipe, type RecipeDetail } from "./client"
  *   colonna int esistente, comportamento intero preservato e documentato);
  * - il totale Syncloric è competenza di sumKcal (kcal × servings locali);
  * - marca norish_deleted SOLO su source='norish_sync', stesso utente, data dentro
- *   la finestra della sincronizzazione fornita: l'API non espone boundary/timezone
- *   espliciti, quindi la finestra è la min/max data OSSERVATA nel payload valido,
- *   estesa conservativamente a includere "oggi" (mai finestre inventate);
- * - payload vuoto o fetch parziale/fallito → NESSUNA marca.
+ *   la partizione calendario Norish v0.24.0-beta (lun–dom / 1–fine mese),
+ *   ancorata a /today oppure alla prima data del payload, mai all'oggi locale;
+ * - payload vuoto → nessuna marca salvo TZ upstream esplicita; fetch
+ *   parziale/fallito → NESSUNA marca anche con TZ configurata.
  */
 
 export interface SyncPort {
@@ -59,17 +59,29 @@ export class NorishSyncError extends Error {
   }
 }
 
-function observedWindow(items: PlannedRecipe[]): { start: string; end: string } | null {
-  const dates = items
-    .map((i) => i.date)
-    .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d))
-    .sort();
-  if (dates.length === 0) return null;
-  return { start: dates[0], end: dates[dates.length - 1] };
-}
-
-function today(): string {
-  return new Date().toISOString().slice(0, 10);
+/** Norish v0.24.0-beta: inclusive Monday–Sunday / first–last day.
+ * Only ISO calendar dates participate; never expand to Syncloric's local today.
+ * serverTodayISO is the /today payload anchor (or explicit upstream-TZ fallback).
+ */
+export function deriveNorishWindow(
+  period: "week" | "month", payloadDates: string[], serverTodayISO?: string,
+): { start: string; end: string } | null {
+  const dates = payloadDates.filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+  const anchor = (period === "week" ? serverTodayISO : undefined) ?? dates[0] ?? serverTodayISO;
+  if (!anchor) return null;
+  const [year, month, day] = anchor.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (period === "month") {
+    return {
+      start: new Date(Date.UTC(year, month - 1, 1)).toISOString().slice(0, 10),
+      end: new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10),
+    };
+  }
+  const monday = date.getUTCDate() - ((date.getUTCDay() + 6) % 7);
+  return {
+    start: new Date(Date.UTC(year, month - 1, monday)).toISOString().slice(0, 10),
+    end: new Date(Date.UTC(year, month - 1, monday + 6)).toISOString().slice(0, 10),
+  };
 }
 
 function rows(result: unknown): Array<Record<string, unknown>> {
@@ -83,6 +95,10 @@ export async function runNorishSync(options: {
   client: SyncPort;
   /** Backfill: finestra = endpoint month, solo endpoint mese (§ 5.4). */
   period?: "week" | "month";
+  /** Validated env-only upstream timezone, injected by scheduler/CLI. */
+  upstreamTimeZone?: string;
+  /** Clock used only for the explicit empty-payload timezone fallback. */
+  now?: () => Date;
 }): Promise<NorishSyncResult> {
   const { db, userId, client, period = "week" } = options;
   return db.transaction(async (tx) => {
@@ -92,6 +108,7 @@ export async function runNorishSync(options: {
     await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${userId})) AS acquired`);
 
     let payload: PlannedRecipe[];
+    let serverTodayISO: string | undefined;
     let partial = false;
     try {
       if (period === "month") {
@@ -102,7 +119,9 @@ export async function runNorishSync(options: {
       } else {
         const week = await client.getPlannedRecipesWeek();
         try {
-          payload = [...week, ...(await client.getPlannedRecipesToday())];
+          const todayPayload = await client.getPlannedRecipesToday();
+          serverTodayISO = todayPayload[0]?.date;
+          payload = [...week, ...todayPayload];
         } catch (error) {
           // Auth non è un fetch parziale recuperabile: deve arrivare al run
           // come reason=auth anche se /week aveva già risposto 200.
@@ -122,7 +141,14 @@ export async function runNorishSync(options: {
       );
     }
 
-    const window = observedWindow(payload);
+    if (!partial && payload.length === 0 && options.upstreamTimeZone) {
+      const parts = new Intl.DateTimeFormat("en", {
+        timeZone: options.upstreamTimeZone, year: "numeric", month: "2-digit", day: "2-digit",
+      }).formatToParts(options.now?.() ?? Date.now());
+      const part = (type: string) => parts.find((p) => p.type === type)!.value;
+      serverTodayISO = `${part("year")}-${part("month")}-${part("day")}`;
+    }
+    const window = deriveNorishWindow(period, payload.map((i) => i.date), serverTodayISO);
     const result: NorishSyncResult = { imported: 0, updated: 0, skipped: 0, marked: 0 };
     if (partial) {
       result.partial = true as const;
@@ -182,12 +208,11 @@ export async function runNorishSync(options: {
         result.updated += 1;
       }
     }
-    // Marcatura SOLO se payload valido e completo: finestra osservata min/max
-    // del payload estesa a oggi (l'API non espone boundary/fuso espliciti).
+    // Only a complete fetch authorizes reconciliation of the calendar partition.
     if (window !== null && !partial) {
       result.marked = await markDeletedNorishEntries(tx, userId, payload.map((i) => i.id), {
         windowStart: window.start,
-        windowEnd: window.end < today() ? today() : window.end,
+        windowEnd: window.end,
       });
     }
     return result;
