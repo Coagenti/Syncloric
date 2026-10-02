@@ -32,6 +32,11 @@ services:
       # Opzionale (§ 5.4): entrypoint rimuove il valore vuoto prima del bootstrap;
       # lo schema applicativo continua a rifiutare chiavi presenti ma vuote.
       NORISH_API_KEY: ${NORISH_API_KEY-}
+      # Optional AI secrets stay environment-only; provider/enabled are admin settings.
+      OPENAI_API_KEY: ${OPENAI_API_KEY-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL-}
+      SYNCLORIC_AI_MODEL: ${SYNCLORIC_AI_MODEL-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     ports:
       - "${APP_PORT:-3000}:3000"
