@@ -5,6 +5,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/e2e/**/*.spec.ts"],
+    // This regression uses the Playwright driver and its real Next webServer.
+    exclude: ["tests/e2e/contrast.spec.ts"],
   },
   resolve: {
     alias: {
