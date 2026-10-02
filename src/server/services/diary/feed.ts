@@ -42,7 +42,7 @@ export function buildDiaryFeedHandlers(deps: {
       }
       return NextResponse.json({
         entries: rows.map(({ entry, recipeName, foodName }) => ({
-          id: entry.id, date: entry.date, slot: entry.slot, entryType: entry.entryType,
+          id: entry.id, foodId: entry.foodId, recipeId: entry.recipeId, date: entry.date, slot: entry.slot, entryType: entry.entryType,
           name: recipeName ?? foodName ?? "Voce senza nome", quantityGrams: entry.quantityGrams === null ? null : Number(entry.quantityGrams),
           servings: entry.servings === null ? null : Number(entry.servings),
           kcal: entry.kcal === null ? null : entry.entryType === "recipe" && entry.source === "norish_sync" ? Math.round(entry.kcal * Number(entry.servings ?? 1)) : entry.kcal,

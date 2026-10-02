@@ -70,6 +70,14 @@ describe("manual diary PATCH/DELETE", () => {
     expect((await feed(B)).entries).toEqual([]);
   });
 
+  it.each([{ servings: 2.5, date: "2026-09-30", slot: "Dinner" }, { servings: 2.5, date: "2026-09-30" }])("recalculates recipe kcal atomically with date/slot: %j", async (input) => {
+    const entry = await post({ date: "2026-09-29", slot: "Lunch", entryType: "recipe", recipeId: RECIPE, servings: 1 });
+    const response = await patch(entry.id, input);
+    expect(response.status).toBe(200);
+    expect((await response.json()).entry).toMatchObject({ kcal: 800, servings: "2.50", date: input.date });
+    expect((await feed()).entries[0]).toMatchObject({ kcal: 800, servings: 2.5 });
+  });
+
   it("deletes a POST-created manual entry from its feed only", async () => {
     const entry = await post();
     const response = await del(entry.id);

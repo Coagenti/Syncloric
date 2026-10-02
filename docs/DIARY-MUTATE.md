@@ -38,7 +38,10 @@ Payload parziale (`{} → 400`: almeno un campo). Campi accettati:
   kcal totali si ricalcolano dal catalogo: `round(food.kcalPer100g * grams / 100)`;
   con `kcal` esplicita vale il totale fornito (stessa semantica del POST).
 - entryType `recipe`: `servings` (stessa validazione di quantity) con ricalcolo
-  `kcal = round(recipe.kcalPerServing * servings)`; se il mirror non ha kcal il
+  `kcal = round(recipe.kcalPerServing * servings)` SEMPRE quando `servings`
+  è presente, anche nello stesso payload di `date` e/o `slot` (submit atomico).
+  Se `servings` è assente, spostare la data/pasto non cambia le kcal.
+  Se il mirror non ha kcal il
   valore resta `null`. Combinazioni incompatibili col tipo (grammi su ricetta,
   porzioni su alimento, kcal esplicita su ricetta) → 400 con messaggio dedicato.
 
@@ -55,7 +58,7 @@ Nessun body. Esito 200 `{ "ok": true }` dopo l'eliminazione; le stesse regole
 ## Verifica e limiti
 
 TDD file-isolato su PGlite con migrazioni reali, `hookTimeout=600000`
-(`tests/integration/diary-mutate.test.ts`, 29 test): patch/delete su voce creata
+(`tests/integration/diary-mutate.test.ts`): patch/delete su voce creata
 via POST, patch recipe con kcal ricalcolate, rifiuto sorgenti non manuali,
 401/404/400, campi immutabili, id malformati, nessuna mutazione sui rifiuti.
 
@@ -64,7 +67,7 @@ pnpm exec vitest run --config vitest.integration.config.ts tests/integration/dia
 ```
 
 Limite v1: non si possono cambiare food/ricetta di una voce né trasformare una
-voce importata in manuale; UI e sync on-demand appartengono alle card successive.
+voce importata in manuale; UI e sync on-demand sono descritti in `DIARY-UI.md`.
 
 Codice, test e documentazione generati con assistenza AI dall'agente sviluppatore.
 Le specifiche sono fornite dal Technical Lead; la revisione umana della PR resta

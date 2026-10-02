@@ -95,7 +95,7 @@ export function buildDiaryMutationHandlers(deps: {
           } else {
             if (input.quantityGrams !== undefined) return NextResponse.json({ error: "I grammi si applicano solo agli alimenti." }, { status: 400 });
             if (input.kcal !== undefined) return NextResponse.json({ error: "Le kcal della ricetta vengono ricalcolate dalle porzioni." }, { status: 400 });
-            if (input.servings !== undefined && input.date === undefined && input.slot === undefined) {
+            if (input.servings !== undefined) {
               const total = loaded.recipeKcal === null ? null : Math.round(loaded.recipeKcal * input.servings);
               if (total !== null && !kcal.safeParse(total).success) return overflow();
               updates.kcal = total;

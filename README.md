@@ -82,8 +82,10 @@ le voci senza kcal non entrano nel totale. L'obiettivo viene dal profilo, se pre
 La UI non usa più localStorage o dati dimostrativi. Le API autenticate
 `POST /api/v1/diary` ([contratto](docs/DIARY-WRITES.md)), `PATCH` e
 `DELETE /api/v1/diary/:id` ([contratto](docs/DIARY-MUTATE.md)) gestiscono le
-voci manuali nel feed; i dialog di aggiunta/modifica sono scope
-delle card UI successive e non sono ancora disponibili. Le voci importate
+voci manuali nel feed. I dialog reali aggiungono food inline/catalogo o ricette
+con porzioni, e modificano le sole voci manuali; «Sincronizza ora» invoca
+`POST /api/v1/sync`. Catalogo locale e prove browser: [DIARY-UI](docs/DIARY-UI.md).
+Le voci importate
 (`norish_sync`) restano di proprietà del sync: qualsiasi PATCH o DELETE su di
 esse risponde 403 con messaggio dedicato. Se l'ultima run fallisce per autenticazione, la dashboard
 mostra l'origine configurata e invita a riassociare consapevolmente la chiave in
@@ -251,8 +253,9 @@ senza modifiche automatiche alle credenziali.
 - **Inserimento/modifica manuale:** POST autenticato disponibile
   ([contratto](docs/DIARY-WRITES.md)), con voci manuali nel feed; PATCH e DELETE
   autenticati solo-manual disponibili ([contratto](docs/DIARY-MUTATE.md)) con
-  `norish_sync` protetto (403); dialog UI e sync on-demand sono scope delle card
-  successive, senza salvataggi simulati.
+  `norish_sync` protetto (403); dialog UI e sync on-demand disponibili
+  ([uso e verifica](docs/DIARY-UI.md)), senza salvataggi simulati. Il collaudo
+  integrato login→API→feed/UI resta nella QA dedicata.
 
 ## Sviluppo
 
