@@ -14,7 +14,8 @@ non supportati, nessuna conversione implicita. Validazione MIME, base64 canonico
 firma del file, limite body prima della conversione; non è una decodifica completa.
 
 La risposta compila nome, marca, kcal e tre macro per 100 g. L'utente deve
-verificarli/modificarli e premere Registra nel diario per creare cibo/voce tramite
+verificarli/modificarli e selezionare «Ho verificato i valori proposti dall’AI»,
+non preselezionata, prima di premere Registra nel diario per creare cibo/voce tramite
 l'API barcode preesistente; nessuna scrittura automatica dall'AI. Kcal arrotondate
 all'intero secondo lo schema esistente; proteine, grassi e carboidrati sono
 arrotondati a due decimali nel prefill (`step=0.01`) per consentire la conferma
@@ -23,6 +24,12 @@ mostrate e non salvate (il catalogo vigente non ha tali colonne); servingSize è
 la porzione dichiarata, mostrata senza cambiare i grammi consumati. Campi richiesti
 illeggibili non vengono inventati: errore e input manuale sempre disponibile.
 Chiudere il dialog abortisce l'attesa client, non garantisce annullamento cloud.
+Il submit (anche da tastiera) resta bloccato senza conferma dei risultati AI.
+Ogni estrazione riuscita azzera la conferma, anche se i valori sono identici;
+un nuovo prodotto/lookup o la chiusura azzera anche lo stato AI applicato.
+Errori AI senza risultati applicati non impongono checkbox al flusso manuale.
+Se restano risultati AI precedenti, il fallimento di un nuovo tentativo non
+rimuove la conferma richiesta per quei valori. Editing, grammi e pasto restano disponibili.
 
 ## Config e API
 
