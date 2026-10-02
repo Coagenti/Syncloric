@@ -79,10 +79,13 @@ quella locale del browser; il selettore carica il mese della data scelta. Kcal
 Norish sono per porzione, moltiplicate per le porzioni locali per la vista;
 le voci senza kcal non entrano nel totale. L'obiettivo viene dal profilo, se presente.
 
-La UI non usa più localStorage o dati dimostrativi. L'API autenticata
-`POST /api/v1/diary` crea voci manuali food/recipe visibili nel feed
-([contratto](docs/DIARY-WRITES.md)); i dialog di aggiunta/modifica sono scope
-delle card UI successive e non sono ancora disponibili. Se l'ultima run fallisce per autenticazione, la dashboard
+La UI non usa più localStorage o dati dimostrativi. Le API autenticate
+`POST /api/v1/diary` ([contratto](docs/DIARY-WRITES.md)), `PATCH` e
+`DELETE /api/v1/diary/:id` ([contratto](docs/DIARY-MUTATE.md)) gestiscono le
+voci manuali nel feed; i dialog di aggiunta/modifica sono scope
+delle card UI successive e non sono ancora disponibili. Le voci importate
+(`norish_sync`) restano di proprietà del sync: qualsiasi PATCH o DELETE su di
+esse risponde 403 con messaggio dedicato. Se l'ultima run fallisce per autenticazione, la dashboard
 mostra l'origine configurata e invita a riassociare consapevolmente la chiave in
 Impostazioni; non cambia o cancella credenziali. L'avviso non è `hostChanged`.
 
@@ -246,8 +249,10 @@ senza modifiche automatiche alle credenziali.
   pagina `/login` e il bootstrap del primo admin sono scope della feature auth:
   l'invito al login della UI resta finché quella pagina non viene consegnata.
 - **Inserimento/modifica manuale:** POST autenticato disponibile
-  ([contratto](docs/DIARY-WRITES.md)), con voci manuali nel feed; dialog UI e
-  PATCH/DELETE sono scope delle card successive, senza salvataggi simulati.
+  ([contratto](docs/DIARY-WRITES.md)), con voci manuali nel feed; PATCH e DELETE
+  autenticati solo-manual disponibili ([contratto](docs/DIARY-MUTATE.md)) con
+  `norish_sync` protetto (403); dialog UI e sync on-demand sono scope delle card
+  successive, senza salvataggi simulati.
 
 ## Sviluppo
 

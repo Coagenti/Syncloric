@@ -83,8 +83,21 @@ pnpm exec vitest run --config vitest.integration.config.ts tests/integration/dia
 ```
 
 In sandbox i file integration si verificano singolarmente per evitare i timeout
-PGlite cross-file noti; CI mantiene la suite normale. La UI di aggiunta/modifica,
-PATCH/DELETE e sync on-demand appartengono alle card successive, non a questa API.
+PGlite cross-file noti; CI mantiene la suite normale. La UI di aggiunta/modifica
+e sync on-demand appartiene alle card successive; PATCH/DELETE sono descritti in
+`docs/DIARY-MUTATE.md`.
+
+## Aggiornamento ed eliminazione (v1, solo voci manual)
+
+`PATCH /api/v1/diary/:id` e `DELETE /api/v1/diary/:id` seguono lo stesso
+pattern della creazione: sessione Better Auth obbligatoria (401 prima del
+parsing e del DB), `Content-Type: application/json` per il PATCH, messaggi
+d'errore in italiano, nessun dettaglio grezzo. Entrambi sono scoped
+per-utente: una voce inesistente, un id malformato o una voce di un altro
+utente rispondono tutti 404 `{ "error": "Voce non trovata." }` senza
+rivelarne l'esistenza.
+
+`docs/DIARY-MUTATE.md` descrive payload, ricalcolo kcal e protezione del sync.
 
 Codice, test e documentazione generati con assistenza AI dall'agente sviluppatore.
 Le specifiche e la semantica kcal sono fornite dal Technical Lead; la revisione
