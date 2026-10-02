@@ -43,7 +43,21 @@ export function buildProfileHandlers(deps: {
     try { payload = await request.json(); } catch { return NextResponse.json({ error: "JSON non valido." }, { status: 400 }); }
     if (preview && typeof payload === "object" && payload !== null && !Array.isArray(payload)) payload = { ...payload, targetSource: "calculated", manualTargetKcal: null };
     const parsed = inputSchema().safeParse(payload);
-    if (!parsed.success) return NextResponse.json({ error: "Controlla i dati del profilo.", fields: z.flattenError(parsed.error).fieldErrors }, { status: 422 });
+    if (!parsed.success) {
+      const year = new Date().getFullYear();
+      const messages: Record<string, string> = {
+        sex: "Seleziona Donna o Uomo per il calcolo.",
+        heightCm: "Inserisci un’altezza intera tra 1 e 2147483647 cm.",
+        weightKg: "Inserisci un peso tra 0,1 e 999,9 kg, con al massimo un decimale.",
+        birthYear: `Inserisci un anno di nascita intero tra ${year - 100} e ${year - 10} (età da 10 a 100 anni).`,
+        activityLevel: "Seleziona un livello di attività dall’elenco.",
+        goal: "Seleziona Perdita peso, Mantenimento o Massa.",
+        targetSource: "Seleziona Calcolato o Manuale.",
+        manualTargetKcal: "Inserisci un target manuale intero tra 1 e 2147483647 kcal.",
+      };
+      const fields = Object.fromEntries(Object.keys(z.flattenError(parsed.error).fieldErrors).map(key => [key, [messages[key]]]));
+      return NextResponse.json({ error: "Controlla i dati del profilo.", fields }, { status: 422 });
+    }
     const input = parsed.data;
     const calculatedTargetKcal = calculateCalorieTarget(input);
     if (!Number.isSafeInteger(calculatedTargetKcal) || calculatedTargetKcal > 2147483647) return NextResponse.json({ error: "Controlla i dati del profilo.", fields: { heightCm: ["I dati producono una stima fuori intervallo."] } }, { status: 422 });

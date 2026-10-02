@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { ProfileData } from "@/server/services/profile/http";
 import "./profile.css";
 
@@ -13,6 +13,17 @@ export function ProfileForm({ initialProfile }: { initialProfile: ProfileData | 
   const [notice, setNotice] = useState("");
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [saving, setSaving] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const pendingFocus = useRef<HTMLElement | null>(null);
+  const inFlight = useRef(false);
+  useEffect(() => {
+    if (saving || !pendingFocus.current) return;
+    // Disabled controls can only receive focus after React commits their re-enabling.
+    const firstInvalid = formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]');
+    if (firstInvalid) firstInvalid.focus();
+    else if (document.activeElement === document.body) pendingFocus.current.focus();
+    pendingFocus.current = null;
+  }, [saving]);
   useEffect(() => {
     const controller = new AbortController();
     const timer = setTimeout(async () => {
@@ -34,19 +45,35 @@ export function ProfileForm({ initialProfile }: { initialProfile: ProfileData | 
     setFields(f => ({ ...f, [key]: value })); setNotice(""); setErrors({}); setPreview(null);
   }
   async function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setSaving(true); setNotice(""); setErrors({});
+    event.preventDefault();
+    if (inFlight.current) return;
+    inFlight.current = true;
+    pendingFocus.current = event.currentTarget.contains(document.activeElement)
+      ? document.activeElement as HTMLElement : event.currentTarget.querySelector('button[type="submit"]');
+    setSaving(true); setNotice(""); setErrors({});
     try {
       const response = await fetch("/api/v1/profile", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload(fields)) });
+      if (!response.ok) {
+        if (response.status === 422) {
+          const result = await response.json();
+          setErrors(result.fields ?? {});
+          setNotice("Non è stato possibile salvare. Correggi i campi indicati e riprova.");
+        } else {
+          setNotice(response.status === 401 ? "Sessione scaduta. Accedi di nuovo."
+            : response.status >= 500 ? "Servizio temporaneamente non disponibile. I valori sono conservati: riprova il salvataggio."
+            : "Salvataggio non consentito. I valori sono conservati: ricarica la pagina o accedi di nuovo prima di riprovare.");
+        }
+        return;
+      }
       const result = await response.json();
-      if (!response.ok) { setErrors(result.fields ?? {}); setNotice(response.status === 401 ? "Sessione scaduta. Accedi di nuovo." : "Non è stato possibile salvare. Controlla i dati e riprova."); return; }
       setPreview(result.profile.calculatedTargetKcal); setNotice("Modifiche salvate. Il tuo obiettivo è aggiornato.");
-    } catch { setNotice("Non è stato possibile salvare. Riprova."); }
-    finally { setSaving(false); }
+    } catch { setNotice("Connessione non riuscita o risposta non leggibile. I valori sono conservati: verifica la rete e riprova il salvataggio."); }
+    finally { inFlight.current = false; setSaving(false); }
   }
   const fieldProps = (key: keyof Fields) => ({ id: `profile-${key}`, value: fields[key], "aria-invalid": !!errors[key], "aria-describedby": errors[key] ? `error-${key}` : undefined, onChange: (e: { target: { value: string } }) => update(key, e.target.value) });
-  const error = (key: keyof Fields) => errors[key] && <span id={`error-${key}`} className="profile-error">Controlla questo campo.</span>;
+  const error = (key: keyof Fields) => errors[key] && <span id={`error-${key}`} className="profile-error">{errors[key].join(" ")}</span>;
   return <main className="profile-page"><a className="profile-back" href="/dashboard">Torna alla dashboard</a><div className="eyebrow">SYNCLORIC / PROFILO</div><h1>Il tuo obiettivo<span className="title-punctuation">.</span></h1><p className="data-note">Scegli un valore manuale o una stima basata sui tuoi dati. Non è una prescrizione nutrizionale.</p>
-    <form onSubmit={save}>
+    <form ref={formRef} onSubmit={save}>
       <fieldset disabled={saving} className="profile-panel"><legend>I tuoi dati</legend><div className="profile-grid">
         <label htmlFor="profile-sex">Sesso per il calcolo<select {...fieldProps("sex")} required><option value="">Seleziona</option><option value="f">Donna</option><option value="m">Uomo</option></select>{error("sex")}</label>
         <label htmlFor="profile-heightCm">Altezza (cm)<input {...fieldProps("heightCm")} required type="number" min="1" step="1" />{error("heightCm")}</label>
