@@ -8,22 +8,23 @@ selected border rules in the cascade. Keep the global cyan focus-visible outline
 
 ## Browser regression
 
-After a production build, run `pnpm exec playwright test`. CI runs this after
-its build and Chromium installation. `tests/e2e/contrast.spec.ts` uses the real
-Next calendar route at desktop and mobile widths and freezes the local date to
-2026-09-29. It intercepts GET `/api/v1/diary?month=...` before navigation with
-synthetic entries (including an adjacent-month import), so no login, database,
-Norish service, private data, or real credential is needed. This fixture tests UI
-rendering only; it is not an API-contract test.
+`tests/e2e/contrast.spec.ts` runs in the Vitest browser harness (driver Vitest,
+Chromium reale, bundle esbuild del componente di produzione; stesso pattern di
+`tests/e2e/auth.spec.ts`) at desktop and mobile widths and freezes the local
+date to 2026-09-29 via a `Date` shim. The harness server answers
+GET `/api/v1/diary?month=...` with synthetic entries (including an
+adjacent-month import), so no login, database, Next build, Norish service,
+private data, or real credential is needed. This fixture tests UI rendering
+only; it is not an API-contract test.
 
 The regression computes WCAG relative luminance from actual computed colors,
 compositing backgrounds and ancestor opacity. It verifies normal text >=4.5:1,
 distinguishable outside dates, import counts, visible keyboard focus, cyan hover,
 yellow selection, and keyboard activation into the adjacent month. Gradients in
 the measured ancestry explicitly fail rather than silently assuming a surface.
-The Playwright driver and the existing Vitest browser harnesses are deliberately
-separate: the contrast file is excluded from the Vitest harness and is the
-Playwright configuration's testMatch.
+Since PR #22 the calendar page requires a session, so the file no longer uses
+the Playwright Next-server setup (public `/calendar`); it is included in the
+standard Vitest e2e suite instead.
 
 PR #11's demo dialog focus tests are not ported here: the feed UI removed the demo
 write dialog. Its replacement and focus restoration belong to t_ef7dd54d (M2).
