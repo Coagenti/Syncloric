@@ -39,6 +39,13 @@ effettivo non è configurato. Un URL env esplicitamente malformato resta un erro
 
 ## Accessi e ruoli
 
+Il cambio tra accesso e registrazione porta subito il focus allo username già
+presente nel form, senza callback differite che possano sottrarre il focus alla
+password mentre si digita. Il test Chromium `tests/e2e/auth.spec.ts` ritarda
+esplicitamente un frame e verifica che un successivo focus sulla password sia
+preservato, oltre ai flussi reali Better Auth/PGlite di login e registrazione.
+Riprodurre con `pnpm exec vitest run --config vitest.e2e.config.ts tests/e2e/auth.spec.ts`.
+
 Apri `/login` per accedere o creare un account con username e password (8–128
 caratteri). Non serve SMTP e non viene chiesta un’email: Better Auth conserva un
 indirizzo tecnico con username codificato in esadecimale nel dominio `users.invalid`, non un recapito per recupero password.

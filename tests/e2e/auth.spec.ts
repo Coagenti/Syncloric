@@ -117,7 +117,21 @@ it("browser: signup → persistent diary → logout → login, protected routes 
     await page.getByRole("button", { name: "Accedi", exact: true }).click();
     await expect(page).toHaveURL(`${url}/diary`, { timeout: 60_000 });
     await page.goto(`${url}/login`); await expect(page).toHaveURL(`${url}/login`);
+    // Hold one animation frame to reproduce a mode-switch focus callback arriving
+    // after the user has already moved to Password (the intermittent CI failure).
+    await page.evaluate(() => {
+      const original = window.requestAnimationFrame;
+      const pending: FrameRequestCallback[] = [];
+      window.requestAnimationFrame = callback => { pending.push(callback); return pending.length; };
+      Object.assign(window, { releaseAuthFocusFrame: () => {
+        window.requestAnimationFrame = original;
+        pending.splice(0).forEach(callback => callback(performance.now()));
+      } });
+    });
     await page.getByRole("button", { name: "Crea un account", exact: true }).click();
+    await page.getByLabel("Password", { exact: true }).focus();
+    await page.evaluate(() => (window as unknown as { releaseAuthFocusFrame: () => void }).releaseAuthFocusFrame());
+    await expect(page.getByLabel("Password", { exact: true })).toBeFocused();
     await page.getByLabel("Username", { exact: true }).fill("second_user");
     await page.getByLabel("Password", { exact: true }).fill("test-password-123");
     await page.getByRole("button", { name: "Crea account", exact: true }).click();

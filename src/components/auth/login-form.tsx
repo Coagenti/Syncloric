@@ -53,7 +53,7 @@ export function LoginForm() {
       {error && <p id="access-error" ref={errorRef} role="alert" tabIndex={-1} className="auth-error">{error}</p>}
       <button className="auth-primary" type="submit" disabled={busy}>{busy ? "Attendi…" : register ? "Crea account" : "Accedi"}</button>
     </form>
-    <button className="auth-switch" type="button" disabled={busy} onClick={() => { setRegister(!register); setError(null); requestAnimationFrame(() => usernameRef.current?.focus()); }}>{register ? "Hai già un account? Accedi" : "Crea un account"}</button>
+    <button className="auth-switch" type="button" disabled={busy} onClick={() => { setRegister(!register); setError(null); usernameRef.current?.focus(); }}>{register ? "Hai già un account? Accedi" : "Crea un account"}</button>
     {register && <p className="status-note">Il primo utente dell’istanza diventa amministratore. Gli account successivi sono utenti standard.</p>}
   </section>;
 }
