@@ -54,7 +54,7 @@ export function buildAiHandlers(deps: { getDb: () => Db; getSession: (headers: H
       const denied = guard(request); if (denied) return denied;
       let body: unknown; try { body = await boundedJson(request, 2048); } catch { return json({ error: "Dati non validi." }, 400); }
       const value = settingsSchema.safeParse(body); if (!value.success) return json({ error: "Seleziona un provider esplicito prima di abilitare AI." }, 400);
-      try { await saveAiConfig(deps.getDb(), value.data); return json(await aiConfig(deps.getDb(), env())); }
+      try { await saveAiConfig(deps.getDb(), value.data, auth.user.id); return json(await aiConfig(deps.getDb(), env())); }
       catch { return json({ error: "Impossibile salvare le impostazioni." }, 503); }
     },
     async POST(request: Request) {

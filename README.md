@@ -14,6 +14,15 @@ server backend, servizi), schema DB con migrazioni versionate (Drizzle), auth
 in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Le feature v1 (diario,
 dashboard, sync, admin) arrivano nei task dedicati a valere su questo scheletro.
 
+## Amministrazione
+
+Il pannello `/settings` presenta Norish, AI, Barcode e Utenti con salvataggi
+indipendenti e conferme esplicite. Configurazioni non segrete in `admin_settings`,
+chiavi solo nell'ambiente; nessun provider AI implicito. Restano sempre almeno
+un amministratore attivo e un audit delle modifiche (incluse le API Better Auth
+native). Impersonation disabilitata. Contratti, precedenza, migrazione e limiti:
+[`docs/ADMINISTRATION.md`](docs/ADMINISTRATION.md).
+
 ## Requisiti
 
 - Node.js 22 (vedi `.nvmrc`) e pnpm 10 (`corepack enable`)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { fetchJson } from "@/lib/http-client";
 
 /**
@@ -76,18 +76,25 @@ export function SettingsNorishCard({
   initialStatus: SettingsStatusJson;
 }) {
   const [url, setUrl] = useState(initialSaved ?? "");
+  const [saved, setSaved] = useState(initialSaved ?? "");
+  const busy = useRef(false);
+  const editRevision = useRef(0);
   const [status, setStatus] = useState<SettingsStatusJson>(initialStatus);
   const [feedback, setFeedback] = useState<{ text: string; ok: boolean } | null>(null);
   const [saving, setSaving] = useState(false);
 
   async function handleSave(event: React.FormEvent) {
     event.preventDefault();
+    if (busy.current) return;
+    busy.current = true;
     setSaving(true);
     setFeedback(null);
     try {
-      const payload = await saveNorishUrl(url);
+      const submitted = url;
+      const payload = await saveNorishUrl(submitted);
       setStatus(payload.status);
-      setUrl(payload.saved ?? "");
+      setSaved(payload.saved ?? "");
+      setUrl(current => current === submitted ? payload.saved ?? "" : current);
       setFeedback({ text: feedbackMessage({ ok: true, status: payload.status, hostChanged: payload.hostChanged }), ok: true });
     } catch (error) {
       setFeedback({
@@ -95,17 +102,22 @@ export function SettingsNorishCard({
         ok: false,
       });
     } finally {
+      busy.current = false;
       setSaving(false);
     }
   }
 
   async function handleClear() {
+    if (busy.current) return;
+    const submittedRevision = editRevision.current;
+    busy.current = true;
     setSaving(true);
     setFeedback(null);
     try {
       const payload = await clearNorishUrl();
       setStatus(payload.status);
-      setUrl("");
+      setUrl(current => editRevision.current === submittedRevision ? "" : current);
+      setSaved("");
       setFeedback({ text: feedbackMessage({ ok: true, status: payload.status, hostChanged: payload.hostChanged }), ok: true });
     } catch (error) {
       setFeedback({
@@ -113,6 +125,7 @@ export function SettingsNorishCard({
         ok: false,
       });
     } finally {
+      busy.current = false;
       setSaving(false);
     }
   }
@@ -130,6 +143,7 @@ export function SettingsNorishCard({
         {status.enabled ? "Norish configurato" : "Norish non configurato"}
       </p>
       <form onSubmit={handleSave} className="mt-4 flex flex-col gap-3">
+        {url !== saved && <p>Modifiche non salvate</p>}
         <label htmlFor="norish-url" className="text-sm font-medium">
           Norish URL
         </label>
@@ -142,31 +156,33 @@ export function SettingsNorishCard({
           spellCheck={false}
           placeholder="your norish url"
           value={url}
-          onChange={(e) => setUrl(e.target.value)}
+          onChange={(e) => { editRevision.current++; setUrl(e.target.value); }}
           className="rounded-md border border-cyber-border bg-cyber-surface px-3 py-2 text-sm"
         />
         <p className="text-xs opacity-70">
           Lascia il campo vuoto per usare l&apos;eventuale impostazione da file .env.
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             type="submit"
-            disabled={saving}
+            aria-disabled={saving}
+            style={{ minHeight: 44 }}
             className="rounded-md border border-cyber-border px-4 py-2 text-sm hover:bg-cyber-surface disabled:opacity-50"
           >
-            {saving ? "Salvataggio…" : "Salva"}
+            Salva Norish
           </button>
           <button
             type="button"
             onClick={handleClear}
-            disabled={saving}
+            aria-disabled={saving}
+            style={{ minHeight: 44 }}
             className="rounded-md border border-cyber-border px-4 py-2 text-sm hover:bg-cyber-surface disabled:opacity-50"
           >
             Cancella
           </button>
         </div>
         {feedback && (
-          <p role="status" className={`text-sm ${feedback.ok ? "text-emerald-400" : "text-red-400"}`}>
+          <p role={feedback.ok ? "status" : "alert"} className={`text-sm ${feedback.ok ? "text-emerald-400" : "text-red-400"}`}>
             {feedback.text}
           </p>
         )}

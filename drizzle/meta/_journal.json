@@ -22,6 +22,13 @@
       "when": 1790868517948,
       "tag": "0002_barcode_partial",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790981206206,
+      "tag": "0003_admin_audit_invariant",
+      "breakpoints": true
     }
   ]
 }

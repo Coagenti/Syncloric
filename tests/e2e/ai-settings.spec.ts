@@ -25,7 +25,7 @@ it("AI admin settings: explicit provider, presence only, save persistence and di
   try{
     const page=await browser.newPage({viewport:{width:390,height:844}});await page.goto(`http://127.0.0.1:${(server.address() as {port:number}).port}`);
     await page.getByLabel("Provider AI").waitFor();expect(await page.getByLabel("Provider AI").inputValue()).toBe("");
-    await page.getByLabel("Provider AI").selectOption("openai");await page.getByText("Chiave rilevata in ambiente").waitFor();
+    await page.getByLabel("Provider AI").selectOption("openai");await page.getByText("Chiave configurata in ambiente").waitFor();
     await page.getByLabel("Abilita scansione AI").check();await page.getByRole("button",{name:"Salva AI"}).click();await page.getByText("Impostazioni AI salvate.",{exact:true}).waitFor();
     expect(await page.content()).not.toContain("test-secret-not-visible");
     await page.reload();await page.getByLabel("Abilita scansione AI").waitFor();expect(await page.getByLabel("Abilita scansione AI").isChecked()).toBe(true);expect(await page.getByLabel("Provider AI").inputValue()).toBe("openai");

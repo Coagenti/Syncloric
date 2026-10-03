@@ -1,0 +1,53 @@
+import { afterAll, beforeAll, beforeEach, expect, it, vi } from "vitest";
+import { sql } from "drizzle-orm";
+import type { Db } from "@/server/db";
+import { setAdminSetting } from "@/server/db/repositories/settings";
+import { buildBarcodeHandlers } from "@/server/services/foods/http";
+import { makeTestDb, closeTestDb, resetTables, type TestDb } from "./setup";
+import { buildBarcodeSettingsHandlers } from "@/server/services/settings/barcode-http";
+const userId = "11111111-1111-4111-8111-111111111111";
+let db: TestDb;
+beforeAll(async () => { db = await makeTestDb(); });
+afterAll(closeTestDb);
+beforeEach(async () => {
+  await resetTables(db);
+  await db.execute(sql`INSERT INTO users (id, username) VALUES (${userId}::uuid, 'barcode-settings-user')`);
+});
+const get = () => new Request("http://localhost/api/v1/barcode?code=8001234567890");
+const post = () => new Request("http://localhost/api/v1/barcode", { method: "POST", headers: { "content-type": "application/json", origin: "http://localhost" }, body: JSON.stringify({ barcode: "8001234567890", name: "Snack", kcalPer100g: 400, grams: 25, date: "2026-10-01", slot: "Snack" }) });
+it("OFF suppresses lookup in both search and save but preserves local products and manual diary writes", async () => {
+  await setAdminSetting(db, "barcode.enabled", false);
+  const lookup = vi.fn(async () => null);
+  const handlers = buildBarcodeHandlers({ getDb: () => db as unknown as Db, getSession: async () => ({ user: { id: userId } }), lookup });
+  expect(await (await handlers.GET(get())).json()).toMatchObject({ origin: "unknown", food: null });
+  expect(lookup).not.toHaveBeenCalled();
+  expect((await handlers.POST(post())).status).toBe(201);
+  expect(lookup).not.toHaveBeenCalled();
+  expect((await db.execute(sql`SELECT source FROM foods`)).rows[0].source).toBe("manual");
+  expect(await (await handlers.GET(get())).json()).toMatchObject({ origin: "local", food: { name: "Snack" } });
+  expect(lookup).not.toHaveBeenCalled();
+});
+const settingsGet = () => new Request("http://localhost/api/v1/settings/barcode");
+const settingsPut = (enabled: boolean) => new Request(settingsGet(), { method: "PUT", headers: { "content-type": "application/json", origin: "http://localhost" }, body: JSON.stringify({ enabled }) });
+it("settings default ON without writing a row; boolean PUT persists and the lookup immediately obeys it", async () => {
+  const audit = vi.fn(async () => {});
+  const api = buildBarcodeSettingsHandlers({ getDb: () => db as unknown as Db, getSession: async () => ({ user: { id: userId, role: "admin" } }), writeAudit: audit });
+  expect(await (await api.GET(settingsGet())).json()).toEqual({ enabled: true });
+  expect((await db.execute(sql`SELECT count(*)::int AS n FROM admin_settings WHERE key='barcode.enabled'`)).rows[0].n).toBe(0);
+  expect(await (await api.PUT(settingsPut(false))).json()).toEqual({ enabled: false, saved_ok: true });
+  expect((await db.execute(sql`SELECT value FROM admin_settings WHERE key='barcode.enabled'`)).rows[0].value).toBe(false);
+  expect(audit).toHaveBeenCalledWith(expect.anything(), { actorUserId: userId, key: "barcode.enabled", before: true, after: false });
+  const lookup = vi.fn(async () => null);
+  const food = buildBarcodeHandlers({ getDb: () => db as unknown as Db, getSession: async () => ({ user: { id: userId } }), lookup });
+  await food.GET(get()); expect(lookup).not.toHaveBeenCalled();
+  expect((await api.PUT(settingsPut(true))).status).toBe(200);
+  await food.GET(get()); expect(lookup).toHaveBeenCalledTimes(1);
+  expect(await (await api.GET(settingsGet())).json()).toEqual({ enabled: true });
+});
+it("audit failure rolls back the setting and responds without sensitive details", async () => {
+  const api = buildBarcodeSettingsHandlers({ getDb: () => db as unknown as Db, getSession: async () => ({ user: { id: userId, role: "admin" } }), writeAudit: async () => { throw new Error("sensitive-audit-detail"); } });
+  const response = await api.PUT(settingsPut(false));
+  expect(response.status).toBe(503);
+  expect(await response.text()).not.toContain("sensitive-audit-detail");
+  expect(await (await api.GET(settingsGet())).json()).toEqual({ enabled: true });
+});

@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Db } from "@/server/db";
 import { getAdminSettings, setAdminSetting } from "@/server/db/repositories/settings";
 import type { AiConnection } from "./extract";
+import { writeAdminAudit } from "@/server/db/repositories/admin-users";
 export const providerSchema = z.enum(["openai", "anthropic", "ollama"]);
 export const settingsSchema = z.object({ enabled: z.boolean(), provider: providerSchema.nullable() }).strict().refine(v => !v.enabled || v.provider !== null);
 export const models = { openai: "gpt-4.1-mini", anthropic: "claude-haiku-4-5-20251001", ollama: "llama3.2-vision" } as const;
@@ -23,9 +24,10 @@ export function aiConnection(provider: NonNullable<Awaited<ReturnType<typeof aiC
   if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.search || url.hash) throw new Error("Invalid Ollama URL");
   return { provider, model, baseUrl: baseUrl.replace(/\/$/, "") };
 }
-export async function saveAiConfig(db: Db, value: z.infer<typeof settingsSchema>) {
+export async function saveAiConfig(db: Db, value: z.infer<typeof settingsSchema>, actorUserId?: string) {
   await db.transaction(async tx => {
     await setAdminSetting(tx, "ai.enabled", value.enabled);
     await setAdminSetting(tx, "ai.provider", value.provider);
+    await writeAdminAudit(tx, { actorUserId, action: "settings.update", target: "ai", detail: { enabled: value.enabled, provider: value.provider } });
   });
 }

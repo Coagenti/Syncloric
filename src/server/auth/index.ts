@@ -2,10 +2,17 @@ import { randomUUID } from "node:crypto";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin, username } from "better-auth/plugins";
+import { defaultAc, userAc } from "better-auth/plugins/admin/access";
+
+const noImpersonateAdminAc = defaultAc.newRole({
+  user: ["create", "list", "set-role", "ban", "delete", "set-password", "set-email", "get", "update"],
+  session: ["list", "revoke", "delete"],
+});
 import { getDb } from "@/server/db";
 import * as schema from "@/server/db/schema";
 import { bootstrapFirstAdmin } from "@/server/db/repositories/auth";
 import { loadEnvConfig } from "@/server/config";
+import { adminHooks } from "./admin-hooks";
 
 /**
  * Better Auth: username+password senza verifica email (§ 1, § 6.3).
@@ -27,6 +34,7 @@ import { loadEnvConfig } from "@/server/config";
 
 function createAuth() {
   return betterAuth({
+    hooks: adminHooks,
     appName: "syncloric",
     secret: loadEnvConfig().BETTER_AUTH_SECRET,
     basePath: "/api/auth",
@@ -57,7 +65,7 @@ function createAuth() {
     },
     // Always read the database: logout, bans and role changes must apply immediately.
     session: { cookieCache: { enabled: false } },
-    plugins: [username(), admin()],
+    plugins: [username(), admin({ roles: { admin: noImpersonateAdminAc, user: userAc }, allowImpersonatingAdmins: false })],
   });
 }
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { type Db } from "@/server/db";
+import { writeAdminAudit } from "@/server/db/repositories/admin-users";
 import {
   NORISH_SETTINGS_KEY,
   norishConfigStatus,
@@ -52,7 +53,7 @@ function buildNorishUrlHandlers(deps: NorishUrlRouteDeps) {
 
   async function requireAdmin(
     headers: Headers,
-  ): Promise<NextResponse | null> {
+  ): Promise<NextResponse | { user: { id: string; role?: string | null } }> {
     const session = await deps.getSession(headers);
     if (!session?.user) {
       return NextResponse.json(
@@ -66,20 +67,20 @@ function buildNorishUrlHandlers(deps: NorishUrlRouteDeps) {
         { status: 403 },
       );
     }
-    return null;
+    return session;
   }
 
   /** GET: proiezione per la pagina Impostazioni. */
   async function GET(request: Request): Promise<NextResponse> {
     const denied = await requireAdmin(request.headers);
-    if (denied) return denied;
+    if (denied instanceof Response) return denied;
     return NextResponse.json(await settingsPayload(deps.getDb()), { status: 200 });
   }
 
   /** PUT: salva l'URL validato; stringa vuota = cancellazione (fallback su .env). */
   async function PUT(request: Request): Promise<NextResponse> {
     const denied = await requireAdmin(request.headers);
-    if (denied) return denied;
+    if (denied instanceof Response) return denied;
 
     let payload: unknown;
     try {
@@ -99,11 +100,11 @@ function buildNorishUrlHandlers(deps: NorishUrlRouteDeps) {
     const db = deps.getDb();
     const before = await getAdminSetting<string>(db, NORISH_SETTINGS_KEY);
     const previousOrigin = effectiveOrigin(before);
-    if (parsed.value === "") {
-      await deleteAdminSetting(db, NORISH_SETTINGS_KEY);
-    } else {
-      await setAdminSetting(db, NORISH_SETTINGS_KEY, parsed.value);
-    }
+    await db.transaction(async tx => {
+      if (parsed.value === "") await deleteAdminSetting(tx, NORISH_SETTINGS_KEY);
+      else await setAdminSetting(tx, NORISH_SETTINGS_KEY, parsed.value);
+      await writeAdminAudit(tx, { actorUserId: denied.user.id, action: "settings.update", target: NORISH_SETTINGS_KEY, detail: { configured: parsed.value !== "", outcome: "success" } });
+    });
 
     // Feedback di conferma per la GUI: nuovo valore + nuova fonte (Impostazioni / .env).
     return NextResponse.json(
@@ -116,10 +117,13 @@ function buildNorishUrlHandlers(deps: NorishUrlRouteDeps) {
   /** DELETE: cancella l'URL impostato (equivale a salvare il campo vuoto). */
   async function DELETE(request: Request): Promise<NextResponse> {
     const denied = await requireAdmin(request.headers);
-    if (denied) return denied;
+    if (denied instanceof Response) return denied;
     const db = deps.getDb();
     const before = await getAdminSetting<string>(db, NORISH_SETTINGS_KEY);
-    await deleteAdminSetting(db, NORISH_SETTINGS_KEY);
+    await db.transaction(async tx => {
+      await deleteAdminSetting(tx, NORISH_SETTINGS_KEY);
+      await writeAdminAudit(tx, { actorUserId: denied.user.id, action: "settings.update", target: NORISH_SETTINGS_KEY, detail: { configured: false, outcome: "success" } });
+    });
     return NextResponse.json(
       { ...(await settingsPayload(db)), saved_ok: true,
         hostChanged: effectiveOrigin(before) !== effectiveOrigin(null) },

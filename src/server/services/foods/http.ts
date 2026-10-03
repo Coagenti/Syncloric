@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import type { Db } from "@/server/db";
 import { foods, diaryEntries } from "@/server/db/schema";
 import { lookupBarcode } from "./lookup";
+import { getBarcodeEnabled } from "@/server/db/repositories/barcode-settings";
 
 const barcode = z.string().regex(/^\d{8,14}$/);
 const nutrient = z.number().finite().min(0).max(100).nullable().optional();
@@ -34,7 +35,7 @@ export function buildBarcodeHandlers(deps: {
       try {
         const [local] = await deps.getDb().select().from(foods).where(eq(foods.barcode, code.data)).limit(1);
         if (local) return json({ origin: "local", food: local });
-        const product = await lookup(code.data);
+        const product = await getBarcodeEnabled(deps.getDb()) ? await lookup(code.data) : null;
         return json({ origin: product ? "off" : "unknown", food: product });
       } catch { return json({ error: "Ricerca non disponibile. Riprova o registra il prodotto manualmente." }, 502); }
     },
@@ -55,7 +56,7 @@ export function buildBarcodeHandlers(deps: {
         const db = deps.getDb();
         const [existing] = await db.select().from(foods).where(eq(foods.barcode, data.barcode)).limit(1);
         // Provenance is resolved on the server, not trusted from client input.
-        const product = existing ? null : await lookup(data.barcode).catch(() => null);
+        const product = existing || !await getBarcodeEnabled(db) ? null : await lookup(data.barcode).catch(() => null);
         const result = await db.transaction(async tx => {
           const decimal = (n: number | null | undefined) => n == null ? null : n.toFixed(2);
           await tx.insert(foods).values({

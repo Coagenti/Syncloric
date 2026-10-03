@@ -72,6 +72,16 @@ export const users = pgTable(
   (t) => [index("users_role_idx").on(t.role)],
 );
 
+/** Append-only admin event history. Actor is retained after account deletion (or 'system'). */
+export const adminAuditLog = pgTable("admin_audit_log", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  actorUserId: text("actor_user_id").notNull(),
+  action: text("action").notNull(),
+  target: text("target").notNull(),
+  detail: jsonb("detail").$type<Record<string, unknown>>().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const sessions = pgTable("sessions", {
   // tabelle standard Better Auth: colonne core + plugin (admin → ban)
   id: text("id").primaryKey(),

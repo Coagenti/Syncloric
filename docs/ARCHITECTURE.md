@@ -19,6 +19,13 @@
 
 ## 1. Scopo e vincoli di design
 
+Pannello amministrazione: le decisioni TL `t_0686e1d9`/`t_bc419bef` sono
+implementate nel contratto [ADMINISTRATION.md](ADMINISTRATION.md). Invariante:
+almeno un admin attivo (più admin ammessi), guard server-side, audit unico,
+hooks Better Auth top-level e trigger PG anti-race. Advisory xact lock dedicato
+`19373302`, distinto dal bootstrap `19373301`. Nessun privilegio impersonation;
+segreti env-only e provider AI assente = disabilitato.
+
 Syncloric fa da **diario calorie** per singoli utenti di un'istanza self-hosted, e
 importa automaticamente i pasti già pianificati su **norish** in modo che
 l'utente non debba ricominciare ogni giorno il tracking da zero.
