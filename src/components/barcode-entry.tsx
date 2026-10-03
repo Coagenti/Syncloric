@@ -25,6 +25,18 @@ export function BarcodeEntry({ date, onSaved }: { date: string; onSaved: () => v
   const [aiConfirmed, setAiConfirmed] = useState(false);
   const productForm = useRef<HTMLFormElement>(null);
   const request = useRef<AbortController | null>(null);
+  const feedback = useRef<HTMLParagraphElement>(null);
+  const pendingFocus = useRef<{ action: "lookup" | "save"; from: Element | null; moved: boolean } | null>(null);
+
+  // Wait for React to re-enable the controls before restoring focus. A deliberate
+  // move during the request owns focus, even if that control later loses it.
+  useEffect(() => {
+    if (busy || !pendingFocus.current) return;
+    const pending = pendingFocus.current; pendingFocus.current = null;
+    if (!dialog.current?.open || pending.moved || (document.activeElement !== document.body && document.activeElement !== pending.from)) return;
+    const target = error ? feedback.current : pending.action === "lookup" ? productForm.current?.querySelector<HTMLInputElement>('input[name="name"]') : null;
+    target?.focus();
+  }, [busy, error]);
 
   function stopCamera() {
     cameraRun.current++;
@@ -33,6 +45,7 @@ export function BarcodeEntry({ date, onSaved }: { date: string; onSaved: () => v
     setCamera(false);
   }
   function close() {
+    pendingFocus.current = null;
     request.current?.abort(); stopCamera(); dialog.current?.close(); setBusy(false); setAiBusy(false); setProduct(null); setAiApplied(false); setAiConfirmed(false); trigger.current?.focus();
   }
   useEffect(() => () => {
@@ -40,19 +53,24 @@ export function BarcodeEntry({ date, onSaved }: { date: string; onSaved: () => v
   }, []);
 
   async function lookup(barcode: string) {
+    if (busy || aiBusy) return;
+    pendingFocus.current = { action: "lookup", from: document.activeElement, moved: false };
     stopCamera(); setCode(barcode); setBusy(true); setError(""); setProduct(null); setAiApplied(false); setAiConfirmed(false);
     request.current?.abort(); const controller = new AbortController(); request.current = controller;
     try {
       const response = await fetch(`/api/v1/barcode?code=${encodeURIComponent(barcode)}`, { signal: controller.signal, cache: "no-store" });
       if (controller.signal.aborted) return;
       if (!response.ok) {
-        setOrigin("manual"); setProduct({ name: "", brand: null, kcalPer100g: null, proteinPer100g: null, fatPer100g: null, carbsPer100g: null });
-        setError(response.status === 401 ? "Accedi per registrare un prodotto." : "Ricerca non disponibile. Puoi compilare il prodotto manualmente."); return;
+        setOrigin("lookup-error"); setProduct({ name: "", brand: null, kcalPer100g: null, proteinPer100g: null, fatPer100g: null, carbsPer100g: null });
+        setError(response.status === 401 ? "Accedi per registrare un prodotto." : response.status === 400 ? "Codice non valido: usa da 8 a 14 cifre e riprova la ricerca." : "Ricerca non disponibile. Riprova Cerca prodotto o compila il prodotto manualmente."); return;
       }
       const data = await response.json() as { origin: string; food: Product | null };
       if (controller.signal.aborted) return;
       setOrigin(data.origin); setProduct(data.food ?? { name: "", brand: null, kcalPer100g: null, proteinPer100g: null, fatPer100g: null, carbsPer100g: null });
-    } catch { if (!controller.signal.aborted) setError("Ricerca non disponibile. Riprova."); }
+    } catch { if (!controller.signal.aborted) {
+      setOrigin("lookup-error"); setProduct({ name: "", brand: null, kcalPer100g: null, proteinPer100g: null, fatPer100g: null, carbsPer100g: null });
+      setError("Connessione alla ricerca non riuscita. Riprova Cerca prodotto o compila il prodotto manualmente.");
+    } }
     finally { if (!controller.signal.aborted) setBusy(false); }
   }
 
@@ -83,21 +101,24 @@ export function BarcodeEntry({ date, onSaved }: { date: string; onSaved: () => v
     stopCamera();
     const values = new FormData(event.currentTarget);
     const nutrient = (key: string) => values.get(key) === "" ? null : Number(values.get(key));
+    pendingFocus.current = { action: "save", from: document.activeElement, moved: false };
     setBusy(true); setError("");
     const controller = new AbortController(); request.current = controller;
     try {
       const response = await fetch("/api/v1/barcode", { method: "POST", headers: { "Content-Type": "application/json" }, signal: controller.signal,
         body: JSON.stringify({ barcode: code, name: values.get("name"), brand: values.get("brand"), kcalPer100g: Number(values.get("kcal")), proteinPer100g: nutrient("protein"), fatPer100g: nutrient("fat"), carbsPer100g: nutrient("carbs"), grams: Number(values.get("grams")), date, slot: values.get("slot") }) });
       if (controller.signal.aborted) return;
-      if (!response.ok) { setError(response.status === 401 ? "Accedi per registrare un prodotto." : "Non è stato possibile salvare. Controlla i valori e riprova."); return; }
+      if (!response.ok) {
+        setError(response.status === 401 ? "Accedi per registrare un prodotto." : response.status === 400 || response.status === 422 ? "Controlla i valori: nome obbligatorio, kcal intere da 0 a 10000, nutrienti da 0 a 100 e grammi da 0,01 a 100000 (massimo due decimali). Poi riprova Registra nel diario." : response.status === 403 ? "Salvataggio non consentito. Riapri la pagina e riprova." : "Servizio di salvataggio non disponibile. I valori sono conservati: riprova Registra nel diario."); return;
+      }
       close(); onSaved();
-    } catch { if (!controller.signal.aborted) setError("Non è stato possibile salvare. Riprova."); }
+    } catch { if (!controller.signal.aborted) setError("Connessione al salvataggio non riuscita. I valori sono conservati: verifica il diario prima di riprovare Registra nel diario, per evitare duplicati."); }
     finally { if (!controller.signal.aborted) setBusy(false); }
   }
 
   return <>
     <button ref={trigger} className="primary-cta" type="button" onClick={() => { setCode(""); setProduct(null); setOrigin(""); setError(""); setAiApplied(false); setAiConfirmed(false); dialog.current?.showModal(); }}>Scansiona</button>
-    <dialog ref={dialog} className="editor-panel barcode-dialog" aria-labelledby="barcode-title" onCancel={event => { event.preventDefault(); close(); }}>
+    <dialog ref={dialog} className="editor-panel barcode-dialog" aria-labelledby="barcode-title" onFocusCapture={() => { if (busy && pendingFocus.current) pendingFocus.current.moved = true; }} onCancel={event => { event.preventDefault(); close(); }}>
       <div className="editor-heading"><h2 id="barcode-title">Registra un prodotto</h2><button className="close-editor" type="button" aria-label="Chiudi scanner" onClick={close}>×</button></div>
       <p className="form-help">Inserisci il codice o usa la fotocamera. Lo scanner barcode non invia foto; la scansione AI dell’etichetta è separata e facoltativa.</p>
       <form onSubmit={event => { event.preventDefault(); void lookup(code); }}>
@@ -108,10 +129,10 @@ export function BarcodeEntry({ date, onSaved }: { date: string; onSaved: () => v
       <video ref={video} hidden={!camera} muted playsInline style={{ width: "100%" }} aria-label="Anteprima scanner" />
       {camera && <button type="button" className="secondary-btn" onClick={stopCamera}>Ferma fotocamera</button>}
       {busy && <p role="status">Operazione in corso…</p>}
-      {error && <p role="alert">{error}</p>}
+      {error && <p ref={feedback} role="alert" tabIndex={-1}>{error}</p>}
       {product && <form ref={productForm} key={`${code}-${origin}`} onSubmit={save}>
         <fieldset disabled={busy || aiBusy}>
-        <p className="form-help">{origin === "local" ? "Prodotto nel catalogo locale." : origin === "off" ? "Dati da Open Food Facts: verifica prima di confermare." : "Prodotto non trovato: registra come nuovo."}</p>
+        <p className="form-help">{origin === "local" ? "Prodotto nel catalogo locale." : origin === "off" ? "Dati da Open Food Facts: verifica prima di confermare." : origin === "lookup-error" ? "Ricerca non conclusa: puoi registrare il prodotto manualmente." : "Prodotto non trovato: registra come nuovo."}</p>
         {(origin === "off" || product.source === "barcode_off") && <a href={`https://world.openfoodfacts.org/product/${code}`} target="_blank" rel="noreferrer">Open Food Facts · ODbL / DbCL</a>}
         {origin !== "local" && <LabelScan onBusy={value => { if (value) stopCamera(); setAiBusy(value); }} onExtract={label => {
           stopCamera();
