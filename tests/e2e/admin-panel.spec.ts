@@ -49,7 +49,7 @@ it("four admin sections: independent persistence, non-admin notice, mobile reflo
   try {
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } }); const url = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
     page.on("pageerror", error => console.error("ADMIN_PAGE_ERROR", error.message));
-    page.on("response", async response => { if (response.url().includes("/api/") && !response.ok()) console.error("ADMIN_HTTP", response.status(), await response.text()); });
+    page.on("response", response => { if (response.url().includes("/api/") && !response.ok()) console.error("ADMIN_HTTP", response.status(), response.url()); });
     await page.goto(url); await page.getByLabel("Provider AI").waitFor(); await page.getByRole("listitem").first().waitFor();
     expect(await page.getByRole("heading", { level: 2 }).allTextContents()).toEqual(["Norish URL", "Scansione etichetta con AI", "Barcode", "Utenti"]);
     await page.getByRole("button", { name: "Salva Norish", exact: true }).waitFor();
