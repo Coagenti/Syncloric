@@ -37,6 +37,38 @@ All'avvio il bootstrap (`src/instrumentation.ts`) valida l'env: senza
 in-process (ADR-0004) dopo le migrazioni; ogni tick salta Norish se l'URL
 effettivo non è configurato. Un URL env esplicitamente malformato resta un errore.
 
+## Accessi e ruoli
+
+Il cambio tra accesso e registrazione porta subito il focus allo username già
+presente nel form, senza callback differite che possano sottrarre il focus alla
+password mentre si digita. Il test Chromium `tests/e2e/auth.spec.ts` ritarda
+esplicitamente un frame e verifica che un successivo focus sulla password sia
+preservato, oltre ai flussi reali Better Auth/PGlite di login e registrazione.
+Riprodurre con `pnpm exec vitest run --config vitest.e2e.config.ts tests/e2e/auth.spec.ts`.
+
+Apri `/login` per accedere o creare un account con username e password (8–128
+caratteri). Non serve SMTP e non viene chiesta un’email: Better Auth conserva un
+indirizzo tecnico con username codificato in esadecimale nel dominio `users.invalid`, non un recapito per recupero password.
+La registrazione è abilitata; questa versione non espone un interruttore per
+chiuderla né un flusso di recupero password via email. Proteggi l’accesso iniziale
+all’istanza finché il proprietario non ha creato il primo account.
+
+Il primo utente dell’istanza diventa amministratore; gli altri sono utenti
+standard. `/dashboard`, `/diary`, `/calendar` e `/settings` richiedono una sessione
+server valida e redirigono a `/login` quando manca. `/login` resta raggiungibile
+anche con sessione attiva. La sessione vive in cookie HTTP-only, non in
+localStorage; Esci revoca la sessione server e torna al login. I ruoli sono letti
+dal database, senza cookie cache di autorizzazione. Se il bootstrap del primo
+admin fallisce temporaneamente dopo la registrazione, il suo login lo ritenta:
+non è necessario registrare un altro account.
+
+Impostazioni è raggiungibile da tutti gli utenti autenticati: gli utenti standard
+vedono «Richiede amministratore», senza valori sensibili o controlli di scrittura.
+Le API di configurazione rimangono admin-only (403 per utenti standard). La
+chiave Norish è globale per istanza: un errore auth rimanda all’amministratore,
+non alla registrazione di una chiave personale. Il segreto si aggiorna solo
+nell’ambiente server, mai nella pagina o nel repository.
+
 ## Configurare l'URL Norish
 
 Via preferita: un amministratore autenticato apre Impostazioni (`/settings`),
@@ -54,7 +86,7 @@ La configurazione risolve Impostazioni > .env > nessun URL. Salva con campo
 vuoto o Cancella rimuove l'override e ripristina l'eventuale .env. Senza entrambe
 le fonti, Norish risulta non configurato senza crash. Usare HTTPS e nessuno
 slash finale sull'host; HTTP è ammesso solo su localhost per sviluppo.
-La pagina è admin-only e non espone API key. Al cambio origine avvisa di
+La configurazione è modificabile solo dall’admin e non espone API key. Al cambio origine avvisa di
 verificare le chiavi Norish, senza migrarle automaticamente.
 
 Lo scheduler risolve GUI > env a ogni tick (ogni 30 minuti): salvare un URL
@@ -68,6 +100,18 @@ l'entrypoint elimina valori vuoti prima del bootstrap. Dettagli in
 
 Health check: `GET /api/health` (app) e `GET /api/v1/health` (app + database,
 pattern norish § 5.1).
+
+## Obiettivo calorico personale
+
+Apri `/profile` dalla CTA «Configura obiettivo» in dashboard. Inserisci sesso per
+il calcolo, altezza, peso, anno di nascita, attività e obiettivo (perdita peso,
+mantenimento o massa). La preview è calcolata sul server e non salva i dati.
+Scegli Calcolato oppure Manuale; in quest'ultimo caso inserisci un numero positivo
+di kcal. «Salva profilo» persiste i dati soltanto per il tuo utente. Puoi cambiare
+fonte senza creare un secondo profilo; dashboard e feed usano il target selezionato.
+Senza profilo il riepilogo non mostra kcal di differenza. I numeri sono informativi,
+non prescrizioni nutrizionali. Nessuna nuova variabile d'ambiente o migrazione.
+Formula, limiti, API e contributi AI/umani: [ADR-0009](docs/adr/0009-calorie-target.md).
 
 ## Interfaccia diario (dati reali)
 
@@ -85,22 +129,29 @@ La UI non usa più localStorage o dati dimostrativi. Le API autenticate
 voci manuali nel feed. I dialog reali aggiungono food inline/catalogo o ricette
 con porzioni, e modificano le sole voci manuali; «Sincronizza ora» invoca
 `POST /api/v1/sync`. Catalogo locale e prove browser: [DIARY-UI](docs/DIARY-UI.md).
-Le voci importate
+Il Diario offre anche **Scansiona** per il barcode: codice manuale sempre
+disponibile, camera nativa dove supportata, ricerca locale-first + Open Food
+Facts e conferma prodotto/grammi con scrittura reale nel diario. Nel form nuovo
+prodotto è disponibile la scansione AI facoltativa con preview e conferma,
+senza salvataggio automatico. Contratto, licenze, privacy, limiti camera e test
+in [Barcode](docs/BARCODE.md) e [AI etichetta](docs/AI-LABEL.md). Le voci importate
 (`norish_sync`) restano di proprietà del sync: qualsiasi PATCH o DELETE su di
-esse risponde 403 con messaggio dedicato. Se l'ultima run fallisce per autenticazione, la dashboard
-mostra l'origine configurata e invita a riassociare consapevolmente la chiave in
-Impostazioni; non cambia o cancella credenziali. L'avviso non è `hostChanged`.
+esse risponde 403 con messaggio dedicato. Se l'ultima run fallisce per
+autenticazione, la dashboard
+mostra l'origine configurata e invita a chiedere all'amministratore di
+verificare la chiave globale in Impostazioni; non cambia o cancella
+credenziali. L'avviso non è `hostChanged`.
 
-**Prerequisito per la prova interattiva:** una sessione utente valida. Il backend
-auth è disponibile in `/api/auth`, ma questo branch non implementa la pagina
-`/login` né il bootstrap del primo admin: non usare il link di accesso come
-prova di registrazione completata. Lo smoke automatizzato su PGlite verifica la
-proiezione per-utente; il collaudo browser con sessione vera e il deploy su
-syncloric-test richiedono la feature auth e la review dei branch base.
+La prova browser auth usa Chromium reale, componenti di produzione, handler
+Better Auth reali e PGlite migrato. L’harness HTTP adatta solo headers/redirect
+Next: verifica registrazione, cookie persistente, logout/relogin, guard pagine
+e Impostazioni non-admin. Non contatta API esterne e non simula sessioni.
 
 L'interfaccia grafica è stata generata con assistenza AI; integrazione e test sono
-stati implementati dall'agente sviluppatore. Revisione umana Technical Lead e
-Marketing Lead prevista prima del rilascio. I dati non sono consigli nutrizionali.
+stati implementati dall'agente sviluppatore. Contributo umano verificato: brief
+utente e autorizzazione operatore sul modello. I profili Technical Lead e Marketing
+Lead forniscono decisioni e review agentiche; la supervisione umana finale resta
+richiesta prima del rilascio. I dati non sono consigli nutrizionali.
 
 ## Integrazione Norish: riconciliazione v2
 
@@ -126,6 +177,28 @@ assistenza AI (Hermes); contributo umano: requisiti e decisioni D1–D6 del
 Technical Lead, inclusa l'autorizzazione al percorso lista vuota in sync.ts.
 Review e merge finale del TL non sono dichiarati già effettuati.
 
+## Scansione etichetta con AI
+
+Un admin sceglie esplicitamente il provider globale in Impostazioni > Scansione
+etichetta con AI e abilita la funzione. Senza provider o con ai.enabled=false,
+la scansione resta disabilitata; il form manuale funziona comunque.
+OpenAI/Anthropic richiedono la rispettiva chiave nell'ambiente, provisionata dal
+vault (mai in DB o repo); la GUI mostra solo se è rilevata. Ollama non richiede
+chiavi, usa OLLAMA_BASE_URL (default http://localhost:11434). In Compose localhost
+è il container app: configurare un indirizzo Ollama raggiungibile da lì.
+Modelli vision default: gpt-4.1-mini, claude-haiku-4-5-20251001, llama3.2-vision;
+SYNCLORIC_AI_MODEL permette un override compatibile con il provider selezionato.
+
+Nel form nuovo prodotto: foto/upload JPEG/PNG/WebP (5 MB), preview locale,
+Scansiona etichetta, verifica/modifica, Registra nel diario. La selezione della
+foto non la invia: occorre premere il pulsante. La UI dichiara il destinatario;
+OpenAI e Anthropic ricevono la foto nel cloud, Ollama sul server configurato.
+Syncloric non salva/logga le foto; la conservazione lato provider dipende dalle
+sue politiche. Non includere dati personali. AI assistiva, non consigli dietetici:
+una lettura errata non deve essere confermata. Nessun test/CI chiama AI reale.
+Dettagli, privacy, API e smoke opt-in in [AI-LABEL.md](docs/AI-LABEL.md);
+variabili e disabilitazione in [configuration.md](docs/configuration.md).
+
 ## Test
 
 ```bash
@@ -133,15 +206,17 @@ pnpm test:unit          # vitest: config, client norish (fetch mockato), crypto
 pnpm test:integration   # vitest + PGlite in-process (Postgres WASM) sulle stesse migrazioni
 pnpm test               # entrambi
 pnpm build              # prerequisito per i test browser
-pnpm exec playwright test tests/e2e/diary-ui.spec.ts  # avvia server locale con configurazione fittizia
+pnpm test:settings-browser  # Chromium reale + componenti/API/PGlite, upstream mockati
+pnpm exec vitest run --config vitest.e2e.config.ts tests/e2e/auth.spec.ts # auth reale, file isolato
 ```
 
 PGlite non richiede Docker: i test di integrazione girano su un Postgres WASM
-in-process con le stesse migrazioni drizzle dell'app. Le suite Playwright
-(`tests/e2e/`) verificano i flussi demo reali nel browser (add/edit, errori storage,
-selezione date e calendario); usano valori fittizi e non chiamano norish.
-Installare Chromium Playwright (`pnpm exec playwright install chromium`) prima
-se non è già disponibile. I test E2E di integrazione reale arrivano nei task feature.
+in-process con le stesse migrazioni drizzle dell'app. Gli harness Chromium
+(`tests/e2e/`, driver vitest) verificano componenti e API reali con PGlite:
+settings, feed Norish, barcode manuale e auth (sessioni Better Auth reali);
+la sessione admin è iniettata solo nel confine test, provider HTTP mockati.
+Non sono una prova della camera hardware. Installare Chromium Playwright
+(`pnpm exec playwright install chromium`) prima se non è già disponibile.
 
 ## Deploy self-hosted (Docker Compose)
 

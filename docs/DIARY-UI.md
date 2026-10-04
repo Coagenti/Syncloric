@@ -1,5 +1,22 @@
 # Diario: azioni reali e catalogo locale
 
+## Integrazione auth/profile e barcode (PR32)
+
+La topbar mantiene il link Impostazioni e il LogoutButton autenticato; il
+riepilogo mantiene l'obiettivo dal feed e il link Configura/Modifica obiettivo
+verso `/profile`. Nel Diario, Scansiona (barcode/AI) convive con Aggiungi voce,
+Modifica e Sincronizza ora. Gli errori auth Norish mantengono il messaggio della
+configurazione globale: rivolgersi all'amministratore, non riassociare una chiave
+personale.
+
+Regressione di preservazione: `tests/e2e/diary-auth-integration.spec.ts`, con
+Chromium e componente reale, API feed mockata. Eseguire con
+`pnpm exec vitest run --config vitest.e2e.config.ts tests/e2e/diary-*.spec.ts --maxWorkers=1`.
+Questa prova non sostituisce la QA login → handler reali → UI (`t_fc8b952f`).
+Il fix Marketing del focus sync (`t_270aaf31`) resta separato: l'integrazione
+non ne dichiara la risoluzione. Generazione AI: Hermes; contributo umano:
+contratto di preservazione e priorità TL, requirements Marketing già definiti.
+
 ## Uso
 
 Da Diario (anche Dashboard/Calendario per aggiunta e sync), «Aggiungi voce» apre

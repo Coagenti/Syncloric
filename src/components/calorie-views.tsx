@@ -16,6 +16,7 @@ export function DashboardView({ entries, date, target }: { entries: DiaryEntry[]
         {summary.unknownCount > 0 && <p className="data-note">{summary.unknownCount} {summary.unknownCount === 1 ? "voce senza kcal definite" : "voci senza kcal definite"}: non incluse nel totale.</p>}
       </div><div className="energy-ornament" aria-hidden="true"><span>SC / 01</span><div className="orbit"><i /></div><b>ENERGY<br />LOG</b></div>
     </section>
+    <a className="date-picker" href="/profile">{target === null ? "Configura obiettivo" : "Modifica obiettivo"}</a>
     <section aria-labelledby="meals-title"><div className="section-heading"><div><span className="section-kicker">IL TUO DIARIO</span><h2 id="meals-title">I quattro pasti</h2></div><span className="muted-caption">{summary.count} {summary.count === 1 ? "voce registrata" : "voci registrate"}</span></div><div className="meal-grid">{slots.map((slot, index) => {
       const slotEntries = entries.filter((entry) => entry.date === date && entry.slot === slot);
       return <article className="meal-card" key={slot}><div className="meal-top"><span className="meal-index">0{index + 1}</span><span className="meal-mark" aria-hidden="true">{["◔", "◉", "✦", "☾"][index]}</span></div><h3>{slotLabels[slot]}</h3><p>{slotEntries.length ? slotEntries.map((entry) => entry.name).join(" · ") : "Nessuna voce"}</p><div className="meal-bottom"><strong>{number(summary.bySlot[slot])} <small>kcal note</small></strong><span>{slotEntries.length} {slotEntries.length === 1 ? "voce" : "voci"}</span></div></article>;

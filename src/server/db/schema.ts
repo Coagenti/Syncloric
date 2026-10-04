@@ -154,7 +154,7 @@ export const foods = pgTable(
     ...timestamps,
   },
   (t) => [
-    uniqueIndex("foods_barcode_unique").on(t.barcode),
+    uniqueIndex("foods_barcode_unique").on(t.barcode).where(sql`${t.barcode} IS NOT NULL`),
     index("foods_name_idx").on(t.name),
   ],
 );

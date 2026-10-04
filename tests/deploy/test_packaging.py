@@ -42,6 +42,12 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class PackagingTests(unittest.TestCase):
+    def test_compose_passes_optional_ai_environment_without_secrets_or_provider_default(self):
+        text = (ROOT / 'docker/docker-compose.yml').read_text()
+        for name in ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'OLLAMA_BASE_URL', 'SYNCLORIC_AI_MODEL']:
+            self.assertIn(f'{name}: ${{{name}-}}', text)
+        self.assertNotIn('AI_PROVIDER:', text)
+
     def test_compose_upstream_is_optional_without_default(self):
         text = (ROOT / 'docker/docker-compose.yml').read_text()
         declarations = [line.strip() for line in text.splitlines() if line.strip().startswith('NORISH_BASE_URL:')]

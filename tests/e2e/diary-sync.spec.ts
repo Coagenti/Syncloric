@@ -11,7 +11,7 @@ it("a later feed run replaces the temporary on-demand result", async () => {
     await pw(page.getByText("Sincronizzazione Norish: completata.", { exact: true })).toBeVisible();
     feedSync = { status: "error", reason: "auth", origin: "https://norish.example.invalid", finishedAt: "2026-09-29T13:00:00Z" };
     await page.getByRole("button", { name: "Giorno successivo" }).click();
-    await pw(page.getByRole("alert")).toContainText("Riassocia la tua chiave API");
+    await pw(page.getByRole("alert")).toContainText("La chiave è globale: chiedi all’amministratore");
     await pw(page.getByText("Sincronizzazione Norish: completata.", { exact: true })).toHaveCount(0);
   });
 }, 600000);
@@ -41,7 +41,7 @@ it("sync on demand shows completed/partial/auth failure and distinguishes busy w
     await pw(page.getByText("Sincronizzazione Norish: parziale.", { exact: true })).toBeVisible();
     sync = { status: "error", reason: "auth", origin: "https://norish.example.invalid" };
     await trigger.click();
-    await pw(page.getByRole("alert")).toContainText("Riassocia la tua chiave API");
+    await pw(page.getByRole("alert")).toContainText("La chiave è globale: chiedi all’amministratore");
     expect(requests).toEqual([{}, {}, {}, {}]);
   });
 }, 600000);

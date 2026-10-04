@@ -9,6 +9,23 @@
   --color-cyber-magenta: #ff2d6f;
 }
 :root { color-scheme: dark; }
+.auth-shell { min-height: 100dvh; padding: 32px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 32px; }
+.auth-brand { font-size: 26px; font-weight: 900; letter-spacing: -.04em; }
+.auth-brand small { display: block; font-size: 10px; letter-spacing: .2em; color: #a6b6c3; margin-top: 8px; }
+.auth-card { width: 100%; max-width: 460px; padding: clamp(20px,5vw,36px); border: 1px solid #293441; border-top: 3px solid var(--color-cyber-yellow); background: #111923; }
+.auth-card h1 { font-size: 42px; letter-spacing: -.04em; margin: 16px 0; }
+.auth-card p { color: #c2cdd6; line-height: 1.6; }
+.auth-card form { display: grid; gap: 10px; }
+.auth-card label { font-weight: 700; margin-top: 12px; }
+.auth-card input { width: 100%; min-height: 48px; padding: 12px; border: 1px solid #657587; background: #090d14; color: #edf1f3; border-radius: 0; }
+.auth-card small { color: #a6b6c3; line-height: 1.5; }
+.auth-primary { min-height: 48px; margin-top: 18px; border: 0; background: var(--color-cyber-yellow); color: #090d14; font-weight: 800; }
+.auth-switch { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; padding: 8px; border: 0; background: transparent; color: var(--color-cyber-cyan); text-decoration: underline; font-size: 14px; }
+.auth-card > .auth-switch { margin: 16px 0; }
+.auth-card .auth-error { border-left: 3px solid #ff2d6f; padding: 12px; margin: 10px 0 0; color: #fff; background: #391b2a; }
+button:disabled { cursor: wait; opacity: .65; }
+@media(max-width: 600px) { .app-main .topbar { height: auto; min-height: 76px; flex-wrap: wrap; padding-block: 12px; } .app-main .topbar-right { gap: 8px; } }
+
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--color-cyber-bg); color: #edf1f3; font-family: Arial, Helvetica, sans-serif; -webkit-font-smoothing: antialiased; }
 button, input, select { font: inherit; }
@@ -125,9 +142,11 @@ h1,h2,h3,p { margin-top: 0; }
 .calendar-grid { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 5px; }
 .weekday { text-align: center; color: #b2c2ce; font-size: 11px; text-transform: uppercase; padding-bottom: 12px; }
 .calendar-day { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; min-height: 75px; padding: 10px; background: #1b2731; border: 1px solid #384651; color: #edf0f2; text-align: left; }
+.calendar-day.outside { border-color: #2c3640; }
+.calendar-day.outside > span { color: #a2b3c0; }
+.calendar-day.outside small { color: #3fc9d2; }
 .calendar-day:hover { border-color: var(--color-cyber-cyan); }
 .calendar-day.selected { border: 2px solid var(--color-cyber-yellow); background: #323521; }
-.calendar-day.outside { opacity: .48; }
 .calendar-day > span { font-size: 15px; font-weight: 700; }
 .calendar-day small { font-size: 10px; color: #b8f8fa; white-space: nowrap; }
 .calendar-list { display: grid; gap: 10px; }
@@ -137,6 +156,14 @@ h1,h2,h3,p { margin-top: 0; }
 .status-note { padding: 13px 15px; color: #e6f6f8; border-left: 3px solid var(--color-cyber-cyan); background: #162934; margin-top: 22px; font-size: 12px; }
 .editor-scrim { position: fixed; z-index: 30; inset: 0; overflow-y: auto; background: #000b; display: grid; place-items: center; padding: 15px; }
 .editor-panel { width: min(100%,500px); background: #15202a; border: 1px solid #59656a; padding: clamp(20px,4vw,32px); box-shadow: 0 25px 100px #000b; }
+.barcode-dialog { color: #f0f3f4; margin: auto; max-width: calc(100vw - 30px); max-height: calc(100dvh - 30px); overflow-y: auto; }
+.barcode-dialog::backdrop { background: #000b; }
+.barcode-dialog form { margin-top: 20px; }
+.barcode-dialog fieldset,.ai-settings-card fieldset { min-width: 0; display: grid; gap: 16px; }
+.barcode-dialog section[aria-label="Scansione AI etichetta"] { display: grid; gap: 12px; }
+.ai-settings-card .ai-enabled-toggle { min-height: 46px; display: flex; align-items: center; gap: 12px; }
+.ai-settings-card .ai-enabled-toggle input { width: 24px; min-height: 24px; height: 24px; padding: 0; accent-color: var(--color-cyber-cyan); }
+.ai-settings-card h2 { font-size: 20px; margin-bottom: 12px; }
 .editor-heading { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
 .editor-heading h2 { font-size: 28px; margin: 8px 0 0; }
 .close-editor { font-size: 24px; min-width: 44px; }
@@ -145,6 +172,8 @@ h1,h2,h3,p { margin-top: 0; }
 .editor-panel label { font-size: 12px; font-weight: 700; display: grid; gap: 7px; }
 .editor-panel input,.editor-panel select { width: 100%; min-height: 46px; padding: 0 13px; border: 1px solid #75828b; background: #0d151e; color: #fff; border-radius: 0; }
 .editor-panel input::placeholder { color: #9caeb8; }
+.barcode-dialog .ai-confirmation { display: flex; align-items: center; gap: 12px; min-height: 46px; line-height: 1.5; }
+.barcode-dialog .ai-confirmation input { flex: 0 0 24px; width: 24px; min-height: 24px; height: 24px; padding: 0; accent-color: var(--color-cyber-cyan); }
 .form-columns { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
 .form-help { margin: 0; }
 .editor-actions { display: flex; justify-content: flex-end; gap: 10px; }
