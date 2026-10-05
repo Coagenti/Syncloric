@@ -23,10 +23,10 @@ it("debounces/aborts old food searches and sanitizes catalog parsing errors", as
     await pw(dialog.getByRole("alert")).toContainText("Catalogo non disponibile");
     await pw(dialog).not.toContainText("JSON");
     const name = dialog.getByRole("textbox", { name: "Nome alimento" });
-    // Pause browser timers: separate Playwright calls can exceed the debounce
-    // on a loaded host even when they represent uninterrupted typing.
+    // Pause ahead of page-clock delivery latency: 16ms measured idle/burn on QA;
+    // +2000ms gives ~125x margin; constant offset preserves runFor(249)/runFor(1).
     await page.clock.install();
-    await page.clock.pauseAt(new Date());
+    await page.clock.pauseAt(new Date(Date.now() + 2000));
     await name.fill("R"); await name.fill("Ri");
     await page.clock.runFor(249);
     expect(queries).toEqual([]);
