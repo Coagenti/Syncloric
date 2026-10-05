@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { appOriginSchema } from "@/server/http/request-origin";
 
 const httpsOrLocalHttp = z
   .string()
@@ -47,6 +48,7 @@ const envSchema = z.object({
       message: "DATABASE_URL deve essere una stringa di connessione postgres:// o postgresql://",
     }),
   BETTER_AUTH_SECRET: z.string().min(32, "BETTER_AUTH_SECRET: almeno 32 caratteri"),
+  BETTER_AUTH_URL: appOriginSchema,
   ENCRYPTION_KEY: hex64,
   NORISH_API_KEY: z.string().min(1).optional(),
   PORT: z.coerce.number().int().positive().default(3000),

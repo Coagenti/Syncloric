@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { isAllowedRequestOrigin } from "@/server/http/request-origin";
 import type { Db } from "@/server/db";
 import { profiles } from "@/server/db/schema";
 import { calculateCalorieTarget } from "@/server/services/norish/sync";
@@ -37,7 +38,7 @@ export function buildProfileHandlers(deps: {
     const session = await deps.getSession(request.headers);
     if (!session?.user) return NextResponse.json({ error: "Autenticazione richiesta." }, { status: 401 });
     // Defense-in-depth for cookie-authenticated writes; JSON only, no form posts.
-    if (request.headers.get("origin") !== new URL(request.url).origin) return NextResponse.json({ error: "Origine non valida." }, { status: 403 });
+    if (!isAllowedRequestOrigin(request, { requireOrigin: true })) return NextResponse.json({ error: "Origine non valida." }, { status: 403 });
     if (!request.headers.get("content-type")?.startsWith("application/json")) return NextResponse.json({ error: "JSON atteso." }, { status: 415 });
     let payload: unknown;
     try { payload = await request.json(); } catch { return NextResponse.json({ error: "JSON non valido." }, { status: 400 }); }

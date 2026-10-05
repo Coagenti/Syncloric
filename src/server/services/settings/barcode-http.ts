@@ -1,3 +1,4 @@
+import { isAllowedRequestOrigin } from "@/server/http/request-origin";
 import { NextResponse } from "next/server";
 import type { Db } from "@/server/db";
 import { getBarcodeEnabled, setBarcodeEnabled } from "@/server/db/repositories/barcode-settings";
@@ -32,8 +33,7 @@ export function buildBarcodeSettingsHandlers(deps: BarcodeSettingsDeps) {
     async PUT(request: Request) {
       const auth = await requireAdmin(request.headers);
       if (auth instanceof Response) return auth;
-      const origin = request.headers.get("origin");
-      if (origin && origin !== new URL(request.url).origin) return json({ error: "Origine non consentita." }, 403);
+      if (!isAllowedRequestOrigin(request)) return json({ error: "Origine non consentita." }, 403);
       if (request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") return json({ error: "Invia dati JSON." }, 400);
       let value: { enabled: boolean };
       try { value = parseBarcodeSettings(await request.json()); }

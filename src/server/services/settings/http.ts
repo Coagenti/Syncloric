@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isAllowedRequestOrigin } from "@/server/http/request-origin";
 import { type Db } from "@/server/db";
 import { writeAdminAudit } from "@/server/db/repositories/admin-users";
 import {
@@ -81,6 +82,7 @@ function buildNorishUrlHandlers(deps: NorishUrlRouteDeps) {
   async function PUT(request: Request): Promise<NextResponse> {
     const denied = await requireAdmin(request.headers);
     if (denied instanceof Response) return denied;
+    if (!isAllowedRequestOrigin(request)) return NextResponse.json({ error: "Origine non consentita." }, { status: 403 });
 
     let payload: unknown;
     try {
@@ -118,6 +120,7 @@ function buildNorishUrlHandlers(deps: NorishUrlRouteDeps) {
   async function DELETE(request: Request): Promise<NextResponse> {
     const denied = await requireAdmin(request.headers);
     if (denied instanceof Response) return denied;
+    if (!isAllowedRequestOrigin(request)) return NextResponse.json({ error: "Origine non consentita." }, { status: 403 });
     const db = deps.getDb();
     const before = await getAdminSetting<string>(db, NORISH_SETTINGS_KEY);
     await db.transaction(async tx => {

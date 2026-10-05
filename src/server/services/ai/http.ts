@@ -1,3 +1,4 @@
+import { isAllowedRequestOrigin } from "@/server/http/request-origin";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { Db } from "@/server/db";
@@ -34,8 +35,7 @@ export function buildAiHandlers(deps: { getDb: () => Db; getSession: (headers: H
     } catch { return json({ error: "Accesso temporaneamente non disponibile." }, 503); }
   }
   function guard(request: Request) {
-    const origin = request.headers.get("origin");
-    if (origin && origin !== new URL(request.url).origin) return json({ error: "Origine non consentita." }, 403);
+    if (!isAllowedRequestOrigin(request)) return json({ error: "Origine non consentita." }, 403);
     if (request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") return json({ error: "Invia dati JSON." }, 400);
     return null;
   }

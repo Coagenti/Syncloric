@@ -42,6 +42,10 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class PackagingTests(unittest.TestCase):
+    def test_compose_passes_public_auth_and_api_origin_without_default(self):
+        text = (ROOT / 'docker/docker-compose.yml').read_text()
+        self.assertIn('BETTER_AUTH_URL: ${BETTER_AUTH_URL-}', text)
+
     def test_compose_passes_optional_ai_environment_without_secrets_or_provider_default(self):
         text = (ROOT / 'docker/docker-compose.yml').read_text()
         for name in ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'OLLAMA_BASE_URL', 'SYNCLORIC_AI_MODEL']:
@@ -60,7 +64,7 @@ class PackagingTests(unittest.TestCase):
         self.assertTrue(path.exists(), 'missing deployment template')
         text = path.read_text()
         self.assertIn('ADR-0007', text)
-        self.assertEqual([line for line in text.splitlines() if line and not line.startswith('#')], ['NORISH_BASE_URL='])
+        self.assertEqual([line for line in text.splitlines() if line and not line.startswith('#')], ['NORISH_BASE_URL=', 'BETTER_AUTH_URL='])
 
     def test_build_context_excludes_local_environment(self):
         path = ROOT / '.dockerignore'

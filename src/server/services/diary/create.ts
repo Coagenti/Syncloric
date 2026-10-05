@@ -1,3 +1,4 @@
+import { isAllowedRequestOrigin } from "@/server/http/request-origin";
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -49,8 +50,7 @@ export function buildDiaryCreateHandlers(deps: {
       try {
         const session = await deps.getSession(request.headers);
         if (!session?.user) return NextResponse.json({ error: "Autenticazione richiesta." }, { status: 401 });
-        const origin = request.headers.get("origin");
-        if (origin !== null && origin !== new URL(request.url).origin) return NextResponse.json({ error: "Origine della richiesta non consentita." }, { status: 403 });
+        if (!isAllowedRequestOrigin(request)) return NextResponse.json({ error: "Origine della richiesta non consentita." }, { status: 403 });
         const mediaType = request.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase();
         if (mediaType !== "application/json") return NextResponse.json({ error: "Usa Content-Type application/json." }, { status: 400 });
         let body: unknown;

@@ -1,3 +1,4 @@
+import { isAllowedRequestOrigin } from "@/server/http/request-origin";
 import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { NextResponse } from "next/server";
@@ -44,8 +45,7 @@ export function buildBarcodeHandlers(deps: {
       try { session = await deps.getSession(request.headers); }
       catch { return json({ error: "Accesso temporaneamente non disponibile. Riprova." }, 503); }
       if (!session?.user) return json({ error: "Autenticazione richiesta." }, 401);
-      const origin = request.headers.get("origin");
-      if (origin && origin !== new URL(request.url).origin) return json({ error: "Origine non consentita." }, 403);
+      if (!isAllowedRequestOrigin(request)) return json({ error: "Origine non consentita." }, 403);
       if (request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") return json({ error: "Invia dati JSON." }, 400);
       let body: unknown;
       try { body = await request.json(); } catch { return json({ error: "Dati non validi." }, 400); }

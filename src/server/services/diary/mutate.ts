@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { isAllowedRequestOrigin } from "@/server/http/request-origin";
 import { z } from "zod";
 import type { Db } from "@/server/db";
 import { diaryEntries, foods, recipes, slotEnum } from "@/server/db/schema";
@@ -64,6 +65,7 @@ export function buildDiaryMutationHandlers(deps: {
       try {
         const session = await deps.getSession(request.headers);
         if (!session?.user) return NextResponse.json({ error: "Autenticazione richiesta." }, { status: 401 });
+        if (!isAllowedRequestOrigin(request)) return NextResponse.json({ error: "Origine non consentita." }, { status: 403 });
         const { id } = await context.params;
         if (!z.uuid({ error: "Identificativo voce non valido." }).safeParse(id).success) return NOT_FOUND;
         const mediaType = request.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase();
@@ -112,6 +114,7 @@ export function buildDiaryMutationHandlers(deps: {
       try {
         const session = await deps.getSession(request.headers);
         if (!session?.user) return NextResponse.json({ error: "Autenticazione richiesta." }, { status: 401 });
+        if (!isAllowedRequestOrigin(request)) return NextResponse.json({ error: "Origine non consentita." }, { status: 403 });
         const { id } = await context.params;
         if (!z.uuid({ error: "Identificativo voce non valido." }).safeParse(id).success) return NOT_FOUND;
         return await deps.getDb().transaction(async (tx) => {
