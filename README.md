@@ -230,7 +230,8 @@ Non sono una prova della camera hardware. Installare Chromium Playwright
 ## Deploy self-hosted (Docker Compose)
 
 Il template root `.env.example` è dedicato allo sviluppo; per il deploy usare
-`docker/.env.example`, che contiene `NORISH_BASE_URL` e `BETTER_AUTH_URL`.
+`docker/.env.example`, che contiene `NORISH_BASE_URL`, `NORISH_UPSTREAM_TZ`
+(fuso upstream, D2 v2) e `BETTER_AUTH_URL`.
 Dietro Docker/reverse proxy impostare `BETTER_AUTH_URL` all’origine pubblica
 HTTPS effettivamente aperta nel browser (schema, dominio ed eventuale porta,
 senza percorso `/api`). Auth e tutte le scritture API usano questo stesso valore;

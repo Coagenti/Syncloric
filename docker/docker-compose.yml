@@ -34,6 +34,10 @@ services:
       # Opzionale (§ 5.4): entrypoint rimuove il valore vuoto prima del bootstrap;
       # lo schema applicativo continua a rifiutare chiavi presenti ma vuote.
       NORISH_API_KEY: ${NORISH_API_KEY-}
+      # Decisione D2 v2 (t_f908513c): fuso upstream per la reconciliation a vuoto,
+      # env-only (nessun default nel codice); assente/vuota = nessuna marca.
+      # Il valore vive nello .env di deployment (docker/.env.example lo documenta).
+      NORISH_UPSTREAM_TZ: ${NORISH_UPSTREAM_TZ-}
       # Optional AI secrets stay environment-only; provider/enabled are admin settings.
       OPENAI_API_KEY: ${OPENAI_API_KEY-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY-}
