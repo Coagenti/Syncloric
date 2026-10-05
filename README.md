@@ -230,7 +230,8 @@ Non sono una prova della camera hardware. Installare Chromium Playwright
 ## Deploy self-hosted (Docker Compose)
 
 Il template root `.env.example` è dedicato allo sviluppo; per il deploy usare
-`docker/.env.example`, che contiene soltanto `NORISH_BASE_URL` (ADR-0007).
+`docker/.env.example`, che contiene le variabili opzionali di deployment
+`NORISH_BASE_URL` (ADR-0007) e `NORISH_UPSTREAM_TZ` (fuso upstream, D2 v2).
 
 ```bash
 cp docker/.env.example docker/.env
