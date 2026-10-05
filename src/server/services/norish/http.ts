@@ -1,3 +1,4 @@
+import { isAllowedRequestOrigin } from "@/server/http/request-origin";
 import { sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import type { Db } from "@/server/db";
@@ -49,8 +50,7 @@ export function buildSyncHandlers(deps: SyncRouteDeps) {
     async POST(request: Request) {
       const session = await deps.getSession(request.headers);
       if (!session?.user) return json({ error: "Autenticazione richiesta." }, 401);
-      const origin = request.headers.get("origin");
-      if (origin !== null && origin !== new URL(request.url).origin) {
+      if (!isAllowedRequestOrigin(request)) {
         return json({ error: "Origine non consentita." }, 403);
       }
       if (request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") {

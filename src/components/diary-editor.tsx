@@ -3,14 +3,14 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { slotLabels, slots, type Slot, type DiaryEntry } from "@/lib/diary";
 
-export function DiaryEditor({ date: initialDate, entry, onClose, onSaved }: {
-  date: string; entry: DiaryEntry | null; onClose: () => void; onSaved: (date: string) => void;
+export function DiaryEditor({ date: initialDate, entry, initialSlot = "Lunch", onClose, onSaved }: {
+  date: string; entry: DiaryEntry | null; initialSlot?: Slot; onClose: () => void; onSaved: (date: string) => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const saveButton = useRef<HTMLButtonElement>(null);
   const restoreSaveFocus = useRef(false);
   const [date, setDate] = useState(entry?.date ?? initialDate);
-  const [slot, setSlot] = useState<Slot>(entry?.slot ?? "Lunch");
+  const [slot, setSlot] = useState<Slot>(entry?.slot ?? initialSlot);
   const [name, setName] = useState(entry?.name ?? "");
   const [grams, setGrams] = useState(entry?.quantityGrams?.toString() ?? "");
   const [kcal, setKcal] = useState(entry?.kcal?.toString() ?? "");

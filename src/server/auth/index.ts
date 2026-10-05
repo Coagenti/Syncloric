@@ -33,10 +33,15 @@ import { adminHooks } from "./admin-hooks";
  */
 
 function createAuth() {
+  const config = loadEnvConfig();
+  // Better Auth also reads the raw env when baseURL is undefined. Normalize an
+  // optional blank value so its native fallback agrees with the API guards.
+  if (!config.BETTER_AUTH_URL && process.env.BETTER_AUTH_URL !== undefined) delete process.env.BETTER_AUTH_URL;
   return betterAuth({
     hooks: adminHooks,
     appName: "syncloric",
-    secret: loadEnvConfig().BETTER_AUTH_SECRET,
+    secret: config.BETTER_AUTH_SECRET,
+    baseURL: config.BETTER_AUTH_URL,
     basePath: "/api/auth",
     database: drizzleAdapter(getDb(), {
       provider: "pg",

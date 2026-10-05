@@ -1,5 +1,36 @@
 # Configurazione runtime
 
+## Origine pubblica e reverse proxy
+
+Impostare `BETTER_AUTH_URL` all’origine pubblica di Syncloric visibile nel browser,
+ad esempio `https://calorie.example.com`. Il valore appartiene all’ambiente del
+deployment; non è un default. Comprende schema, dominio ed eventuale porta, senza
+credenziali, percorso, query o fragment. Lo slash finale viene normalizzato.
+Usare HTTPS in produzione; HTTP è supportato per sviluppo e istanze senza TLS.
+
+Compose inoltra la variabile al container a runtime: la stessa immagine funziona
+su domini differenti senza rebuild. Dopo aver modificato l’ambiente, ricreare il
+container con `up -d --no-build` (un semplice `restart` conserva il vecchio env).
+Il reverse proxy deve preservare cookie e header Origin e instradare `/api/`
+verso l’app. Il TLS può terminare al proxy: l’URL backend può rimanere HTTP.
+
+Better Auth riceve questo valore come `baseURL`; i controlli sulle scritture
+diario, sync, profilo, barcode, AI e impostazioni confrontano Origin con la
+stessa origine pubblica. Il confronto precedente con `request.url` poteva
+confrontare il dominio HTTPS del browser con l’URL HTTP interno di Next e
+produrre 403. Non servono IP interni, wildcard o disattivazione dei controlli CSRF.
+Host, Forwarded e X-Forwarded-* ricevuti non concedono fiducia ad altre origini.
+Cambiare schema, dominio o porta nel browser richiede aggiornare questa variabile;
+le altre origini sono rifiutate anche se coincidono con l’URL backend.
+
+Assente/vuota: per accesso diretto, le API usano l’origine di `request.url` e
+Better Auth mantiene il suo comportamento nativo. Dietro un proxy occorre
+configurare il valore pubblico. Un valore esplicito malformato impedisce l’avvio.
+I client non-browser possono omettere Origin sulle API che già lo consentivano;
+un fetch dichiarato cross-site è rifiutato. Il profilo continua a richiedere Origin.
+Riferimenti: [configurazione Better Auth](https://better-auth.com/docs/installation)
+e [controlli di sicurezza](https://better-auth.com/docs/reference/security).
+
 ## URL Norish: Impostazioni (via preferita) oppure .env
 
 Non esiste alcun URL di default. Un amministratore autenticato può aprire

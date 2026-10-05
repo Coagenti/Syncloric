@@ -1,16 +1,14 @@
 import { chromium, type Page } from "@playwright/test";
 import { build } from "esbuild";
 import { createServer } from "node:http";
-import { readdir, readFile } from "node:fs/promises";
-import path from "node:path";
+import { productionCss } from "./production-css";
 
 /** Real client bundle + real Chromium; all API traffic must be intercepted by the caller. */
 export async function withDiaryBrowser(run: (page: Page) => Promise<void>, view = "diary") {
   const bundle = await build({ stdin: { contents: `import React from 'react';import{createRoot}from'react-dom/client';import{CalorieApp}from'./src/components/calorie-app';createRoot(document.getElementById('root')).render(<CalorieApp view="${view}"/>);`, resolveDir: process.cwd(), loader: "tsx" }, bundle: true, write: false, platform: "browser", jsx: "automatic", define: { "process.env.NODE_ENV": '"production"', "process.env": '{}' } });
   let css = "";
   if (process.env.DIARY_VISUAL_CSS === "1") {
-    const dir = path.join(process.cwd(), ".next/static/css");
-    css = (await Promise.all((await readdir(dir)).filter(f => f.endsWith(".css")).map(f => readFile(path.join(dir, f), "utf8")))).join("\n");
+    css = await productionCss();
   }
   const server = createServer((req, res) => {
     if (req.url?.startsWith("/api/")) { res.writeHead(500); res.end("Unmocked API"); return; }

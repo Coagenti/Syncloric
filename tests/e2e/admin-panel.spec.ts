@@ -5,7 +5,8 @@ import { createServer } from "node:http";
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
-import { readFileSync, mkdirSync, readdirSync } from "node:fs";
+import { mkdirSync } from "node:fs";
+import { productionCss } from "./helpers/production-css";
 import { join } from "node:path";
 import { buildAdminUsersHandlers } from "@/server/services/settings/admin-users-http";
 import { buildBarcodeSettingsHandlers } from "@/server/services/settings/barcode-http";
@@ -27,7 +28,7 @@ it("four admin sections: independent persistence, non-admin notice, mobile reflo
   let holdDelete = false; let releaseDelete: (() => void) | undefined;
   let css = "";
   if (process.env.ADMIN_VISUAL_DIR) {
-    for (const file of readdirSync(".next/static/css").filter(file => file.endsWith(".css"))) css += readFileSync(join(".next/static/css", file), "utf8");
+    css = await productionCss();
     mkdirSync(process.env.ADMIN_VISUAL_DIR, { recursive: true });
   }
   const server = createServer(async (req, res) => {

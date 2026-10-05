@@ -1,3 +1,4 @@
+import { isAllowedRequestOrigin } from "@/server/http/request-origin";
 import { NextResponse } from "next/server";
 import type { Db } from "@/server/db";
 import { z } from "zod";
@@ -21,8 +22,7 @@ export function buildAdminUsersHandlers(deps: { getDb: () => Db; getSession: (he
     },
     async POST(request: Request) {
       const session = await requireAdmin(request); if (session instanceof Response) return session;
-      const origin = request.headers.get("origin");
-      if (origin && origin !== new URL(request.url).origin) return json({ error: "Origine non consentita." }, 403);
+      if (!isAllowedRequestOrigin(request)) return json({ error: "Origine non consentita." }, 403);
       if (request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") return json({ error: "Invia dati JSON." }, 400);
       let body: unknown;
       try { const text = await request.text(); if (text.length > 4096) throw new Error("too large"); body = JSON.parse(text); }

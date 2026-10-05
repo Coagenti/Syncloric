@@ -26,6 +26,8 @@ services:
     environment:
       DATABASE_URL: postgres://syncloric:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD richiesta (§ 6)}@db:5432/syncloric
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET richiesta (§ 6)}
+      # Origine pubblica dell'app: auth e API usano lo stesso controllo dietro proxy.
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL-}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY richiesta (§ 6)}
       # Opzionale: assente/vuota => Norish disabilitato, nessun default (ADR-0007).
       NORISH_BASE_URL: ${NORISH_BASE_URL-}
@@ -36,10 +38,6 @@ services:
       # env-only (nessun default nel codice); assente/vuota = nessuna marca.
       # Il valore vive nello .env di deployment (docker/.env.example lo documenta).
       NORISH_UPSTREAM_TZ: ${NORISH_UPSTREAM_TZ-}
-      # Origin di deployment per Better Auth (t_f908513c): senza baseURL la
-      # libreria logga "Invalid origin" sull'accesso via IP:porta LAN. Il valore
-      # specifico vive nello .env di deployment; assente = comportamento pre-fix.
-      BETTER_AUTH_URL: ${BETTER_AUTH_URL-}
       # Optional AI secrets stay environment-only; provider/enabled are admin settings.
       OPENAI_API_KEY: ${OPENAI_API_KEY-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY-}

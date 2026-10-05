@@ -42,6 +42,12 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class PackagingTests(unittest.TestCase):
+    def test_compose_passes_public_origin_and_upstream_timezone_once_without_defaults(self):
+        text = (ROOT / 'docker/docker-compose.yml').read_text()
+        for name in ['BETTER_AUTH_URL', 'NORISH_UPSTREAM_TZ']:
+            declarations = [line.strip() for line in text.splitlines() if line.strip().startswith(f'{name}:')]
+            self.assertEqual(declarations, [f'{name}: ${{{name}-}}'])
+
     def test_compose_passes_optional_ai_environment_without_secrets_or_provider_default(self):
         text = (ROOT / 'docker/docker-compose.yml').read_text()
         for name in ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'OLLAMA_BASE_URL', 'SYNCLORIC_AI_MODEL']:
@@ -60,11 +66,10 @@ class PackagingTests(unittest.TestCase):
         self.assertTrue(path.exists(), 'missing deployment template')
         text = path.read_text()
         self.assertIn('ADR-0007', text)
-        # D2 v2: la TZ upstream e' la seconda variabile opzionale di deployment
-        # (env-only, nessun default ne' host: vuota/invalida = nessuna marca).
+        # Preserve both deployment settings: upstream TZ and public app origin.
         self.assertEqual(
             [line for line in text.splitlines() if line and not line.startswith('#')],
-            ['NORISH_BASE_URL=', 'NORISH_UPSTREAM_TZ='],
+            ['NORISH_BASE_URL=', 'NORISH_UPSTREAM_TZ=', 'BETTER_AUTH_URL='],
         )
 
     def test_build_context_excludes_local_environment(self):
