@@ -232,6 +232,11 @@ Non sono una prova della camera hardware. Installare Chromium Playwright
 Il template root `.env.example` è dedicato allo sviluppo; per il deploy usare
 `docker/.env.example`, che contiene le variabili opzionali di deployment
 `NORISH_BASE_URL` (ADR-0007) e `NORISH_UPSTREAM_TZ` (fuso upstream, D2 v2).
+Per l'accesso via IP:porta LAN valorizzare anche `BETTER_AUTH_URL` con
+l'origin del deployment (ad es. `http://192.168.1.20:3000`, native Better
+Auth): assente, la libreria logga `Invalid origin` sulle richieste
+autenticate provenienti da origin diverse dal loopback. Il compose inoltra
+la variabile quando presente.
 
 ```bash
 cp docker/.env.example docker/.env
