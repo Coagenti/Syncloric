@@ -13,8 +13,12 @@ Regressione di preservazione: `tests/e2e/diary-auth-integration.spec.ts`, con
 Chromium e componente reale, API feed mockata. Eseguire con
 `pnpm exec vitest run --config vitest.e2e.config.ts tests/e2e/diary-*.spec.ts --maxWorkers=1`.
 Questa prova non sostituisce la QA login → handler reali → UI (`t_fc8b952f`).
-Il fix Marketing del focus sync (`t_270aaf31`) resta separato: l'integrazione
-non ne dichiara la risoluzione. Generazione AI: Hermes; contributo umano:
+Il fix Marketing del focus sync (`t_270aaf31`) ripristina la CTA dopo il commit
+che la riabilita, solo se il pending ne ha perso il focus su BODY. Un focus
+spostato volontariamente durante la richiesta non viene sottratto, neppure se
+successivamente torna a BODY. Regressione Chromium:
+`tests/e2e/diary-sync-trigger.spec.ts` (320/390/1440, 200/503, Enter e Tab-away).
+Generazione AI: Hermes; contributo umano:
 contratto di preservazione e priorità TL, requirements Marketing già definiti.
 
 ## Uso

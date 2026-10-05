@@ -30,8 +30,23 @@ export function CalorieApp({ view }: { view: View }) {
   const [syncResult, setSyncResult] = useState<SyncState>(null);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [syncLogin, setSyncLogin] = useState(false);
+  const syncTrigger = useRef<HTMLButtonElement | null>(null);
+  const restoreSyncFocus = useRef(false);
+  useEffect(() => {
+    if (syncing) {
+      const trackFocus = (event: FocusEvent) => {
+        if (event.target !== document.body && event.target !== syncTrigger.current) restoreSyncFocus.current = false;
+      };
+      document.addEventListener("focusin", trackFocus);
+      return () => document.removeEventListener("focusin", trackFocus);
+    }
+    // Restore only after React re-enables the trigger, never after a deliberate focus move.
+    if (restoreSyncFocus.current && document.activeElement === document.body) syncTrigger.current?.focus();
+    restoreSyncFocus.current = false;
+  }, [syncing]);
   async function synchronize() {
     if (syncing) return;
+    restoreSyncFocus.current = document.activeElement === syncTrigger.current;
     setSyncing(true); setSyncMessage("Sincronizzazione in corso…"); setSyncLogin(false);
     try {
       const response = await fetch("/api/v1/sync", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: "{}" });
@@ -88,7 +103,7 @@ export function CalorieApp({ view }: { view: View }) {
     <div className="app-main"><header className="topbar"><div className="topbar-path"><span>SYNCLORIC</span><span aria-hidden="true">/</span><strong>{navigation.find((item) => item.id === view)?.label.toUpperCase()}</strong></div><div className="topbar-right"><Link className="auth-switch" href="/settings">Impostazioni</Link><LogoutButton /></div></header>
       <main className="content"><div className="date-toolbar"><div><span className="section-kicker">GIORNO SELEZIONATO</span><strong>{date ? formatDate(date, { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "Oggi"}</strong></div><div className="date-actions"><button type="button" aria-label="Giorno precedente" disabled={!date} onClick={() => setDate(shiftDate(date, -1))}>←</button><button type="button" onClick={() => setDate(localDateKey())}>Oggi</button><button type="button" aria-label="Giorno successivo" disabled={!date} onClick={() => setDate(shiftDate(date, 1))}>→</button><label className="date-picker">Data <input type="date" aria-label="Seleziona data" value={date} onChange={(event) => { if (event.target.value) setDate(event.target.value); }} /></label></div></div>
       <button type="button" className="primary-btn" data-add-entry disabled={!date} onClick={event => { trigger.current = event.currentTarget; setFeedback(null); setEditing(null); }}>Aggiungi voce</button>
-      <button type="button" className="secondary-btn" disabled={syncing} onClick={synchronize}>{syncing ? "Sincronizzazione…" : "Sincronizza ora"}</button>
+      <button type="button" className="secondary-btn" ref={syncTrigger} disabled={syncing} onClick={synchronize}>{syncing ? "Sincronizzazione…" : "Sincronizza ora"}</button>
       <SyncNotice sync={syncResult ?? feed?.sync ?? null} message={syncMessage} />
       {syncLogin && <Link href="/login">Vai al login</Link>}
       {feedback && <p role="status">{feedback}</p>}
