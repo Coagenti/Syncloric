@@ -126,14 +126,15 @@ le voci senza kcal non entrano nel totale. L'obiettivo viene dal profilo, se pre
 La UI non usa più localStorage o dati dimostrativi. Le API autenticate
 `POST /api/v1/diary` ([contratto](docs/DIARY-WRITES.md)), `PATCH` e
 `DELETE /api/v1/diary/:id` ([contratto](docs/DIARY-MUTATE.md)) gestiscono le
-voci manuali nel feed. Il Diario offre **Scansiona** per il barcode: codice
-manuale sempre disponibile, camera nativa dove supportata, ricerca
-locale-first + Open Food Facts e conferma prodotto/grammi con scrittura reale
-nel diario. Nel form nuovo prodotto è disponibile la scansione AI facoltativa
-con preview e conferma, senza salvataggio automatico. Contratto, licenze,
-privacy, limiti camera e test in [Barcode](docs/BARCODE.md) e
-[AI etichetta](docs/AI-LABEL.md). I dialog di aggiunta/modifica restano scope
-delle card UI successive e non sono ancora disponibili. Le voci importate
+voci manuali nel feed. I dialog reali aggiungono food inline/catalogo o ricette
+con porzioni, e modificano le sole voci manuali; «Sincronizza ora» invoca
+`POST /api/v1/sync`. Catalogo locale e prove browser: [DIARY-UI](docs/DIARY-UI.md).
+Il Diario offre anche **Scansiona** per il barcode: codice manuale sempre
+disponibile, camera nativa dove supportata, ricerca locale-first + Open Food
+Facts e conferma prodotto/grammi con scrittura reale nel diario. Nel form nuovo
+prodotto è disponibile la scansione AI facoltativa con preview e conferma,
+senza salvataggio automatico. Contratto, licenze, privacy, limiti camera e test
+in [Barcode](docs/BARCODE.md) e [AI etichetta](docs/AI-LABEL.md). Le voci importate
 (`norish_sync`) restano di proprietà del sync: qualsiasi PATCH o DELETE su di
 esse risponde 403 con messaggio dedicato. Se l'ultima run fallisce per
 autenticazione, la dashboard
@@ -327,8 +328,9 @@ senza modifiche automatiche alle credenziali.
 - **Inserimento/modifica manuale:** POST autenticato disponibile
   ([contratto](docs/DIARY-WRITES.md)), con voci manuali nel feed; PATCH e DELETE
   autenticati solo-manual disponibili ([contratto](docs/DIARY-MUTATE.md)) con
-  `norish_sync` protetto (403); dialog UI e sync on-demand sono scope delle card
-  successive, senza salvataggi simulati.
+  `norish_sync` protetto (403); dialog UI e sync on-demand disponibili
+  ([uso e verifica](docs/DIARY-UI.md)), senza salvataggi simulati. Il collaudo
+  integrato login→API→feed/UI resta nella QA dedicata.
 
 ## Sviluppo
 

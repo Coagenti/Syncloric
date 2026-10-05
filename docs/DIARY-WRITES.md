@@ -84,7 +84,7 @@ pnpm exec vitest run --config vitest.integration.config.ts tests/integration/dia
 
 In sandbox i file integration si verificano singolarmente per evitare i timeout
 PGlite cross-file noti; CI mantiene la suite normale. La UI di aggiunta/modifica
-e sync on-demand appartiene alle card successive; PATCH/DELETE sono descritti in
+e sync on-demand sono documentati in `docs/DIARY-UI.md`; PATCH/DELETE sono descritti in
 `docs/DIARY-MUTATE.md`.
 
 ## Aggiornamento ed eliminazione (v1, solo voci manual)

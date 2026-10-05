@@ -1,9 +1,10 @@
 import Link from "next/link";
 
-export type SyncState = { status: "ok" | "partial" | "error"; reason: "auth" | null; origin: string | null } | null;
+export type SyncState = { status: "ok" | "partial" | "error"; reason: "auth" | null; origin: string | null; finishedAt?: string | null } | null;
 
 /** Only a completed latest auth failure prompts explicit reassociation; no automatic credential writes. */
-export function SyncNotice({ sync }: { sync: SyncState }) {
+export function SyncNotice({ sync, message }: { sync: SyncState; message?: string | null }) {
+  if (message) return <p className="status-note" role="status">{message}</p>;
   if (!sync) return <p className="status-note" role="status">Nessuna sincronizzazione Norish ancora eseguita.</p>;
   if (sync.status === "error" && sync.reason === "auth") return <div className="demo-alert" role="alert">
     <strong>Sincronizzazione fallita per autenticazione</strong>

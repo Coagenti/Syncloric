@@ -30,7 +30,7 @@ describe("POST diary manual entries", () => {
     expect(entry).toMatchObject({ userId: A, source: "manual", kcal: 80 });
     const result = await db.execute(sql`SELECT name, source, created_by, kcal_per_100g FROM foods WHERE id = ${entry.foodId}::uuid`);
     expect(result.rows[0]).toMatchObject({ name: "Yogurt", source: "manual", created_by: A, kcal_per_100g: 64 });
-    expect((await feed()).entries).toEqual([expect.objectContaining({ name: "Yogurt", kcal: 80, quantityGrams: 125 })]);
+    expect((await feed()).entries).toEqual([expect.objectContaining({ name: "Yogurt", foodId: entry.foodId, recipeId: null, kcal: 80, quantityGrams: 125 })]);
   });
 
   it("creates a recipe with total kcal for fractional servings without multiplying twice in GET", async () => {

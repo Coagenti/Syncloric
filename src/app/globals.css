@@ -177,6 +177,16 @@ h1,h2,h3,p { margin-top: 0; }
 .form-columns { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
 .form-help { margin: 0; }
 .editor-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.diary-editor { margin: auto; width: min(500px, calc(100% - 24px)); max-width: calc(100% - 24px); max-height: calc(100dvh - 24px); overflow-y: auto; color: #edf1f3; }
+.diary-editor::backdrop { background: #000b; }
+.diary-editor fieldset { min-width: 0; border: 0; padding: 0; margin: 0; display: grid; gap: 16px; }
+.diary-editor input,.diary-editor select { min-width: 0; max-width: 100%; }
+.diary-editor .editor-actions { flex-wrap: wrap; }
+.diary-editor h2 { overflow-wrap: anywhere; }
+.diary-editor a { color: var(--color-cyber-cyan); text-decoration: underline; }
+.diary-editor button:disabled { cursor: wait; }
+.food-suggestions { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.food-suggestions button { width: 100%; height: auto; padding: 12px; text-align: left; overflow-wrap: anywhere; }
 .mobile-nav { display: none; }
 @media (max-width:1100px) { .meal-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media (max-width:760px) { .app-shell { display: block; } .sidebar { display: none; } .topbar { height: 58px; padding: 0 20px; } .content { padding: 22px 18px 100px; } .mobile-nav { display: grid; grid-template-columns: repeat(3,1fr); position: fixed; bottom: 0; left: 0; right: 0; z-index: 20; background: #111a24; border-top: 1px solid #445260; padding-bottom: env(safe-area-inset-bottom); } .mobile-nav a { display: grid; place-items: center; gap: 2px; min-height: 61px; font-size: 11px; color: #c3d1da; } .mobile-nav a span { font-size: 21px; line-height: 1; } .mobile-nav a.active { color: var(--color-cyber-yellow); border-top: 2px solid var(--color-cyber-yellow); } .demo-alert { display: grid; gap: 5px; } .energy-ornament { display: none; } .energy-card { display: block; min-height: 0; } .date-toolbar { align-items: flex-start; flex-direction: column; } .calendar-day { min-height: 55px; padding: 5px; } .calendar-day small { font-size: 0; } .calendar-day small i { width: 7px; height: 7px; } }

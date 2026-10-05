@@ -28,6 +28,11 @@ describe("diario calorie", () => {
     expect(days).toContain("2026-01-31");
     expect(days.length % 7).toBe(0);
   });
+  it("uses singular Italian copy for one registered entry", () => {
+    const html = renderToStaticMarkup(createElement(DashboardView, { entries: [entry], date: entry.date, target: null }));
+    expect(html).toContain("1 voce registrata");
+    expect(html).not.toContain("1 voce registrate");
+  });
   it("renders dashboard summary and all four meal slots", () => {
     const html = renderToStaticMarkup(createElement(DashboardView, { entries: demoEntries, date: "2026-09-29", target: 2100 }));
     expect(html).toContain("Bilancio energetico");
