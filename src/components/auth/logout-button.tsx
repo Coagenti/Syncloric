@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { UiIcon } from "@/components/ui-icon";
 
 export function LogoutButton() {
   const [busy, setBusy] = useState(false);
@@ -12,5 +13,5 @@ export function LogoutButton() {
       window.location.replace("/login");
     } catch { setError(true); setBusy(false); }
   }
-  return <div><button className="auth-switch" type="button" onClick={logout} disabled={busy}>{busy ? "Uscita…" : "Esci"}</button>{error && <p role="alert">Uscita non riuscita. Riprova.</p>}</div>;
+  return <div className="logout-control"><button className="toolbar-action logout-action" type="button" onClick={logout} disabled={busy}><UiIcon name="logout" /><span>{busy ? "Uscita…" : "Esci"}</span></button>{error && <p className="logout-error" role="alert">Uscita non riuscita. Riprova.</p>}</div>;
 }

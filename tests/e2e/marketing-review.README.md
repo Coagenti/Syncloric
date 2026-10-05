@@ -16,7 +16,8 @@ Build production CSS first; the test intentionally refuses a CSS-free run:
 
 This file uses Vitest `it`, not the Playwright test runner. The existing harness
 bundles the real CalorieApp with esbuild, serves it locally, and launches headless
-Chromium. Its `.next/static/css` loader uses the actual production stylesheet.
+Chromium. The CSS loader reads production styles from `.next/static` with both
+Webpack and Turbopack layouts supported.
 Do not place the file in `review/` inside the repo: the existing config discovers
 `tests/e2e/**/*.spec.ts` and the helper import is relative to that directory.
 

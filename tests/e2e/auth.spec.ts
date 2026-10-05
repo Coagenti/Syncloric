@@ -139,7 +139,9 @@ it("browser: signup → persistent diary → logout → login, protected routes 
     for (const route of ["dashboard", "calendar", "diary"]) { await page.goto(`${url}/${route}`); await expect(page).toHaveURL(`${url}/${route}`); }
     await page.goto(`${url}/settings`);
     await expect(page.getByRole("heading", { name: "Richiede amministratore" })).toBeVisible();
-    await expect(page.locator("input,button")).toHaveCount(0);
+    await expect(page.locator("main input, main button")).toHaveCount(0);
+    await expect(page.getByRole("navigation", { name: "Navigazione mobile" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Esci", exact: true })).toBeVisible();
     const denied = await page.request.put(`${url}/api/v1/settings/norish-url`, { data: { url: "https://example.invalid" } });
     expect(denied.status()).toBe(403);
     await page.goto(`${url}/login`);

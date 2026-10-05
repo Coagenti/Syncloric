@@ -198,7 +198,8 @@ it("browser: login → inline food/recipe → persisted feed/dashboard → manua
     await page.goto(`${url}/dashboard`);
     await expect(page.locator(".meal-card").filter({ hasText: "Yogurt fixture" })).toContainText("80");
     await expect(page.locator(".meal-card").filter({ hasText: "Pasta fixture" })).toContainText("800");
-    await expect(page.locator(".energy-number")).toHaveText("880kcal");
+    await expect(page.locator(".energy-number")).toHaveText("880");
+    await expect(page.locator(".energy-unit")).toHaveText("kcal");
     log("dashboard reflects both entries");
     await page.goto(`${url}/diary`);
     await page.locator(".entry-row").filter({ hasText: "Yogurt fixture" }).getByRole("button", { name: "Modifica" }).click();
@@ -215,7 +216,7 @@ it("browser: login → inline food/recipe → persisted feed/dashboard → manua
     await page.reload();
     await expect(page.locator(".entry-row").filter({ hasText: "Yogurt fixture" })).toContainText("120");
     await page.goto(`${url}/dashboard`);
-    await expect(page.locator(".energy-number")).toHaveText("920kcal");
+    await expect(page.locator(".energy-number")).toHaveText("920");
     await expect(page.locator(".meal-card").filter({ hasText: "Yogurt fixture" })).toContainText("Colazione");
     log("edit reflected in feed and dashboard");
     await expect(page.getByRole("status").filter({ hasText: "Nessuna sincronizzazione Norish ancora eseguita." })).toBeVisible();
