@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   loadEnvConfig,
-  norishApiKey,
   norishBaseUrl,
   norishConfigStatus,
   resetEnvConfigCache,
@@ -85,12 +84,11 @@ describe("precedenza URL/chiave Norish (GUI > .env > vuoto)", () => {
     stubBaseEnv({ NORISH_BASE_URL: "https://from-env.example.invalid", NORISH_API_KEY: "k1" });
     resetEnvConfigCache();
     expect(norishBaseUrl()).toBe("https://from-env.example.invalid");
-    expect(norishApiKey()).toBe("k1");
     expect(norishConfigStatus()).toEqual({
       enabled: true,
       source: "env",
       urlPresent: true,
-      apiKeyPresent: true,
+      apiKeyPresent: false,
     });
   });
 
@@ -98,7 +96,6 @@ describe("precedenza URL/chiave Norish (GUI > .env > vuoto)", () => {
     stubBaseEnv();
     resetEnvConfigCache();
     expect(norishBaseUrl()).toBe("");
-    expect(norishApiKey()).toBeUndefined();
     expect(norishConfigStatus()).toEqual({
       enabled: false,
       source: "unset",
@@ -116,10 +113,9 @@ describe("precedenza URL/chiave Norish (GUI > .env > vuoto)", () => {
       enabled: true,
       source: "gui",
       urlPresent: true,
-      apiKeyPresent: true,
+      apiKeyPresent: false,
     });
     // Contratto di questa card: nessuna chiave API via GUI; resta quella env.
-    expect(norishApiKey(override)).toBe("k1");
   });
 
   it.each(["", "   "])("override GUI vuoto (%j) NON copre l'env: ricade su .env", (empty) => {
@@ -170,7 +166,7 @@ describe("precedenza URL/chiave Norish (GUI > .env > vuoto)", () => {
     expect(norishConfigStatus()).not.toHaveProperty("apiKey");
   });
 
-  it("la chiave API non viene risolta dalla settings GUI (nessuna chiave via DB)", () => {
+  it("la configurazione dell'URL non espone una chiave globale legacy", () => {
     stubBaseEnv({ NORISH_BASE_URL: "https://from-env.example.invalid" });
     resetEnvConfigCache();
     const override = {
@@ -179,7 +175,9 @@ describe("precedenza URL/chiave Norish (GUI > .env > vuoto)", () => {
         "norish.api_key": "gui-secret",
       },
     };
-    expect(norishApiKey(override)).toBeUndefined();
+    expect(norishConfigStatus(override).apiKeyPresent).toBe(false);
+    expect(JSON.stringify(norishConfigStatus(override))).not.toContain("gui-secret");
+    expect(loadEnvConfig()).not.toHaveProperty("NORISH_API_KEY");
   });
 
   it("la cache del primo carico resta memorizzata (l'env non viene riletta implicitamente)", () => {
@@ -188,6 +186,5 @@ describe("precedenza URL/chiave Norish (GUI > .env > vuoto)", () => {
     expect(norishBaseUrl()).toBe("https://from-env.example.invalid");
     vi.stubEnv("NORISH_BASE_URL", "https://other.example.invalid");
     expect(loadEnvConfig().NORISH_BASE_URL).toBe("https://from-env.example.invalid");
-    expect(norishApiKey()).toBe("k1");
   });
 });

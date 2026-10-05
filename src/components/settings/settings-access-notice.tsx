@@ -3,8 +3,8 @@ import Link from "next/link";
 export function SettingsAccessNotice() {
   return <section className="auth-card" aria-labelledby="settings-access-title">
     <h2 id="settings-access-title">Richiede amministratore</h2>
-    <p>La configurazione Norish e la chiave API sono globali per questa istanza. Non devi associare una chiave personale.</p>
-    <p>Se Norish rifiuta la chiave, chiedi all’amministratore di verificare la configurazione in Impostazioni e aggiornare il segreto nell’ambiente del server. Qui non vengono mostrati valori o controlli di modifica.</p>
+      <p>URL del server Norish, provider e chiavi AI, barcode e utenti sono configurabili soltanto dagli amministratori.</p>
+      <p>Puoi gestire la tua chiave personale Norish nella scheda qui sopra. Se il server Norish non è configurato, chiedi all’amministratore di impostarne l’URL.</p>
     <Link className="auth-switch" href="/diary">Torna al diario</Link>
   </section>;
 }

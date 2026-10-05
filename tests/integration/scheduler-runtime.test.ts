@@ -5,6 +5,7 @@ import { runSchedulerTick } from "@/server/services/scheduler";
 import { NorishClient } from "@/server/services/norish/client";
 import { resetEnvConfigCache, NORISH_SETTINGS_KEY } from "@/server/config";
 import { encryptSecret } from "@/server/services/norish/crypto";
+import { norishCredentialKey, saveCredential } from "@/server/services/settings/credentials";
 
 const USER = "11111111-1111-4111-8111-111111111111";
 const KEY = "fixture-key-never-in-logs";
@@ -25,6 +26,7 @@ beforeEach(async () => {
   vi.stubEnv("ENCRYPTION_KEY", "a".repeat(64));
   resetEnvConfigCache();
   await db.execute(sql`INSERT INTO users (id, username) VALUES (${USER}::uuid, 'demo')`);
+  await saveCredential(db as never, norishCredentialKey(USER), KEY);
   requested = [];
   code = 200;
   fetchMock = vi.fn(async (input: string | URL | Request) => {
@@ -86,7 +88,7 @@ describe("scheduler with persisted GUI setting and HTTP mocked", () => {
   it("encrypted per-user key remains unchanged after 403 auth failure", async () => {
     const ciphertext = encryptSecret(KEY, "a".repeat(64));
     await db.execute(sql`INSERT INTO admin_settings (key,value) VALUES (${NORISH_SETTINGS_KEY}, ${JSON.stringify("https://gui.example")}::jsonb),
-      (${`norish.key.${USER}`}, ${JSON.stringify({ ciphertext })}::jsonb)`);
+      (${`norish.key.${USER}`}, ${JSON.stringify({ ciphertext })}::jsonb) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value`);
     code = 403;
     vi.stubGlobal("fetch", fetchMock);
     try {
@@ -99,15 +101,15 @@ describe("scheduler with persisted GUI setting and HTTP mocked", () => {
       vi.unstubAllGlobals();
     }
   });
-  it("env demo key gets auth classification on first account only", async () => {
+  it("the first account without a personal key ignores the legacy global env key", async () => {
     code = 401;
     await db.execute(sql`INSERT INTO admin_settings (key,value) VALUES (${NORISH_SETTINGS_KEY}, ${JSON.stringify("https://gui.example")}::jsonb)`);
+    await db.execute(sql`DELETE FROM admin_settings WHERE key=${norishCredentialKey(USER)}`);
     vi.stubGlobal("fetch", fetchMock);
     try {
-      expect(await runSchedulerTick(new Date(), { db: db as never })).toHaveLength(1);
-      const last = rows(await db.execute(sql`SELECT status, reason, error_message FROM norish_sync_runs ORDER BY started_at DESC LIMIT 1`))[0];
-      expect(last).toMatchObject({ status: "error", reason: "auth" });
-      expect(JSON.stringify(last)).not.toContain(KEY);
+      expect(await runSchedulerTick(new Date(), { db: db as never })).toHaveLength(0);
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(await count()).toBe(0);
       expect(process.env.NORISH_API_KEY).toBe(KEY);
     } finally {
       vi.unstubAllGlobals();

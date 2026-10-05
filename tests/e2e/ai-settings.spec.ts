@@ -7,17 +7,20 @@ import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
 import type { Db } from "@/server/db";
 import { buildAiHandlers } from "@/server/services/ai/http";
+import { buildCredentialHandlers } from "@/server/services/settings/credentials-http";
 it("AI admin settings: explicit provider, presence only, save persistence and disable", async () => {
   const client = new PGlite(); const db = drizzle(client) as unknown as Db;
   await migrate(db as never,{migrationsFolder:"./drizzle"});
   const handlers = buildAiHandlers({getDb:()=>db,getSession:async()=>({user:{id:"11111111-1111-4111-8111-111111111111",role:"admin"}}),env:()=>({OPENAI_API_KEY:"test-secret-not-visible"})});
+  const keys = buildCredentialHandlers({getDb:()=>db,getSession:async()=>({user:{id:"11111111-1111-4111-8111-111111111111",role:"admin"}}),env:()=>({OPENAI_API_KEY:"test-secret-not-visible"})}, "ai");
   const bundle = await build({stdin:{contents:`import React from 'react';import {createRoot} from 'react-dom/client';import {SettingsAiCard} from './src/components/settings/settings-ai-card';createRoot(document.getElementById('root')).render(<SettingsAiCard/>);`,resolveDir:process.cwd(),loader:"tsx"},bundle:true,write:false,platform:"browser",jsx:"automatic",define:{"process.env.NODE_ENV":'"production"'}});
   const server = createServer(async(req,res)=>{
     if(req.url==="/app.js"){res.setHeader("Content-Type","application/javascript");res.end(bundle.outputFiles[0].text);return;}
-    if(req.url==="/api/v1/settings/ai"){
+    if(req.url==="/api/v1/settings/ai" || req.url==="/api/v1/settings/ai-key"){
       const chunks:Buffer[]=[];for await(const chunk of req)chunks.push(Buffer.from(chunk));
       const request=new Request(`http://${req.headers.host}${req.url}`,{method:req.method,headers:req.headers as Record<string,string>,...(req.method==="PUT"?{body:Buffer.concat(chunks).toString()}: {})});
-      const response=await handlers[req.method==="PUT"?"PUT":"GET"](request);res.writeHead(response.status,{"Content-Type":"application/json"});res.end(await response.text());return;
+      const selected=req.url.endsWith("/ai-key") ? keys : handlers;
+      const response=await selected[req.method==="PUT"?"PUT":"GET"](request);res.writeHead(response.status,{"Content-Type":"application/json"});res.end(await response.text());return;
     }
     res.end('<html lang="it"><meta name="viewport" content="width=device-width"><div id="root"></div><script src="/app.js"></script></html>');
   });
@@ -25,7 +28,7 @@ it("AI admin settings: explicit provider, presence only, save persistence and di
   try{
     const page=await browser.newPage({viewport:{width:390,height:844}});await page.goto(`http://127.0.0.1:${(server.address() as {port:number}).port}`);
     await page.getByLabel("Provider AI").waitFor();expect(await page.getByLabel("Provider AI").inputValue()).toBe("");
-    await page.getByLabel("Provider AI").selectOption("openai");await page.getByText("Chiave configurata in ambiente").waitFor();
+    await page.getByLabel("Provider AI").selectOption("openai");await page.getByText("Chiave configurata", {exact:true}).waitFor();
     await page.getByLabel("Abilita scansione AI").check();await page.getByRole("button",{name:"Salva AI"}).click();await page.getByText("Impostazioni AI salvate.",{exact:true}).waitFor();
     expect(await page.content()).not.toContain("test-secret-not-visible");
     await page.reload();await page.getByLabel("Abilita scansione AI").waitFor();expect(await page.getByLabel("Abilita scansione AI").isChecked()).toBe(true);expect(await page.getByLabel("Provider AI").inputValue()).toBe("openai");

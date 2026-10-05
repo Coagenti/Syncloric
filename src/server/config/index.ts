@@ -50,7 +50,6 @@ const envSchema = z.object({
   BETTER_AUTH_SECRET: z.string().min(32, "BETTER_AUTH_SECRET: almeno 32 caratteri"),
   BETTER_AUTH_URL: appOriginSchema,
   ENCRYPTION_KEY: hex64,
-  NORISH_API_KEY: z.string().min(1).optional(),
   PORT: z.coerce.number().int().positive().default(3000),
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"])
@@ -156,14 +155,6 @@ export function norishBaseUrl(
   return resolveNorishUrl(override, env).url;
 }
 
-/** Chiave API upstream (solo env, mai DB — § 5.0). */
-export function norishApiKey(
-  _override?: NorishSettingsOverride,
-  env: NodeJS.ProcessEnv = process.env,
-): string | undefined {
-  return loadEnvConfig(env).NORISH_API_KEY;
-}
-
 export interface NorishConfigStatus {
   /** true solo con URL effettivo configurato (GUI o env). */
   enabled: boolean;
@@ -171,6 +162,7 @@ export interface NorishConfigStatus {
   source: NorishUrlSource;
   /** Presenza valori (mai i valori): proiezione sicura per la UI di configurazione. */
   urlPresent: boolean;
+  /** Legacy response field: URL configuration cannot report a personal credential. */
   apiKeyPresent: boolean;
 }
 
@@ -185,12 +177,11 @@ export function norishConfigStatus(
   env: NodeJS.ProcessEnv = process.env,
 ): NorishConfigStatus {
   const { url, source } = resolveNorishUrl(override, env);
-  const envApiKey = loadEnvConfig(env).NORISH_API_KEY;
   return {
     enabled: url !== "",
     source,
     urlPresent: url !== "",
-    apiKeyPresent: typeof envApiKey === "string" && envApiKey !== "",
+    apiKeyPresent: false,
   };
 }
 

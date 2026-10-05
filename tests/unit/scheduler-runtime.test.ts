@@ -40,12 +40,12 @@ describe("scheduler runtime URL and auth", () => {
     expect(d.runNorishSync).toHaveBeenNthCalledWith(1, expect.objectContaining({ upstreamTimeZone: "UTC" }));
     expect(d.runNorishSync).toHaveBeenNthCalledWith(2, expect.objectContaining({ upstreamTimeZone: "Pacific/Kiritimati" }));
   });
-  it("manual fallback must not fan out demo env key to a different user", async () => {
+  it("ignores the legacy global env key for every user, including the first account", async () => {
     const { resolveNorishClient } = await import("@/server/services/scheduler");
     const { loadEnvConfig } = await import("@/server/config");
     const config = { ...loadEnvConfig(), NORISH_BASE_URL: "https://gui.example" };
-    expect(resolveNorishClient(config, undefined, false)).toBeNull();
-    expect(resolveNorishClient(config, undefined, true)).not.toBeNull();
+    expect(resolveNorishClient(config, undefined)).toBeNull();
+    expect(config).not.toHaveProperty("NORISH_API_KEY");
   });
   it("GUI only activates tick; host changes on next tick; clearing skips before breaker or run", async () => {
     const { runSchedulerTick } = await import("@/server/services/scheduler");

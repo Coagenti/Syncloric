@@ -5,9 +5,9 @@
 La topbar mantiene il link Impostazioni e il LogoutButton autenticato; il
 riepilogo mantiene l'obiettivo dal feed e il link Configura/Modifica obiettivo
 verso `/profile`. Nel Diario, Scansiona (barcode/AI) convive con Aggiungi voce,
-Modifica e Sincronizza ora. Gli errori auth Norish mantengono il messaggio della
-configurazione globale: rivolgersi all'amministratore, non riassociare una chiave
-personale.
+Modifica e Sincronizza ora. Gli errori auth Norish rimandano alla propria chiave
+personale in Impostazioni. Ogni utente può salvarla, sostituirla e rimuoverla;
+soltanto l'URL del server Norish resta una configurazione amministrativa globale.
 
 Regressione di preservazione: `tests/e2e/diary-auth-integration.spec.ts`, con
 Chromium e componente reale, API feed mockata. Eseguire con

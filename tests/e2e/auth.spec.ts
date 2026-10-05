@@ -7,6 +7,7 @@ import { makeTestDb, closeTestDb, type TestDb } from "../integration/setup";
 import { resetEnvConfigCache } from "@/server/config";
 import { buildNorishUrlHandlers } from "@/server/services/settings/http";
 import { buildDiaryFeedHandlers } from "@/server/services/diary/feed";
+import { buildCredentialHandlers } from "@/server/services/settings/credentials-http";
 
 let db: TestDb;
 let requestHeaders = new Headers();
@@ -31,6 +32,7 @@ it("browser: signup → persistent diary → logout → login, protected routes 
   const auth = getAuth();
   const diary = buildDiaryFeedHandlers({ getDb: () => db as never, getSession: headers => auth.api.getSession({ headers }) });
   const settings = buildNorishUrlHandlers({ getDb: () => db as never, getSession: headers => auth.api.getSession({ headers }) });
+  const norishKey = buildCredentialHandlers({ getDb: () => db as never, getSession: headers => auth.api.getSession({ headers }) }, "norish");
   const bundle = await build({
     stdin: { contents: `import React from 'react'; import {createRoot} from 'react-dom/client';
       import {LoginForm} from './src/components/auth/login-form';
@@ -55,7 +57,7 @@ it("browser: signup → persistent diary → logout → login, protected routes 
       if (req.url?.startsWith("/api/")) {
         const chunks: Buffer[] = []; for await (const chunk of req) chunks.push(Buffer.from(chunk));
         const request = new Request(origin + req.url, { method: req.method, headers, ...(req.method === "POST" || req.method === "PUT" ? { body: Buffer.concat(chunks).toString() } : {}) });
-        const response = req.url.startsWith("/api/auth/") ? await auth.handler(request) : req.url.startsWith("/api/v1/settings/") ? await settings[req.method as keyof typeof settings](request) : await diary.GET(request);
+        const response = req.url.startsWith("/api/auth/") ? await auth.handler(request) : req.url.startsWith("/api/v1/settings/norish-key") ? await norishKey[req.method as keyof typeof norishKey](request) : req.url.startsWith("/api/v1/settings/") ? await settings[req.method as keyof typeof settings](request) : await diary.GET(request);
         res.statusCode = response.status;
         response.headers.forEach((value, key) => { if (key !== "set-cookie") res.setHeader(key, value); });
         if (response.headers.getSetCookie().length) res.setHeader("set-cookie", response.headers.getSetCookie());
@@ -139,7 +141,8 @@ it("browser: signup → persistent diary → logout → login, protected routes 
     for (const route of ["dashboard", "calendar", "diary"]) { await page.goto(`${url}/${route}`); await expect(page).toHaveURL(`${url}/${route}`); }
     await page.goto(`${url}/settings`);
     await expect(page.getByRole("heading", { name: "Richiede amministratore" })).toBeVisible();
-    await expect(page.locator("main input, main button")).toHaveCount(0);
+    await expect(page.getByLabel("Chiave API Norish", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Provider AI", { exact: true })).toHaveCount(0);
     await expect(page.getByRole("navigation", { name: "Navigazione mobile" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Esci", exact: true })).toBeVisible();
     const denied = await page.request.put(`${url}/api/v1/settings/norish-url`, { data: { url: "https://example.invalid" } });

@@ -2,9 +2,10 @@
 
 Solo un amministratore autenticato può leggere o modificare la configurazione via
 `/api/v1/settings/norish-url`. `/settings` richiede una sessione, ma risponde anche
-agli utenti standard con «Richiede amministratore», senza valori o input di modifica.
-URL e chiave API sono globali per l’istanza: nessuna chiave personale da riassociare
-(decisione TL card t_ded2dd56).
+agli utenti standard con la gestione della chiave personale e «Richiede
+amministratore» per la sola configurazione globale. L'URL resta comune; ogni
+utente ha una chiave propria. [ADR-0010](adr/0010-user-integrations-ui-credentials.md)
+supera la precedente decisione sulla chiave globale (card t_ded2dd56).
 
 Il campo `Norish URL` non precompila il valore da ambiente e usa il placeholder
 `your norish url`. Incolla un URL completo HTTPS senza slash finale (HTTP ammesso
@@ -18,15 +19,19 @@ valore da `.env` torna effettivo. Non c'è un URL di default.
 
 Salva e Cancella mostrano conferma e aggiornano l'indicazione della fonte. Se
 cambia l'origine effettiva (protocollo + host + porta), compare
-`URL aggiornato: verifica le tue chiavi Norish`. La credenziale globale NON
-viene migrata o cancellata. L'API key non è mai inclusa nei payload della pagina
-né dell'API. In caso di errore auth, SyncNotice rimanda tutti a Impostazioni:
-l’utente standard chiede all’amministratore di verificare la configurazione;
-solo il responsabile del server aggiorna il segreto nell’ambiente.
+`URL aggiornato: verifica le tue chiavi Norish`. Le chiavi personali NON vengono
+modificate o cancellate automaticamente. Questa API dell'URL non legge o
+restituisce chiavi. In caso di errore auth, SyncNotice invita l'utente a verificare
+la propria chiave in Impostazioni. Il relativo endpoint è
+GET/PUT/DELETE `/api/v1/settings/norish-key`, sempre limitato al proprietario
+della sessione; PUT accetta `{apiKey: string}` e persiste soltanto ciphertext.
 
 ## Contratto HTTP
 
 GET 200: `{saved: string|null, status: {enabled, source, urlPresent, apiKeyPresent}}`.
+Il flag legacy `apiKeyPresent` è sempre false: l'URL globale non descrive la
+credenziale personale. La relativa API espone solo `configured`, `stored` e
+`urlConfigured`, senza plaintext né ciphertext.
 PUT `{url: string}` e DELETE: payload GET più `saved_ok: true` e `hostChanged`.
 401 per sessione assente, 403 per ruolo diverso da `admin`, 400 JSON malformato,
 422 input non valido. PUT vuoto equivale a DELETE. Nessuna migrazione DB nuova.
