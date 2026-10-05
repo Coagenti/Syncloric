@@ -9,6 +9,9 @@ import { buildDiaryFeedHandlers } from "@/server/services/diary/feed";
 import { buildDiaryCreateHandlers } from "@/server/services/diary/create";
 import { buildDiaryMutationHandlers } from "@/server/services/diary/mutate";
 import { buildDiaryCatalogHandlers } from "@/server/services/diary/catalog";
+import { buildSyncHandlers } from "@/server/services/norish/http";
+import { NorishApiError } from "@/server/services/norish/client";
+import type { runNorishSync, SyncPort } from "@/server/services/norish/runner";
 
 let db: TestDb;
 let requestHeaders = new Headers();
@@ -17,10 +20,11 @@ vi.mock("next/headers", () => ({ headers: async () => requestHeaders }));
 vi.mock("next/navigation", () => ({ redirect: (url: string) => { throw new Error(`redirect:${url}`); } }));
 
 /** Production login/client/services and real session cookies over local HTTP/PGlite.
- * Only Next page hosting is adapted. Norish is disabled; the cached recipe is a fixture.
- * No diary response or session is synthesized and all browser egress is fail-closed.
+ * Only Next page hosting is adapted. Norish is disabled for diary writes; the cached
+ * recipe is a fixture. Sync injects a mocked runner/client at the upstream boundary.
+ * No diary, sync HTTP response or session is synthesized; all egress is fail-closed.
  */
-it("browser: login → inline food/recipe → persisted feed/dashboard → manual edit", async () => {
+it("browser: login → inline food/recipe → persisted feed/dashboard → manual edit → on-demand sync notice", async () => {
   const log = (stage: string) => console.info(`FLOW: ${stage}`);
   const oldEnv = { ...process.env };
   Object.assign(process.env, {
@@ -49,6 +53,19 @@ it("browser: login → inline food/recipe → persisted feed/dashboard → manua
     const create = buildDiaryCreateHandlers(deps);
     const mutate = buildDiaryMutationHandlers(deps);
     const catalog = buildDiaryCatalogHandlers(deps);
+    // DI only at the upstream boundary: HTTP guards, lock, audit and feed stay real.
+    const client: SyncPort = {
+      getPlannedRecipesWeek: vi.fn(), getPlannedRecipesToday: vi.fn(), getRecipe: vi.fn(),
+    };
+    let releaseSync!: () => void;
+    const syncGate = new Promise<void>(resolve => { releaseSync = resolve; });
+    const runSync = vi.fn<typeof runNorishSync>().mockImplementationOnce(async () => {
+      await syncGate;
+      return { imported: 2, updated: 1, skipped: 0, marked: 0 };
+    }).mockResolvedValueOnce({ imported: 0, updated: 0, skipped: 1, marked: 0, partial: true })
+      .mockRejectedValueOnce(new NorishApiError("test-only auth failure", 401));
+    const resolveClient = vi.fn(async () => client);
+    const sync = buildSyncHandlers({ ...deps, resolveClient, runSync });
     const recipeId = "bbbbbbbb-1111-4111-8111-111111111111";
     await db.execute(sql`INSERT INTO recipes (id, name, servings, kcal_per_serving, snapshot) VALUES (${recipeId}::uuid, 'Pasta fixture', 4, 320, '{}'::jsonb)`);
     log("recipe seeded");
@@ -76,6 +93,7 @@ it("browser: login → inline food/recipe → persisted feed/dashboard → manua
             ...(["POST", "PATCH", "PUT"].includes(req.method ?? "") ? { body: Buffer.concat(chunks).toString() } : {}) });
           const pathname = new URL(request.url).pathname;
           const response = pathname.startsWith("/api/auth/") ? await auth.handler(request)
+            : pathname === "/api/v1/sync" && req.method === "POST" ? await sync.POST(request)
             : pathname === "/api/v1/diary/catalog" ? await catalog.GET(request)
             : pathname === "/api/v1/diary" && req.method === "GET" ? await feed.GET(request)
             : pathname === "/api/v1/diary" && req.method === "POST" ? await create.POST(request)
@@ -200,6 +218,52 @@ it("browser: login → inline food/recipe → persisted feed/dashboard → manua
     await expect(page.locator(".energy-number")).toHaveText("920kcal");
     await expect(page.locator(".meal-card").filter({ hasText: "Yogurt fixture" })).toContainText("Colazione");
     log("edit reflected in feed and dashboard");
+    await expect(page.getByRole("status").filter({ hasText: "Nessuna sincronizzazione Norish ancora eseguita." })).toBeVisible();
+    process.env.NORISH_BASE_URL = "https://norish.example.invalid";
+    resetEnvConfigCache();
+    const session = await auth.api.getSession({ headers: new Headers({ cookie: (await context.cookies()).map(c => `${c.name}=${c.value}`).join("; ") }) });
+    expect(session?.user.id).toBeTruthy();
+    const syncResponse = () => page.waitForResponse(r => r.url().endsWith("/api/v1/sync") && r.request().method() === "POST");
+    const firstSync = syncResponse();
+    await page.getByRole("button", { name: "Sincronizza ora", exact: true }).click();
+    try {
+      await jestExpect.poll(() => runSync.mock.calls.length).toBe(1);
+      await expect(page.getByRole("button", { name: "Sincronizzazione…", exact: true })).toBeDisabled();
+      await expect(page.getByRole("status").filter({ hasText: "Sincronizzazione in corso…" })).toBeVisible();
+      jestExpect(runSync.mock.calls[0][0]).toMatchObject({ userId: session!.user.id, client });
+    } finally { releaseSync(); }
+    const completed = await firstSync;
+    expect(completed.status()).toBe(200);
+    const outcome = await completed.json();
+    expect(outcome).toMatchObject({ status: "ok", reason: null, origin: null, finishedAt: expect.any(String) });
+    await expect(page.getByRole("status").filter({ hasText: "Sincronizzazione Norish: completata." })).toBeVisible();
+    expect((await getFeed()).sync).toEqual(outcome);
+    await page.reload();
+    await expect(page.getByRole("status").filter({ hasText: "Sincronizzazione Norish: completata." })).toBeVisible();
+    for (const [status, text] of [["partial", "Sincronizzazione Norish: parziale."], ["error", "Sincronizzazione fallita per autenticazione"]] as const) {
+      const response = syncResponse();
+      await page.getByRole("button", { name: "Sincronizza ora", exact: true }).click();
+      const result = await response;
+      expect(result.status()).toBe(200);
+      const state = await result.json();
+      expect(state.status).toBe(status);
+      await expect(page.getByRole(status === "error" ? "alert" : "status").filter({ hasText: text })).toBeVisible();
+      expect((await getFeed()).sync).toEqual(state);
+      await page.reload();
+      await expect(page.getByRole(status === "error" ? "alert" : "status").filter({ hasText: text })).toBeVisible();
+    }
+    await expect(page.getByRole("alert")).toContainText("La chiave è globale: chiedi all’amministratore");
+    await expect(page.getByRole("alert").getByRole("link", { name: "Impostazioni" })).toHaveAttribute("href", "/settings");
+    jestExpect(runSync).toHaveBeenCalledTimes(3);
+    jestExpect(resolveClient).toHaveBeenCalledTimes(3);
+    for (const method of Object.values(client)) jestExpect(method).not.toHaveBeenCalled();
+    const audit = await db.execute(sql`SELECT status, items_upserted, reason FROM norish_sync_runs WHERE user_id=${session!.user.id}::uuid ORDER BY started_at`);
+    expect(audit.rows).toMatchObject([
+      { status: "ok", items_upserted: 3, reason: null },
+      { status: "partial", items_upserted: 0, reason: null },
+      { status: "error", items_upserted: 0, reason: "auth" },
+    ]);
+    log("sync runner → notice → persisted feed/reload outcomes asserted");
     expect(hostErrors).toEqual([]);
     expect(errors).toEqual([]);
     expect(external).toEqual([]);
