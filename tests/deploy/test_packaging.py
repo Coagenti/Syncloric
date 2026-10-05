@@ -60,7 +60,12 @@ class PackagingTests(unittest.TestCase):
         self.assertTrue(path.exists(), 'missing deployment template')
         text = path.read_text()
         self.assertIn('ADR-0007', text)
-        self.assertEqual([line for line in text.splitlines() if line and not line.startswith('#')], ['NORISH_BASE_URL='])
+        # D2 v2: la TZ upstream e' la seconda variabile opzionale di deployment
+        # (env-only, nessun default ne' host: vuota/invalida = nessuna marca).
+        self.assertEqual(
+            [line for line in text.splitlines() if line and not line.startswith('#')],
+            ['NORISH_BASE_URL=', 'NORISH_UPSTREAM_TZ='],
+        )
 
     def test_build_context_excludes_local_environment(self):
         path = ROOT / '.dockerignore'
