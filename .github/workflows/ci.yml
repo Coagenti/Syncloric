@@ -48,8 +48,10 @@ jobs:
       - name: Install Chromium for settings browser regression
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Settings browser regression (real component, HTTP handlers, persistent PGlite)
-        run: pnpm test:settings-browser
+      - name: Build (webpack CSS for browser regression)
+        run: pnpm exec next build --webpack
 
-      - name: Build
-        run: pnpm build
+      - name: Browser regression (production CSS, Chromium, persistent PGlite)
+        env:
+          DIARY_VISUAL_CSS: "1"
+        run: pnpm test:settings-browser
