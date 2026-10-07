@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { SettingsCredentialEditor, type AiKeyStatus } from "@/components/settings/settings-credential-editor";
+import { NeonSwitch } from "@/components/neon-switch";
 type Config = { enabled: boolean; provider: "openai" | "anthropic" | "ollama" | null; ready: boolean } & AiKeyStatus;
 export function SettingsAiCard() {
   const [config, setConfig] = useState<Config | null>(null);
@@ -32,14 +33,13 @@ export function SettingsAiCard() {
   }
   const dirty = config && saved && (config.enabled !== saved.enabled || config.provider !== saved.provider);
   return <section aria-labelledby="ai-settings-title" className="editor-panel ai-settings-card max-w-2xl mt-6">
-    <h2 id="ai-settings-title" className="text-lg font-semibold">Scansione etichetta con AI</h2>
+    <div className="settings-toggle-heading"><h2 id="ai-settings-title" className="text-lg font-semibold">Scansione etichetta con AI</h2>{config && <NeonSwitch label="Abilita scansione AI" checked={config.enabled} disabled={!config.provider} onChange={enabled => { setFeedback(""); setConfig({ ...config, enabled }); }} />}</div>
     <p className="form-help">Provider e chiavi AI sono globali per questa istanza e configurabili soltanto dagli amministratori.</p>
     {config && <form onSubmit={save} aria-busy={saving}>
       <fieldset>
         <label>Provider AI<select value={config.provider ?? ""} onChange={event => { setFeedback(""); setConfig({ ...config, provider: event.target.value as Config["provider"] || null, enabled: event.target.value ? config.enabled : false }); }}>
           <option value="">Seleziona un provider</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="ollama">Ollama</option>
         </select></label>
-        <label className="ai-enabled-toggle"><input type="checkbox" checked={config.enabled} disabled={!config.provider} onChange={event => { setFeedback(""); setConfig({ ...config, enabled: event.target.checked }); }} /> Abilita scansione AI</label>
         <p>{!config.provider ? "AI disabilitata: scegli esplicitamente un provider." : config.provider === "ollama" ? "Ollama self-hosted: nessuna chiave richiesta. La raggiungibilità si verifica alla scansione." : config.keys[config.provider] ? "Chiave configurata" : "Chiave non configurata: scansione non disponibile."}</p>
         <p className="form-help">OpenAI e Anthropic ricevono la foto quando l’utente richiede l’estrazione. Ollama riceve la foto sul server configurato. Nessuna foto conservata da Syncloric; verifica le politiche del provider.</p>
         {dirty && <p>Modifiche non salvate</p>}

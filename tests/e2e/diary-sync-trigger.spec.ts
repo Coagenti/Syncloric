@@ -31,7 +31,8 @@ it("restores the sync trigger after pending but preserves intentional keyboard f
           await pw(trigger).toBeEnabled();
           if (moveAway) await pw(page.locator('[data-sync-focus-away="true"]')).toBeFocused();
           else await pw(trigger).toBeFocused();
-          await pw(page.getByRole("status").filter({ hasText: status === 200 ? "Sincronizzazione Norish: completata." : "Sincronizzazione già in corso. Attendi e riprova." })).toBeVisible();
+          if (status === 200) await pw(page.locator(".sync-dot.ok")).toBeVisible();
+          else await pw(page.getByRole("status").filter({ hasText: "Sincronizzazione già in corso. Attendi e riprova." })).toBeVisible();
           await page.unroute("**/api/v1/**");
         }
       }

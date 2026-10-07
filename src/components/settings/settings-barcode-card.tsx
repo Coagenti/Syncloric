@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { NeonSwitch } from "@/components/neon-switch";
 const endpoint = "/api/v1/settings/barcode";
 const uncertainMessage = "Non è stato possibile verificare il salvataggio. Ricarica lo stato prima di riprovare.";
 function enabledValue(body: unknown): boolean {
@@ -76,13 +77,9 @@ export function SettingsBarcodeCard() {
   }
 
   return <section aria-labelledby="barcode-settings-title" className="editor-panel border border-cyber-border bg-cyber-surface max-w-2xl mt-6">
-    <h2 id="barcode-settings-title" className="text-lg font-semibold">Barcode</h2>
+    <div className="settings-toggle-heading"><h2 id="barcode-settings-title" className="text-lg font-semibold">Barcode</h2>{saved !== null && <NeonSwitch label="Ricerca prodotti su Open Food Facts" checked={enabled} describedBy="barcode-settings-help" onChange={value => { setEnabled(value); setFeedback(""); }} />}</div>
     <p id="barcode-settings-help" className="form-help">Se disattivata, la ricerca su Open Food Facts non viene eseguita.</p>
     {saved !== null && <form onSubmit={save} aria-busy={saving}>
-      <label style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 44 }}>
-        <input type="checkbox" checked={enabled} aria-describedby="barcode-settings-help" style={{ width: 24, height: 24, minHeight: 24, flexShrink: 0, accentColor: "var(--color-cyber-yellow)" }} onChange={event => { setEnabled(event.target.checked); setFeedback(""); }} />
-        Ricerca prodotti su Open Food Facts
-      </label>
       {enabled !== saved && <p role="status" className="text-cyber-yellow">Modifiche non salvate</p>}
       <button type="submit" className="primary-btn" style={{ minHeight: 44 }} aria-disabled={saving || loading || mustReload}>Salva Barcode</button>
     </form>}

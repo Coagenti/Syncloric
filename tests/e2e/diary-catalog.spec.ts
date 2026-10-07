@@ -18,7 +18,7 @@ it("debounces/aborts old food searches and sanitizes catalog parsing errors", as
       return route.fulfill({ json: { entries: [], sync: null, target: null } });
     });
     await page.goto(diaryUrl(page));
-    await page.getByRole("button", { name: "Aggiungi voce", exact: true }).click();
+    await page.locator('[data-add-slot="Lunch"]').click();
     const dialog = page.getByRole("dialog");
     await pw(dialog.getByRole("alert")).toContainText("Catalogo non disponibile");
     await pw(dialog).not.toContainText("JSON");
@@ -55,8 +55,9 @@ it("dashboard refreshes a recipe addition with fractional servings and accepts u
       return route.fulfill({ json: { entries, sync: null, target: null } });
     });
     await page.goto(diaryUrl(page));
-    const trigger = page.getByRole("button", { name: "Aggiungi voce", exact: true });
+    const trigger = page.locator('[data-add-slot="Lunch"]');
     for (const id of ["known", "unknown"]) {
+      await page.goto(diaryUrl(page) + "/diary");
       await trigger.click();
       const dialog = page.getByRole("dialog");
       await dialog.getByRole("combobox", { name: "Tipo di voce" }).selectOption("recipe");
@@ -64,8 +65,9 @@ it("dashboard refreshes a recipe addition with fractional servings and accepts u
       await dialog.getByRole("spinbutton", { name: "Numero di porzioni" }).fill("1.5");
       if (id === "unknown") await pw(dialog).toContainText("Kcal totali: —");
       await dialog.getByRole("button", { name: "Salva voce" }).click();
-      await pw(page.locator(".energy-number")).toContainText("480");
       await pw(trigger).toBeFocused();
+      await page.goto(diaryUrl(page) + "/dashboard");
+      await pw(page.locator(".energy-number")).toContainText("480");
     }
     await pw(page.locator(".energy-card")).toContainText("1 voce senza kcal definite");
     await pw(page.locator(".meal-card").filter({ hasText: "Pranzo" })).toContainText("Pasta · Zuppa");

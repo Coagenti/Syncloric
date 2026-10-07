@@ -78,6 +78,11 @@ Un errore auth del sync rimanda alla chiave personale, senza modifiche automatic
 I segreti sono cifrati sul server e non vengono mai restituiti alle pagine.
 Contratto e passaggio dalle vecchie chiavi env: [ADR-0010](docs/adr/0010-user-integrations-ui-credentials.md).
 
+Ogni utente trova anche lo switch «Riduci animazioni» in Impostazioni: disattiva
+glitch, onde e transizioni. Parte dalla preferenza del dispositivo e salva la
+scelta automaticamente nel browser, mantenendola fra ricaricamenti e schede.
+Gli switch AI e Barcode accanto al titolo si applicano con il relativo pulsante Salva.
+
 ## Configurare l'URL Norish
 
 Via preferita: un amministratore autenticato apre Impostazioni (`/settings`),

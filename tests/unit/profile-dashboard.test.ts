@@ -10,5 +10,6 @@ it("offers profile configuration without prescribing a remaining number", () => 
 });
 it("shows the configured target and coherent energy difference", () => {
   const html = renderToStaticMarkup(createElement(DashboardView, { entries: [], date: "2026-01-01", target: 2100 }));
-  expect(html).toContain("2.100 kcal di differenza");
+  expect(html).toContain("Rimanenti");
+  expect(html).toContain("2.100");
 });

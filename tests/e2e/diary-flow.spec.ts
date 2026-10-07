@@ -163,7 +163,7 @@ it("browser: login → inline food/recipe → persisted feed/dashboard → manua
     };
     expect((await getFeed()).entries).toEqual([]);
     log("empty feed asserted");
-    await page.getByRole("button", { name: "Aggiungi voce", exact: true }).click();
+    await page.locator('[data-add-slot="Lunch"]').click();
     const dialog = page.getByRole("dialog", { name: "Aggiungi voce" });
     await dialog.getByRole("textbox", { name: "Nome alimento" }).fill("Yogurt fixture");
     await dialog.getByRole("spinbutton", { name: "Quantità in grammi" }).fill("125");
@@ -179,7 +179,7 @@ it("browser: login → inline food/recipe → persisted feed/dashboard → manua
     expect(food).toMatchObject({ name: "Yogurt fixture", source: "manual", entryType: "food", quantityGrams: 125, kcal: 80, slot: "Snack", date: "2026-09-29" });
     expect(food.foodId).toBeTruthy();
     log("food persisted in feed");
-    await page.getByRole("button", { name: "Aggiungi voce", exact: true }).click();
+    await page.locator('[data-add-slot="Lunch"]').click();
     await dialog.getByRole("combobox", { name: "Tipo di voce" }).selectOption("recipe");
     await dialog.getByRole("combobox", { name: "Ricetta" }).selectOption(recipeId);
     await dialog.getByRole("spinbutton", { name: "Numero di porzioni" }).fill("2.5");
@@ -219,7 +219,7 @@ it("browser: login → inline food/recipe → persisted feed/dashboard → manua
     await expect(page.locator(".energy-number")).toHaveText("920");
     await expect(page.locator(".meal-card").filter({ hasText: "Yogurt fixture" })).toContainText("Colazione");
     log("edit reflected in feed and dashboard");
-    await expect(page.getByRole("status").filter({ hasText: "Nessuna sincronizzazione Norish ancora eseguita." })).toBeVisible();
+    await expect(page.locator(".sync-dot.idle")).toHaveCount(1);
     process.env.NORISH_BASE_URL = "https://norish.example.invalid";
     resetEnvConfigCache();
     const session = await auth.api.getSession({ headers: new Headers({ cookie: (await context.cookies()).map(c => `${c.name}=${c.value}`).join("; ") }) });
@@ -237,10 +237,10 @@ it("browser: login → inline food/recipe → persisted feed/dashboard → manua
     expect(completed.status()).toBe(200);
     const outcome = await completed.json();
     expect(outcome).toMatchObject({ status: "ok", reason: null, origin: null, finishedAt: expect.any(String) });
-    await expect(page.getByRole("status").filter({ hasText: "Sincronizzazione Norish: completata." })).toBeVisible();
+    await expect(page.locator(".sync-dot.ok")).toHaveCount(1);
     expect((await getFeed()).sync).toEqual(outcome);
     await page.reload();
-    await expect(page.getByRole("status").filter({ hasText: "Sincronizzazione Norish: completata." })).toBeVisible();
+    await expect(page.locator(".sync-dot.ok")).toHaveCount(1);
     for (const [status, text] of [["partial", "Sincronizzazione Norish: parziale."], ["error", "Sincronizzazione fallita per autenticazione"]] as const) {
       const response = syncResponse();
       await page.getByRole("button", { name: "Sincronizza ora", exact: true }).click();

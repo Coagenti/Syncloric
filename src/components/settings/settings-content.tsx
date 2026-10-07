@@ -8,6 +8,7 @@ import { SettingsAccessNotice } from "@/components/settings/settings-access-noti
 import type { settingsPageProps } from "@/server/services/settings/page-data";
 import { AppShell } from "@/components/app-shell";
 import { SettingsCredentialEditor } from "@/components/settings/settings-credential-editor";
+import { SettingsAppearanceCard } from "@/components/settings/settings-appearance-card";
 
 /** Server decides initial access. A self-demotion replaces all controls without a flash. */
 export function SettingsContent(props: Awaited<ReturnType<typeof settingsPageProps>>) {
@@ -18,7 +19,7 @@ export function SettingsContent(props: Awaited<ReturnType<typeof settingsPagePro
     <div className="eyebrow"><span className="signal-dot" /> IL TUO SPAZIO / IMPOSTAZIONI</div>
     <div className="view-title"><div><h1>Impostazioni<span className="title-punctuation">.</span></h1>
     <p>Collega il tuo account Norish. Gli amministratori gestiscono anche la configurazione globale dell’istanza.</p></div></div>
-    <div className="settings-grid"><SettingsCredentialEditor scope="norish" />{"access" in props || lostAccess ? <div ref={notice} tabIndex={-1}><SettingsAccessNotice /></div> : <>
+    <div className="settings-grid"><SettingsAppearanceCard /><SettingsCredentialEditor scope="norish" />{"access" in props || lostAccess ? <div ref={notice} tabIndex={-1}><SettingsAccessNotice /></div> : <>
       <SettingsNorishCard {...props} />
       <SettingsAiCard />
       <SettingsBarcodeCard />

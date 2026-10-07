@@ -53,7 +53,7 @@ it("four admin sections: independent persistence, non-admin notice, mobile reflo
     page.on("pageerror", error => console.error("ADMIN_PAGE_ERROR", error.message));
     page.on("response", response => { if (response.url().includes("/api/") && !response.ok()) console.error("ADMIN_HTTP", response.status(), response.url()); });
     await page.goto(url); await page.getByLabel("Provider AI").waitFor(); await page.getByRole("listitem").first().waitFor();
-    expect(await page.getByRole("heading", { level: 2 }).allTextContents()).toEqual(["Il tuo account Norish", "Norish URL", "Scansione etichetta con AI", "Barcode", "Utenti"]);
+    expect(await page.getByRole("heading", { level: 2 }).allTextContents()).toEqual(["Riduci animazioni", "Il tuo account Norish", "Norish URL", "Scansione etichetta con AI", "Barcode", "Utenti"]);
     await page.getByRole("button", { name: "Salva Norish", exact: true }).waitFor();
     const norish = page.locator('[aria-labelledby="norish-url-heading"]'); const ai = page.locator('[aria-labelledby="ai-settings-title"]');
     await page.getByLabel("Provider AI").selectOption("ollama"); await ai.getByText("Modifiche non salvate", { exact: true }).waitFor();
@@ -95,6 +95,8 @@ it("four admin sections: independent persistence, non-admin notice, mobile reflo
       await page.setViewportSize({ width, height: 900 }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       if (process.env.ADMIN_VISUAL_DIR) await page.screenshot({ path: join(process.env.ADMIN_VISUAL_DIR, `admin-${width}.png`), fullPage: true });
     }
-    await page.goto(url + "?member"); await page.getByText("Richiede amministratore", { exact: true }).waitFor(); expect(await page.locator("input, select, textarea").count()).toBe(1);
+    await page.goto(url + "?member"); await page.getByText("Richiede amministratore", { exact: true }).waitFor(); expect(await page.locator("input, select, textarea").count()).toBe(2);
+    expect(await page.getByRole("switch", { name: "Riduci animazioni" }).count()).toBe(1);
+    expect(await page.getByRole("switch", { name: "Abilita scansione AI" }).count()).toBe(0);
   } finally { release?.(); releaseDelete?.(); await browser.close(); await new Promise<void>(resolve => server.close(() => resolve())); await client.close(); vi.unstubAllEnvs(); resetEnvConfigCache(); }
 }, 600000);

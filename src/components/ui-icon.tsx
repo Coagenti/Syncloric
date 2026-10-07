@@ -10,6 +10,9 @@ const paths = {
   left: "M14 6l-6 6 6 6",
   right: "M10 6l6 6-6 6",
   sync: "M20 7v5h-5 M4 17v-5h5 M6 7a7 7 0 0 1 12-1l2 6 M4 12l2 6a7 7 0 0 0 12-1",
+  pencil: "M14 5l5 5 M4 20l4-1 12-12a2.8 2.8 0 0 0-4-4L4 15z M4 15l4 4",
+  trash: "M4 7h16 M9 7V4h6v3 M6 7l1 14h10l1-14 M10 11v6 M14 11v6",
+  scan: "M8 3H3v5 M16 3h5v5 M3 16v5h5 M21 16v5h-5 M7 8v8 M10 8v8 M14 8v8 M17 8v8 M3 12h18",
 } as const;
 
 export function UiIcon({ name, ...props }: SVGProps<SVGSVGElement> & { name: keyof typeof paths }) {

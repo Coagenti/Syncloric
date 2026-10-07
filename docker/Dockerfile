@@ -15,9 +15,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # Le migrazioni sono versionate: generate in CI e committate (drizzle/).
 RUN pnpm build
-# La repo non ha ancora public/ (UI nei task feature): la creo perché la COPY
-# statica nello stage runner non fallisca. Da rimuovere quando public/ esiste.
-RUN mkdir -p /app/public
 
 FROM node:22.20.0-bookworm-slim AS runner
 WORKDIR /app
