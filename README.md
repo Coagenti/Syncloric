@@ -18,7 +18,7 @@ dashboard, sync, admin) arrivano nei task dedicati a valere su questo scheletro.
 
 Il pannello `/settings` presenta Norish, AI, Barcode e Utenti con salvataggi
 indipendenti e conferme esplicite. Configurazioni non segrete in `admin_settings`,
-chiavi solo nell'ambiente; nessun provider AI implicito. Restano sempre almeno
+chiavi API inseribili da UI e cifrate in DB; nessun provider AI implicito. Restano sempre almeno
 un amministratore attivo e un audit delle modifiche (incluse le API Better Auth
 native). Impersonation disabilitata. Contratti, precedenza, migrazione e limiti:
 [`docs/ADMINISTRATION.md`](docs/ADMINISTRATION.md).
@@ -71,12 +71,12 @@ dal database, senza cookie cache di autorizzazione. Se il bootstrap del primo
 admin fallisce temporaneamente dopo la registrazione, il suo login lo ritenta:
 non è necessario registrare un altro account.
 
-Impostazioni è raggiungibile da tutti gli utenti autenticati: gli utenti standard
-vedono «Richiede amministratore», senza valori sensibili o controlli di scrittura.
-Le API di configurazione rimangono admin-only (403 per utenti standard). La
-chiave Norish è globale per istanza: un errore auth rimanda all’amministratore,
-non alla registrazione di una chiave personale. Il segreto si aggiorna solo
-nell’ambiente server, mai nella pagina o nel repository.
+Impostazioni è raggiungibile da tutti gli utenti autenticati. Ogni utente può
+salvare, sostituire e rimuovere la propria chiave API Norish nella scheda «Il tuo
+account Norish». URL Norish, provider/chiavi AI, barcode e utenti restano admin-only.
+Un errore auth del sync rimanda alla chiave personale, senza modifiche automatiche.
+I segreti sono cifrati sul server e non vengono mai restituiti alle pagine.
+Contratto e passaggio dalle vecchie chiavi env: [ADR-0010](docs/adr/0010-user-integrations-ui-credentials.md).
 
 ## Configurare l'URL Norish
 
@@ -147,8 +147,8 @@ in [Barcode](docs/BARCODE.md) e [AI etichetta](docs/AI-LABEL.md). Le voci import
 (`norish_sync`) restano di proprietà del sync: qualsiasi PATCH o DELETE su di
 esse risponde 403 con messaggio dedicato. Se l'ultima run fallisce per
 autenticazione, la dashboard
-mostra l'origine configurata e invita a chiedere all'amministratore di
-verificare la chiave globale in Impostazioni; non cambia o cancella
+mostra l'origine configurata e invita a verificare la propria chiave personale
+in Impostazioni; non cambia o cancella
 credenziali. L'avviso non è `hostChanged`.
 
 La prova browser auth usa Chromium reale, componenti di produzione, handler
@@ -191,8 +191,9 @@ Review e merge finale del TL non sono dichiarati già effettuati.
 Un admin sceglie esplicitamente il provider globale in Impostazioni > Scansione
 etichetta con AI e abilita la funzione. Senza provider o con ai.enabled=false,
 la scansione resta disabilitata; il form manuale funziona comunque.
-OpenAI/Anthropic richiedono la rispettiva chiave nell'ambiente, provisionata dal
-vault (mai in DB o repo); la GUI mostra solo se è rilevata. Ollama non richiede
+L'admin inserisce la chiave OpenAI/Anthropic da Impostazioni > AI: salvata cifrata
+in DB, ha precedenza sull'eventuale chiave env legacy. La GUI mostra solo lo stato
+e un campo vuoto per sostituirla, mai il valore salvato. Ollama non richiede
 chiavi, usa OLLAMA_BASE_URL (default http://localhost:11434). In Compose localhost
 è il container app: configurare un indirizzo Ollama raggiungibile da lì.
 Modelli vision default: gpt-4.1-mini, claude-haiku-4-5-20251001, llama3.2-vision;
@@ -243,7 +244,8 @@ cp docker/.env.example docker/.env
 # NORISH_BASE_URL è opzionale: valorizzarla con l'URL assoluto scelto
 # oppure ometterla/lasciarla vuota per avviare senza Norish.
 # Il deployer fornisce dal vault, in ambiente o nello stesso .env protetto:
-# POSTGRES_PASSWORD, BETTER_AUTH_SECRET, ENCRYPTION_KEY e (per sync) NORISH_API_KEY.
+# POSTGRES_PASSWORD, BETTER_AUTH_SECRET e ENCRYPTION_KEY.
+# Ogni utente salva la propria chiave Norish da UI; l'admin salva le chiavi AI.
 # Non riportare il valore della chiave nel README, nei comandi o nei log.
 # L'API key del brief originale è revocata: usare soltanto quella corrente dal vault.
 chmod 600 docker/.env
@@ -314,29 +316,27 @@ di deployment (`NORISH_BASE_URL`, ADR-0007 — niente host cablati nel codice).
 
 ## Integrazione con norish
 
-La connessione all'istanza norish configurata avviene via API key. L'API key va
-sempre fornita tramite variabile d'ambiente (`NORISH_API_KEY`, bootstrap/demo
-dell'istanza § 5.4) o come chiave per-utente salvata cifrata (AES-256-GCM, § 6.2) —
-sempre **mai committata nel repository**. Il `.gitignore` esclude i file `.env*`
-(ad eccezione di `.env.example`): nessun valore reale finisce nel repo.
+La connessione all'istanza Norish avviene esclusivamente con la chiave personale
+dell'utente, salvata dalla UI e cifrata con AES-256-GCM. `NORISH_API_KEY` non è
+più usata, neppure per il primo account. Le chiavi personali già cifrate restano
+compatibili. Non committare chiavi o file runtime; conservare `ENCRYPTION_KEY`
+insieme ai backup del database per poter leggere le credenziali cifrate.
 
 Per il trigger manuale, applicare prima `pnpm db:migrate` e poi
 `pnpm sync:norish --user <uuid> [--period week|month]` con `DATABASE_URL`,
-`BETTER_AUTH_SECRET`, `ENCRYPTION_KEY` e `NORISH_API_KEY` dall'env sicuro
-(oppure chiave cifrata per-utente). Il comando usa l'URL GUI > env della run;
+`BETTER_AUTH_SECRET` ed `ENCRYPTION_KEY` dall'env sicuro, dopo aver configurato
+la chiave personale in Impostazioni. Il comando usa l'URL GUI > env della run;
 `month` è il backfill esplicito, `week` è l'incrementale (settimana server +
-oggi). Non passare chiavi in argv. Il primo account è il solo destinatario del
-fallback demo `NORISH_API_KEY`; gli altri richiedono chiavi per-utente. Le run
+oggi). Non passare chiavi in argv. Scheduler e trigger manuale usano la stessa
+risoluzione per utente; lo scheduler salta account sospesi o senza chiave. Le run
 sono auditabili in `norish_sync_runs` (`status`, `reason='auth'` su 401/403),
 senza modifiche automatiche alle credenziali.
 
 ## Limiti noti del flusso utente (t_ee2705d5, per la review)
 
-- **Riassociazione chiave utente:** l'avviso di errore auth invita alla pagina
-  Impostazioni, ma l'unico flusso chiave attuale è la `NORISH_API_KEY` fallback
-  demo del primo account (env/vault) e la pagina Impostazioni è admin-only con
-  solo il campo URL. L'aggiornamento della chiave **per-utente** dall'interfaccia
-  non esiste ancora: è il seguito richiesto al flusso auth (card dedicate).
+- **Verifica credenziali:** il salvataggio valida il formato e cifra la chiave;
+  non contatta Norish o i provider AI. La validità viene verificata al primo
+  sync/scan richiesto, senza chiamate automatiche al salvataggio.
 - **Login/registrazione:** il backend Better Auth e `/api/auth` esistono, ma la
   pagina `/login` e il bootstrap del primo admin sono scope della feature auth:
   l'invito al login della UI resta finché quella pagina non viene consegnata.

@@ -3,18 +3,42 @@ import type { Db } from "@/server/db";
 import { getAdminSettings, setAdminSetting } from "@/server/db/repositories/settings";
 import type { AiConnection } from "./extract";
 import { writeAdminAudit } from "@/server/db/repositories/admin-users";
+import { aiCredentialKey, credentialValue } from "@/server/services/settings/credentials";
 export const providerSchema = z.enum(["openai", "anthropic", "ollama"]);
 export const settingsSchema = z.object({ enabled: z.boolean(), provider: providerSchema.nullable() }).strict().refine(v => !v.enabled || v.provider !== null);
 export const models = { openai: "gpt-4.1-mini", anthropic: "claude-haiku-4-5-20251001", ollama: "llama3.2-vision" } as const;
 export type AiEnv = Record<string,string | undefined>;
-/** Only presence is projected; environment secrets never enter admin_settings. */
-export async function aiConfig(db: Db, env: AiEnv = process.env) {
-  const settings = await getAdminSettings(db, ["ai.provider", "ai.enabled"]);
+/** Read settings and encrypted credentials from the same statement snapshot. */
+async function aiState(db: Db, env: AiEnv) {
+  const settings = await getAdminSettings(db, ["ai.provider", "ai.enabled", aiCredentialKey("openai"), aiCredentialKey("anthropic")]);
   const parsed = providerSchema.safeParse(settings["ai.provider"]); const provider = parsed.success ? parsed.data : null;
   const enabled = settings["ai.enabled"] === true && provider !== null;
-  const keys = { openai: !!env.OPENAI_API_KEY?.trim(), anthropic: !!env.ANTHROPIC_API_KEY?.trim(), ollama: true };
+  function key(provider: "openai" | "anthropic", fallback: string | undefined) {
+    const stored = settings[aiCredentialKey(provider)];
+    if (Object.hasOwn(settings, aiCredentialKey(provider))) {
+      try { return credentialValue(stored); } catch { return undefined; } // never fall back over a broken UI override
+    }
+    return fallback?.trim() || undefined;
+  }
+  const secrets = { openai: key("openai", env.OPENAI_API_KEY), anthropic: key("anthropic", env.ANTHROPIC_API_KEY) };
+  const keys = { openai: !!secrets.openai, anthropic: !!secrets.anthropic, ollama: true };
+  const keySources = {
+    openai: Object.hasOwn(settings, aiCredentialKey("openai")) ? "ui" : keys.openai ? "env" : "unset",
+    anthropic: Object.hasOwn(settings, aiCredentialKey("anthropic")) ? "ui" : keys.anthropic ? "env" : "unset",
+  } as const;
   const ready = enabled && provider !== null && keys[provider];
-  return { enabled, provider, ready, keys, cloud: provider === "openai" || provider === "anthropic" };
+  return { config: { enabled, provider, ready, keys, keySources, cloud: provider === "openai" || provider === "anthropic" }, secrets };
+}
+
+/** Public projection contains presence/source only; no plaintext or ciphertext. */
+export async function aiConfig(db: Db, env: AiEnv = process.env) {
+  return (await aiState(db, env)).config;
+}
+
+export async function aiRuntimeConfig(db: Db, env: AiEnv = process.env) {
+  const { config, secrets } = await aiState(db, env);
+  const connection = config.ready && config.provider ? aiConnection(config.provider, { ...env, OPENAI_API_KEY: secrets.openai, ANTHROPIC_API_KEY: secrets.anthropic }) : null;
+  return { config, connection };
 }
 export function aiConnection(provider: NonNullable<Awaited<ReturnType<typeof aiConfig>>["provider"]>, env: AiEnv): AiConnection {
   const model = env.SYNCLORIC_AI_MODEL?.trim() || models[provider];

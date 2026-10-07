@@ -38,7 +38,12 @@ Impostazioni admin: scelta esplicita openai/anthropic/ollama e checkbox abilita.
 insieme con un solo SELECT (snapshot coerente). `OLLAMA_BASE_URL` è validata/usata
 solo quando il provider è Ollama; un valore inutilizzato malformato non blocca il cloud.
 Provider assente/invalido o enabled assente/false = disabled; non inferire da
-chiavi presenti. Nessun segreto ammesso nel payload settings (schema strict).
+chiavi presenti. GET/PUT settings non includono segreti (schema strict).
+L'endpoint admin separato GET/PUT/DELETE `/api/v1/settings/ai-key` salva chiavi
+cloud cifrate; PUT accetta `{provider: "openai"|"anthropic", apiKey: string}` e
+DELETE `{provider}`. L'override UI precede l'env legacy e la rimozione ripristina
+quel fallback. Configurazione e ciphertext sono letti nello stesso snapshot;
+nessun valore della chiave è restituito al client o registrato nell'audit.
 Cloud senza chiave = non pronto. Stato Ollama pronto significa configurato,
 non già raggiungibile. Env e modelli in [configuration.md](configuration.md).
 

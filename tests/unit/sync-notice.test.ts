@@ -6,9 +6,9 @@ import { SyncNotice } from "@/components/sync-notice";
 describe("last Norish sync outcome", () => {
   it("shows auth failure and settings link without credential mutations or raw keys", () => {
     const html = renderToStaticMarkup(createElement(SyncNotice, { sync: { status: "error", reason: "auth", origin: "https://norish.example.invalid" } }));
-    expect(html).toContain("Norish ha rifiutato la chiave");
-    expect(html).toContain("amministratore");
-    expect(html).not.toContain("la tua chiave");
+    expect(html).toContain("Norish ha rifiutato la tua chiave");
+    expect(html).toContain("chiave personale");
+    expect(html).not.toContain("chiave è globale");
     expect(html).toContain("norish.example.invalid");
     expect(html).toContain('href="/settings"');
     expect(html).not.toContain("DELETE");

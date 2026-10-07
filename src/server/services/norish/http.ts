@@ -5,7 +5,7 @@ import type { Db } from "@/server/db";
 import { loadEnvConfig, norishBaseUrl, norishUpstreamTimeZone, NORISH_SETTINGS_KEY, type SyncloricConfig } from "@/server/config";
 import { getAdminSetting } from "@/server/db/repositories/settings";
 import { buildAdminSettingsOverride } from "@/server/services/settings/norish-url";
-import { resolveNorishClient } from "@/server/services/scheduler";
+import { resolveUserNorishClient } from "@/server/services/scheduler";
 import { NorishApiError } from "./client";
 import { startSyncRun, finishSyncRun } from "./sync";
 import { runNorishSync, NorishSyncError, type SyncPort } from "./runner";
@@ -24,11 +24,7 @@ const busy = () => json({ error: "Sincronizzazione già in corso." }, 503);
 const unavailable = () => json({ error: "Sincronizzazione non disponibile. Verifica la configurazione Norish." }, 503);
 
 async function resolveClient(config: SyncloricConfig, userId: string, db: Db): Promise<SyncPort | null> {
-  const key = `norish.key.${userId}`;
-  const setting = rows(await db.execute(sql`SELECT key, value FROM admin_settings WHERE key = ${key} LIMIT 1`))[0] as { key: string; value: unknown } | undefined;
-  const first = rows(await db.execute(sql`SELECT id FROM users ORDER BY created_at,id LIMIT 1`))[0]?.id;
-  // Preserve the scheduler's encrypted per-user key policy; env demo only for first account.
-  return resolveNorishClient(config, setting, first === userId);
+  return resolveUserNorishClient(config, userId, db);
 }
 
 function isAuthError(error: unknown): boolean {
@@ -72,7 +68,7 @@ export function buildSyncHandlers(deps: SyncRouteDeps) {
             : rows(await database.execute(sql`SELECT pg_try_advisory_xact_lock(hashtext(${userId})) AS acquired`))[0]?.acquired === true;
           if (!acquired) return busy();
           const client = await (deps.resolveClient ?? resolveClient)(config, userId, database);
-          if (!client) return unavailable();
+          if (!client) return json({ error: "Configura la tua chiave Norish in Impostazioni.", code: "NORISH_KEY_REQUIRED" }, 400);
           const runId = await startSyncRun(database, userId);
           let status: "ok" | "partial" | "error";
           let reason: "auth" | null = null;

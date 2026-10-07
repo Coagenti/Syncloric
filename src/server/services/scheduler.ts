@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { getDb, type Db } from "@/server/db";
 import { logger } from "@/server/logging";
 import { decryptSecret } from "./norish/crypto";
+import { norishCredentialKey } from "./settings/credentials";
 import { loadEnvConfig, norishBaseUrl, norishUpstreamTimeZone, NORISH_SETTINGS_KEY, type SyncloricConfig } from "@/server/config";
 import { getAdminSetting } from "@/server/db/repositories/settings";
 import { buildAdminSettingsOverride } from "./settings/norish-url";
@@ -34,14 +35,19 @@ function rows(result: unknown): Record<string, unknown>[] {
   return Array.isArray(result) ? result : (result as { rows?: Record<string, unknown>[] })?.rows ?? [];
 }
 
-/** Il fallback demo è assegnato solo all'utente bootstrap, mai a tutti gli utenti. */
-export function resolveNorishClient(config: SyncloricConfig, setting: { key: string; value: unknown } | undefined, demoAllowed = true): NorishClient | null {
+/** Only the selected user's encrypted credential can authorize Norish. */
+export function resolveNorishClient(config: SyncloricConfig, setting: { key: string; value: unknown } | undefined): NorishClient | null {
   if (setting !== undefined) {
     const encrypted = setting.value as { ciphertext?: string } | null;
     if (typeof encrypted?.ciphertext !== "string") return null;
     return new NorishClient({ baseUrl: config.NORISH_BASE_URL, apiKey: decryptSecret(encrypted.ciphertext, config.ENCRYPTION_KEY) });
   }
-  return demoAllowed && config.NORISH_API_KEY ? new NorishClient({ baseUrl: config.NORISH_BASE_URL, apiKey: config.NORISH_API_KEY }) : null;
+  return null;
+}
+
+export async function resolveUserNorishClient(config: SyncloricConfig, userId: string, db: Db): Promise<NorishClient | null> {
+  const result = rows(await db.execute(sql`SELECT key, value FROM admin_settings WHERE key = ${norishCredentialKey(userId)} LIMIT 1`));
+  return resolveNorishClient(config, result[0] as { key: string; value: unknown } | undefined);
 }
 
 const defaults: SchedulerDeps = {
@@ -59,11 +65,11 @@ const defaults: SchedulerDeps = {
     return norishBaseUrl(buildAdminSettingsOverride(saved ?? undefined));
   },
   async listUserIds(db) {
-    // Il primo account è il destinatario del bootstrap demo (se presente).
-    // Altri account richiedono una propria chiave cifrata, mai fanout env.
+    // Every account, including the first admin, needs its own key. Banned users
+    // do not run scheduled imports even if they still have a credential.
     const result = rows(await db.execute(sql`SELECT id AS user_id FROM users
-      WHERE id = (SELECT id FROM users ORDER BY created_at, id LIMIT 1)
-      OR EXISTS (SELECT 1 FROM admin_settings WHERE key = 'norish.key.' || users.id::text)`));
+      WHERE COALESCE(banned, false) = false
+      AND EXISTS (SELECT 1 FROM admin_settings WHERE key = 'norish.key.' || users.id::text)`));
     return [...new Set(result.map((row) => String(row.user_id)))];
   },
   async isBreakerOpen(db, userId, now) {
@@ -79,12 +85,7 @@ const defaults: SchedulerDeps = {
   },
   startSyncRun,
   finishSyncRun,
-  async resolveClient(config, userId, db) {
-    const result = rows(await db.execute(sql`SELECT key, value FROM admin_settings WHERE key = ${`norish.key.${userId}`} LIMIT 1`));
-    if (result.length) return resolveNorishClient(config, result[0] as { key: string; value: unknown });
-    const first = rows(await db.execute(sql`SELECT id FROM users ORDER BY created_at, id LIMIT 1`))[0]?.id;
-    return first === userId ? resolveNorishClient(config, undefined) : null;
-  },
+  resolveClient: resolveUserNorishClient,
   runNorishSync: (options) => runNorishSync(options),
 };
 

@@ -24,7 +24,8 @@ implementate nel contratto [ADMINISTRATION.md](ADMINISTRATION.md). Invariante:
 almeno un admin attivo (più admin ammessi), guard server-side, audit unico,
 hooks Better Auth top-level e trigger PG anti-race. Advisory xact lock dedicato
 `19373302`, distinto dal bootstrap `19373301`. Nessun privilegio impersonation;
-segreti env-only e provider AI assente = disabilitato.
+chiavi API da UI cifrate in DB (Norish personali, AI amministrative) e provider
+AI assente = disabilitato. Segreti infrastrutturali ancora env-only; [ADR-0010](adr/0010-user-integrations-ui-credentials.md).
 
 Syncloric fa da **diario calorie** per singoli utenti di un'istanza self-hosted, e
 importa automaticamente i pasti già pianificati su **norish** in modo che
@@ -58,7 +59,7 @@ copyleft su Syncloric. Se in futuro si copiassero porzioni di codice dai pacchet
 | UI | **Tailwind CSS v4 + HeroUI v3 + TanStack Query 5** | Coerenza con lo stack norish (il team conosce gli stessi tool); Tailwind per il theming cyberpunk; TanStack Query per cache e stato server |
 | ORM/DB | **PostgreSQL 17 + Drizzle ORM** (drizzle-kit per le migrazioni) | JSONB per gli snapshot d'import, vincoli e indici dichiarati in TS, migrazioni versionate; stesso combo di norish |
 | Auth | **Better Auth (username+password senza email)** | Stessa libreria di norish; plugin `username`, session cookie httpOnly; plugin `admin` per i ruoli; nessuna dipendenza da SMTP |
-| AI (fornitore configurabile) | OpenAI / Anthropic / Ollama tramite `services/ai/` | Label vision: config globale admin, chiavi solo env, prompt JSON-only, validazione strict e bozza da confermare (decisioni TL `t_46f2e79f`; [contratto](AI-LABEL.md)). Il legacy runtime testuale resta separato e non è usato dal label-scan. |
+| AI (fornitore configurabile) | OpenAI / Anthropic / Ollama tramite `services/ai/` | Label vision: config e chiavi globali admin, credenziali UI cifrate > env legacy, prompt JSON-only, validazione strict e bozza da confermare ([contratto](AI-LABEL.md), ADR-0010). Il legacy runtime testuale resta separato e non è usato dal label-scan. |
 | Test | Vitest (unit+integration) + Playwright (e2e) | Standard TS; vitest per il client norish con fetch mockato; Playwright per il flusso import → dashboard |
 | CI | GitHub Actions | Lint + typecheck + test + build su ogni PR; main protetto |
 | Scheduler | node-cron in-process | Sync ogni 30 min per utente; Redis/BullMQ NON in v1 (vedi ADR-0004) |
@@ -385,12 +386,12 @@ L'intero payload viene salvato in `recipes.snapshot` (JSONB).
   le marche restano soft (`norish_deleted=true`, reversibile, mai DELETE fisico);
   tutto dentro la transazione della run + advisory lock per utente.
   Nessuna write upstream (ADR-0006): validazione con HTTP mockato e PGlite.
-- **Multi-utente**: ogni utente configura la **propria** chiave norish (la casa su
-  norish è per-user/household). Nel settings utente: input chiave → validate con una
-  chiamata reale `GET /planned-recipes/today` → salvataggio cifrato (§ 6).
-  La chiave dell'istanza di test corrente (norish.coagenti.it) va in `NORISH_API_KEY`
-  (env): è chiave di bootstrap/demo dell'istanza, mai committata nel repo; le chiavi
-  per-utente restano la via ordinaria (la base URL arriva da `NORISH_BASE_URL`, § 5.0).
+- **Multi-utente**: ogni utente configura la **propria** chiave Norish (la casa su
+  Norish è per-user/household) tramite Impostazioni. Salvataggio cifrato dopo
+  validazione sintattica; validità verificata al primo sync, senza chiamate al
+  salvataggio. Scheduler, API e CLI usano la stessa risoluzione per utente.
+  Nessun fallback `NORISH_API_KEY`, neppure per il primo account. L'URL resta
+  globale GUI > env. Decisione aggiornata: [ADR-0010](adr/0010-user-integrations-ui-credentials.md).
 
 ### 5.5 Gestione errori e retry (matrice)
 
@@ -413,12 +414,13 @@ chiari e strutturati (livello, user_id, run_id, fase), mai il valore della chiav
 
 1. **Segreti**: mai nel repo. `.env.example` elenca tutte le variabili; `docker-compose.yml`
    legge da `.env`. Segreti obbligatori: `DATABASE_URL`, `BETTER_AUTH_SECRET`,
-   `ENCRYPTION_KEY`, `NORISH_API_KEY` (opzionale, bootstrap/demo dell'istanza di
-   test corrente, § 5.4). La base URL dell'upstream non è un segreto ma una config
+   `ENCRYPTION_KEY`. Le chiavi Norish sono personali; le chiavi AI sono globali
+   e amministrative. Entrambe sono inseribili da UI e cifrate in DB. La base URL
+   dell'upstream non è un segreto ma una config
    di deployment: `NORISH_BASE_URL` (§ 9.2).
 2. **Chiavi API norish per-utente**: cifrate a riposo con AES-256-GCM (chiave
    = `ENCRYPTION_KEY`), mai loggate, mai spedite al client dopo il salvataggio,
-   testate al momento dell'inserimento con una validazione live.
+   validate sintatticamente al salvataggio, verificate dal primo sync richiesto.
 3. **Sessioni**: cookie Better Auth httpOnly + sameSite lax; password hashing
    scrypt (default Better Auth). Rate limit login nativo della libreria.
 4. **Admin**: ruoli Better Auth (`role='admin'`) gate sulle rotte `(app)/admin/**`;
@@ -512,7 +514,7 @@ locale con gli stessi nomi-variabile (niente due schemi).
 | Variabile | Obbligo | Contenuto |
 | --- | --- | --- |
 | `NORISH_BASE_URL` | **Sì**, fail fast | Base URL dell'istanza norish upstream (es. `https://norish.coagenti.it`, l'istanza di test corrente). Il client aggiunge `/api/v1` (§ 5.1). Normalizzazione: no trailing slash; solo https (http ammesso solo su host locale, per lo sviluppo). Nessun default embedded nel codice. |
-| `NORISH_API_KEY` | No (bootstrap/demo) | Chiave API verso l'upstream dell'istanza di test corrente (§ 5.4); per altre istanze il deployer genera la chiave sulla propria istanza norish. Cifrata a riposo come le per-utente (§ 6). |
+| Chiave Norish personale | UI per utente | Cifrata a riposo; `NORISH_API_KEY` legacy ignorata (§ 5.4, ADR-0010). |
 | `DATABASE_URL`, `BETTER_AUTH_SECRET`, `ENCRYPTION_KEY` | Sì | Segreti standard già previsti da § 6; unici per istanza. |
 
 - **Parametri per-istanza aggiuntivi** (throttling client, finestre sync): restano

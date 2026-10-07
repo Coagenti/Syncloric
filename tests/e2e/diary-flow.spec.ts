@@ -253,7 +253,7 @@ it("browser: login → inline food/recipe → persisted feed/dashboard → manua
       await page.reload();
       await expect(page.getByRole(status === "error" ? "alert" : "status").filter({ hasText: text })).toBeVisible();
     }
-    await expect(page.getByRole("alert")).toContainText("La chiave è globale: chiedi all’amministratore");
+    await expect(page.getByRole("alert")).toContainText("Verifica o sostituisci la tua chiave personale");
     await expect(page.getByRole("alert").getByRole("link", { name: "Impostazioni" })).toHaveAttribute("href", "/settings");
     jestExpect(runSync).toHaveBeenCalledTimes(3);
     jestExpect(resolveClient).toHaveBeenCalledTimes(3);

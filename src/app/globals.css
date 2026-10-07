@@ -240,10 +240,15 @@ h1,h2,h3,p { margin-top: 0; }
 .settings-grid { display: grid; gap: 20px; min-width: 0; }
 .settings-grid > section { width: 100%; max-width: none; margin: 0; border-radius: 18px; background: #111923; border: 1px solid #34404b; padding: clamp(20px,3vw,30px); }
 .settings-grid > section > h2 { font-size: 20px; margin-bottom: 12px; }
-.settings-grid > section:first-child input { min-width: 0; min-height: 46px; border-color: #75828b; border-radius: 10px; }
-.settings-grid > section:first-child button { min-height: 44px; border-radius: 12px; padding-inline: 16px; }
+.settings-grid .norish-url-card input { min-width: 0; min-height: 46px; border-color: #75828b; border-radius: 10px; }
+.settings-grid .norish-url-card button { min-height: 44px; border-radius: 12px; padding-inline: 16px; }
 .settings-grid > section:last-child .editor-panel { width: 100%; }
 .settings-grid .editor-panel { padding: clamp(20px,3vw,30px); }
+.credential-editor { border-top: 1px solid #34404b; padding-top: 22px; margin-top: 22px; }
+.credential-editor h3 { font-size: 17px; }
+.credential-status { color: var(--color-cyber-cyan); font-size: 13px; margin-block: 14px; }
+.credential-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.credential-actions button { max-width: 100%; min-height: 44px; height: auto; padding-block: 12px; }
 .is-syncing { animation: sync-spin 1.2s linear infinite; }
 @keyframes sync-spin { to { transform: rotate(360deg); } }
 @media (max-width:1000px) { .energy-console { grid-template-columns: 1fr; gap: 24px; } .energy-details { width: 100%; } }

@@ -11,7 +11,8 @@ describe("username/password access", () => {
   it("uses the production settings branch for regular users", () => {
     const html = renderToStaticMarkup(<SettingsContent access="requires-admin" />);
     expect(html).toContain("Richiede amministratore");
-    expect(html).not.toContain("<input");
+    expect(html).toContain("Chiave API Norish");
+    expect(html).not.toContain("Provider AI");
   });
   it("supports every valid username without creating malformed or colliding metadata emails", () => {
     const names = [".abc", "abc.", "a..b", "valid_user", "a".repeat(30)];
@@ -38,7 +39,7 @@ describe("username/password access", () => {
   it("explains the global key without exposing controls to regular users", () => {
     const html = renderToStaticMarkup(<SettingsAccessNotice />);
     expect(html).toContain("Richiede amministratore");
-    expect(html).toContain("globali");
+    expect(html).toContain("amministratori");
     expect(html).not.toContain("<input");
     expect(html).not.toContain("<button");
   });

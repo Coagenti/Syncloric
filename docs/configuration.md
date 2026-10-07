@@ -76,7 +76,7 @@ L'API key non si configura in questo campo e non è restituita dalla settings AP
 | Variabile Norish | Fonte / default | Semantica |
 | --- | --- | --- |
 | `NORISH_BASE_URL` | GUI > env > unset, nessun default | Origine upstream; unset disabilita il tick |
-| `NORISH_API_KEY` | Solo env, opzionale | Bootstrap/demo per il primo utente; mai loggata |
+| Chiave Norish personale | UI autenticata, cifrata in DB | Ogni utente configura la propria chiave; `NORISH_API_KEY` legacy ignorata |
 | `NORISH_UPSTREAM_TZ` | Solo env, opzionale, nessun default | Fuso verificato del server upstream, es. UTC; invalido ignorato con warning |
 
 `NORISH_UPSTREAM_TZ` non è una setting GUI e non modifica la precedenza dell'URL.
@@ -151,15 +151,17 @@ Dettagli API: [NORISH-SETTINGS.md](NORISH-SETTINGS.md).
 | --- | --- | --- |
 | `ai.provider` | admin_settings via GUI | null: AI disabilitata; scelta esplicita openai/anthropic/ollama |
 | `ai.enabled` | admin_settings via GUI | false/assente: disabilitata |
-| `OPENAI_API_KEY` | env, segreto dal vault | opzionale; richiesta per OpenAI |
-| `ANTHROPIC_API_KEY` | env, segreto dal vault | opzionale; richiesta per Anthropic |
+| Chiave OpenAI | UI admin cifrata > `OPENAI_API_KEY` env | richiesta per OpenAI; env solo fallback legacy |
+| Chiave Anthropic | UI admin cifrata > `ANTHROPIC_API_KEY` env | richiesta per Anthropic; env solo fallback legacy |
 | `OLLAMA_BASE_URL` | env, non segreta | http://localhost:11434; HTTP(S), nessuna credenziale/query/fragment |
 | `SYNCLORIC_AI_MODEL` | env, non segreta | override del modello vision; vuota/assente usa default per provider |
 
 Nessun AI_PROVIDER env: il provider è scelto dall'admin, non inferito da chiavi
 presenti. GUI globale persistente, riletta ad ogni richiesta (nessun riavvio).
-Le chiavi cloud non sono mai salvate in admin_settings né restituite dalle API:
-solo booleani di presenza. Variabili opzionali vuote/spazi sono assenti. In
+Le chiavi cloud della UI sono salvate cifrate in `admin_settings`; le API
+restituiscono soltanto stato e fonte, senza plaintext o ciphertext. Rimuovere
+una chiave UI ripristina l'eventuale fallback env; un override cifrato non
+utilizzabile non ricade silenziosamente sull'env. Variabili opzionali vuote/spazi sono assenti. In
 sviluppo Next legge .env; in Compose aggiungerle a docker/.env (gitignored):
 il template inoltra le quattro env senza valori di default incorporati.
 Dopo cambio env ricreare il container con up -d --no-build, non restart.

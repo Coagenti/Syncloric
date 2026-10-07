@@ -4,7 +4,8 @@ import type { Db } from "@/server/db";
 import { buildSyncHandlers } from "@/server/services/norish/http";
 import { buildDiaryMutationHandlers } from "@/server/services/diary/mutate";
 import { buildDiaryFeedHandlers } from "@/server/services/diary/feed";
-import { NORISH_SETTINGS_KEY, resetEnvConfigCache } from "@/server/config";
+import { resetEnvConfigCache } from "@/server/config";
+import { norishCredentialKey, saveCredential } from "@/server/services/settings/credentials";
 import type { PlannedRecipe } from "@/server/services/norish/client";
 import { makeTestDb, resetTables, closeTestDb, type TestDb } from "./setup";
 import { PLANNED_RECIPE, RECIPE_DETAIL } from "../fixtures/norish";
@@ -49,6 +50,7 @@ describe("PATCH/DELETE su voce norish_sync (sync reale, upstream mockato)", () =
     vi.stubEnv("NORISH_UPSTREAM_TZ", undefined);
     resetEnvConfigCache();
     await db.execute(sql`INSERT INTO users (id, username) VALUES (${USER}::uuid, 'a'), (${OTHER}::uuid, 'b')`);
+    await saveCredential(db as never, norishCredentialKey(USER), "test-only-sync-key");
     // Upstream mockato: solo la settimana con l'item pianificato, /today vuoto,
     // dettaglio ricetta per il mirror. Nessun altro path upstream è previsto:
     // un fetch inatteso risponde 404 e il sync fallirebbe (fail loud).

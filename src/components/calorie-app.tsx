@@ -50,6 +50,7 @@ export function CalorieApp({ view }: { view: View }) {
       if (response.status === 401) { setSyncLogin(true); setSyncMessage("Accedi per sincronizzare il tuo diario."); return; }
       if (!response.ok) {
         const body = await response.json().catch(() => null);
+        if (body?.code === "NORISH_KEY_REQUIRED") { setSyncMessage("Configura la tua chiave Norish in Impostazioni."); return; }
         setSyncMessage(response.status === 503 && body?.error === "Sincronizzazione già in corso." ? "Sincronizzazione già in corso. Attendi e riprova." : "Sincronizzazione non disponibile. Controlla le impostazioni o riprova più tardi.");
         return;
       }

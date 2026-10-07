@@ -2,7 +2,7 @@ import { isAllowedRequestOrigin } from "@/server/http/request-origin";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { Db } from "@/server/db";
-import { aiConfig, aiConnection, saveAiConfig, settingsSchema, providerSchema, type AiEnv } from "./config";
+import { aiConfig, aiRuntimeConfig, saveAiConfig, settingsSchema, providerSchema, type AiEnv } from "./config";
 import { extractLabel } from "./extract";
 const MAX_IMAGE = 5 * 1024 * 1024;
 const imageSchema = z.object({ expectedProvider: providerSchema, mime: z.enum(["image/png", "image/jpeg", "image/webp"]), base64: z.string().min(4).max(Math.ceil(MAX_IMAGE / 3) * 4).regex(/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/) }).strict();
@@ -63,13 +63,13 @@ export function buildAiHandlers(deps: { getDb: () => Db; getSession: (headers: H
       if (busy.has(auth.user.id)) return json({ error: "Una scansione è già in corso." }, 429);
       busy.add(auth.user.id);
       try {
-        const config = await aiConfig(deps.getDb(), env());
-        if (!config.ready || !config.provider) return json({ error: "AI disabilitata o non configurata. Compila manualmente.", code: "AI_UNAVAILABLE" }, 409);
+        const { config, connection } = await aiRuntimeConfig(deps.getDb(), env());
+        if (!connection || !config.provider) return json({ error: "AI disabilitata o non configurata. Compila manualmente.", code: "AI_UNAVAILABLE" }, 409);
         let body: unknown; try { body = await boundedJson(request, Math.ceil(MAX_IMAGE / 3) * 4 + 1024); } catch { return json({ error: "Foto non valida o troppo grande (massimo 5 MB)." }, 400); }
         const image = imageSchema.safeParse(body);
         if (!image.success || !validImage(image.data)) return json({ error: "Usa una foto JPEG, PNG o WebP fino a 5 MB." }, 400);
         if (image.data.expectedProvider !== config.provider) return json({ error: "Il provider AI è cambiato. Verifica il nuovo destinatario prima di riprovare; puoi compilare manualmente.", code: "AI_PROVIDER_CHANGED" }, 409);
-        const label = await (deps.extract ?? extractLabel)(aiConnection(config.provider, env()), { mime: image.data.mime, base64: image.data.base64 });
+        const label = await (deps.extract ?? extractLabel)(connection, { mime: image.data.mime, base64: image.data.base64 });
         return json({ label });
       } catch { return json({ error: "Etichetta non leggibile o provider non disponibile. Riprova o compila manualmente.", code: "AI_EXTRACTION_FAILED" }, 502); }
       finally { busy.delete(auth.user.id); }

@@ -10,9 +10,9 @@ import { fetchJson } from "@/lib/http-client";
  * pulsanti Salva/Cancella con feedback di conferma.
  *
  * Lo stato mostrato arriva da GET /api/v1/settings/norish-url
- * ({ saved, status: norishConfigStatus }) — la GUI mostra lo STATO della
- * configurazione, mai i valori (l'URL non è un segreto, la chiave API non è
- * mai in DB/GUI, § 5.0). La pagina ospite (/settings) passa i valori iniziali
+ * ({ saved, status: norishConfigStatus }) — questa scheda gestisce l'URL
+ * globale, senza leggere o mostrare le chiavi personali. La scheda credenziali
+ * separata salva le chiavi cifrate. La pagina ospite passa i valori iniziali
  * (server component → client component) per evitare il flash di caricamento.
  */
 
@@ -131,7 +131,7 @@ export function SettingsNorishCard({
   }
 
   return (
-    <section aria-labelledby="norish-url-heading" className="max-w-2xl">
+    <section aria-labelledby="norish-url-heading" className="max-w-2xl norish-url-card">
       <h2 id="norish-url-heading" className="text-lg font-semibold">
         Norish URL
       </h2>

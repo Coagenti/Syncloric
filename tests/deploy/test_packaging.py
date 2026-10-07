@@ -22,26 +22,14 @@ class EntrypointTests(unittest.TestCase):
                                             env=env, capture_output=True, text=True, check=True)
                     self.assertEqual(result.stdout, 'set:' + value if value and value.strip() else 'unset')
 
-    def test_optional_api_key_normalization(self):
-        # Replace only the final node executable: exercise the real shell entrypoint.
-        with tempfile.TemporaryDirectory() as directory:
-            node = Path(directory) / 'node'
-            node.write_text('#!/bin/sh\nif [ "${NORISH_API_KEY+x}" = x ]; then printf "set:%s" "$NORISH_API_KEY"; else printf unset; fi\n')
-            node.chmod(0o700)
-            for value in [None, '', 'fixture-only-api-key']:
-                with self.subTest(value=value):
-                    env = {**os.environ, 'PATH': directory + os.pathsep + os.environ['PATH']}
-                    env.pop('NORISH_API_KEY', None)
-                    if value is not None:
-                        env['NORISH_API_KEY'] = value
-                    result = subprocess.run(['sh', str(ROOT / 'docker/entrypoint.sh')],
-                                            env=env, capture_output=True, text=True, check=True)
-                    self.assertEqual(result.stdout, 'set:' + value if value else 'unset')
-
 ROOT = Path(__file__).resolve().parents[2]
 
 
 class PackagingTests(unittest.TestCase):
+    def test_compose_does_not_supply_a_shared_norish_key(self):
+        text = (ROOT / 'docker/docker-compose.yml').read_text()
+        self.assertNotIn('NORISH_API_KEY:', text)
+
     def test_compose_passes_public_origin_and_upstream_timezone_once_without_defaults(self):
         text = (ROOT / 'docker/docker-compose.yml').read_text()
         for name in ['BETTER_AUTH_URL', 'NORISH_UPSTREAM_TZ']:

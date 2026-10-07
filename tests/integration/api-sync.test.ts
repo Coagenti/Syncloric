@@ -5,6 +5,7 @@ import { buildSyncHandlers } from "@/server/services/norish/http";
 import { buildDiaryFeedHandlers } from "@/server/services/diary/feed";
 import { NORISH_SETTINGS_KEY, resetEnvConfigCache } from "@/server/config";
 import { encryptSecret } from "@/server/services/norish/crypto";
+import { norishCredentialKey, saveCredential } from "@/server/services/settings/credentials";
 import { PLANNED_RECIPE, RECIPE_DETAIL } from "../fixtures/norish";
 
 const USER = "11111111-1111-4111-8111-111111111111";
@@ -26,6 +27,7 @@ beforeEach(async () => {
   vi.stubEnv("NORISH_UPSTREAM_TZ", undefined);
   resetEnvConfigCache();
   await db.execute(sql`INSERT INTO users (id,username) VALUES (${USER}::uuid,'demo')`);
+  await saveCredential(db as never, norishCredentialKey(USER), "test-only-sync-key");
   vi.stubGlobal("fetch", vi.fn(async () => new Response("[]")));
 });
 
@@ -100,9 +102,9 @@ it("does not open a fake run when Norish URL is unset", async () => {
 });
 
 it("does not fall back to the configured demo key for an existing JSON-null user key", async () => {
-  await db.execute(sql`INSERT INTO admin_settings (key,value) VALUES (${`norish.key.${USER}`}, 'null'::jsonb)`);
+  await db.execute(sql`UPDATE admin_settings SET value='null'::jsonb WHERE key=${norishCredentialKey(USER)}`);
   const response = await handlers().POST(request());
-  expect(response.status).toBe(503);
+  expect(response.status).toBe(400);
   expect(fetch).not.toHaveBeenCalled();
   expect((await db.execute(sql`SELECT count(*)::int AS n FROM norish_sync_runs`)).rows[0].n).toBe(0);
 });
@@ -111,7 +113,7 @@ it("never fans out the bootstrap demo key to another user", async () => {
   const second = "22222222-2222-4222-8222-222222222222";
   await db.execute(sql`INSERT INTO users (id,username,created_at) VALUES (${second}::uuid,'second',now()+interval '1 second')`);
   const response = await buildSyncHandlers({ getDb: () => db as never, getSession: async () => ({ user: { id: second } }) }).POST(request());
-  expect(response.status).toBe(503);
+  expect(response.status).toBe(400);
   expect(fetch).not.toHaveBeenCalled();
   expect((await db.execute(sql`SELECT count(*)::int AS n FROM norish_sync_runs`)).rows[0].n).toBe(0);
 });

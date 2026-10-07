@@ -1,16 +1,16 @@
 # Administration
 
-`/settings` is available to authenticated users. Non-administrators see only the existing “Richiede amministratore” notice, with no settings forms or user list. The server authorizes every settings/users request independently; anonymous requests return 401, non-admin requests 403. Settings are global to the instance, not per user.
+`/settings` is available to authenticated users. Every user manages their own Norish API key. Non-administrators see “Richiede amministratore” for global configuration and cannot access AI keys, server URL, barcode settings or the user list. Every API authorizes independently; anonymous requests return 401 and non-admin global writes return 403. See [ADR-0010](adr/0010-user-integrations-ui-credentials.md).
 
 ## Configuration and precedence
 
-The page presents Norish, AI, Barcode and Users in that order. Settings sections save independently; editing a toggle is not an autosave. Unsaved changes are labelled, and success is shown only after a server response.
+The page presents the personal Norish key, followed by admin sections Norish URL, AI, Barcode and Users. Sections save independently; toggles and provider selection do not autosave. Secret fields are write-only and clear after a confirmed save.
 
 - `norish.base_url`: the non-secret GUI value in `admin_settings` takes precedence over `NORISH_BASE_URL`; clearing the GUI value restores the environment fallback. A configured URL does not prove connectivity. Changing its origin reminds users to verify their personal Norish credentials.
-- `ai.enabled` and `ai.provider`: saved together in `admin_settings`. Providers are `openai`, `anthropic`, `ollama`. No implicit provider: missing provider means AI disabled. Cloud credentials are environment-only (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`); Ollama does not require a cloud key. The UI shows availability booleans only, never secret values. Settings do not make paid test calls. Photo extraction remains assistive and requires user verification before diary save.
+- `ai.enabled` and `ai.provider`: saved together in `admin_settings`. Providers are `openai`, `anthropic`, `ollama`; no implicit provider. Admins save OpenAI/Anthropic keys separately via write-only fields, encrypted with the instance master key. UI keys override the legacy environment fallback. Removing a UI key restores that fallback. Ollama needs no cloud key. Settings make no provider calls; extraction still requires user verification before diary save.
 - `barcode.enabled`: defaults to true for absent settings. False suppresses Open Food Facts requests in both barcode search and product confirmation. Local catalog and manual entries remain available. The change is read on every request, without a restart.
 
-API: GET/PUT `/api/v1/settings/ai`, GET/PUT `/api/v1/settings/barcode`, GET/PUT/DELETE `/api/v1/settings/norish-url`. Secrets never belong in JSONB or API response payloads.
+API: GET/PUT `/api/v1/settings/ai`, GET/PUT `/api/v1/settings/barcode`, GET/PUT/DELETE `/api/v1/settings/norish-url`. Credentials: GET/PUT/DELETE `/api/v1/settings/norish-key` (session owner only) and `/api/v1/settings/ai-key` (admin only). Secrets enter only credential write bodies, persist encrypted, and never appear in response or audit payloads.
 
 ## Users and invariant
 
