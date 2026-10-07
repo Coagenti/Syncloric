@@ -34,7 +34,7 @@ it.skipIf(process.env.DIARY_VISUAL_CSS !== "1")("production CSS: dialogs reflow3
   await withDiaryBrowser(async page => {
     await page.route("**/api/v1/**", route => route.fulfill({ json: route.request().url().includes("/catalog") ? { foods: [], recipes: [{ id: "recipe-1", name: "Ricetta con un nome molto lungo per controllare la leggibilità", servings: 2, kcalPerServing: null }] } : { entries: [], sync: null, target: null } }));
     await page.goto(diaryUrl(page));
-    const trigger = page.getByRole("button", { name: "Aggiungi voce", exact: true });
+    const trigger = page.locator('[data-add-slot="Lunch"]');
     const dir = process.env.DIARY_EVIDENCE_DIR ?? "../diary-ui-evidence";
     await mkdir(dir, { recursive: true });
     for (const width of [320, 390, 1440]) {

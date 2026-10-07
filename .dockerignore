@@ -9,6 +9,8 @@
 **/*.p12
 **/*.pfx
 coverage
+test-results
+playwright-report
 **/__pycache__
 *.tsbuildinfo
 logs

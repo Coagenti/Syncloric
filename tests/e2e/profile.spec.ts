@@ -77,14 +77,14 @@ it("profile: server preview, save/reload, target switch and dashboard without/wi
     await page.reload();
     await expect(page.getByLabel("Peso (kg)")).toHaveValue("80");
     await page.getByRole("link", { name: "Torna alla dashboard" }).click();
-    await expect(page.getByText(/2\.?760 kcal di differenza/)).toBeVisible();
+    await expect(page.locator(".energy-balance")).toContainText("2.760");
     await page.goto(base + "/profile");
     await page.getByLabel("Manuale", { exact: true }).check();
     await page.getByLabel("Target manuale (kcal)").fill("2101");
     await page.getByRole("button", { name: "Salva profilo" }).click();
     await expect(page.getByRole("status")).toContainText("Modifiche salvate");
     await page.getByRole("link", { name: "Torna alla dashboard" }).click();
-    await expect(page.getByText(/2\.?101 kcal di differenza/)).toBeVisible();
+    await expect(page.locator(".energy-balance")).toContainText("2.101");
     for (const width of [320, 390, 1440]) {
       await page.setViewportSize({ width, height: 900 }); await page.goto(base + "/profile");
       await expect(page.getByRole("heading", { name: "Il tuo obiettivo." })).toBeVisible();

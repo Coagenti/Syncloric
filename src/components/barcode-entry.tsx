@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { LabelScan } from "./label-scan";
+import { UiIcon } from "./ui-icon";
 
 type Product = { name: string; brand: string | null; kcalPer100g: number | null; proteinPer100g: number | string | null; fatPer100g: number | string | null; carbsPer100g: number | string | null; source?: string };
 type Detector = { detect: (video: HTMLVideoElement) => Promise<{ rawValue: string }[]> };
 type DetectorClass = new (options: { formats: string[] }) => Detector;
 
 /** Native camera only; all lookup and persistence goes through the authenticated API. */
-export function BarcodeEntry({ date, onSaved }: { date: string; onSaved: () => void }) {
+export function BarcodeEntry({ date, onSaved, compact = false }: { date: string; onSaved: () => void; compact?: boolean }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const video = useRef<HTMLVideoElement>(null);
@@ -117,7 +118,7 @@ export function BarcodeEntry({ date, onSaved }: { date: string; onSaved: () => v
   }
 
   return <>
-    <button ref={trigger} className="primary-cta" type="button" onClick={() => { setCode(""); setProduct(null); setOrigin(""); setError(""); setAiApplied(false); setAiConfirmed(false); dialog.current?.showModal(); }}>Scansiona</button>
+    <button ref={trigger} className={compact ? "toolbar-action scan-action" : "primary-cta"} type="button" onClick={() => { setCode(""); setProduct(null); setOrigin(""); setError(""); setAiApplied(false); setAiConfirmed(false); dialog.current?.showModal(); }}><UiIcon name="scan" />Scansiona</button>
     <dialog ref={dialog} className="editor-panel barcode-dialog" aria-labelledby="barcode-title" onFocusCapture={() => { if (busy && pendingFocus.current) pendingFocus.current.moved = true; }} onCancel={event => { event.preventDefault(); close(); }}>
       <div className="editor-heading"><h2 id="barcode-title">Registra un prodotto</h2><button className="close-editor" type="button" aria-label="Chiudi scanner" onClick={close}>×</button></div>
       <p className="form-help">Inserisci il codice o usa la fotocamera. Lo scanner barcode non invia foto; la scansione AI dell’etichetta è separata e facoltativa.</p>

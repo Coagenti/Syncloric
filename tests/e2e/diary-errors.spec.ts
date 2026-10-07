@@ -26,7 +26,7 @@ it("sanitizes errors inline, offers login on401 and supports food PATCH without 
     });
     await page.goto(diaryUrl(page));
     await pw(page.locator(".entry-row").filter({ hasText: "Importata" }).getByRole("button", { name: "Modifica" })).toHaveCount(0);
-    await page.getByRole("button", { name: "Aggiungi voce", exact: true }).click();
+    await page.locator('[data-add-slot="Lunch"]').click();
     const dialog = page.getByRole("dialog");
     await dialog.getByRole("textbox", { name: "Nome alimento" }).fill("Nuovo");
     await dialog.getByRole("spinbutton", { name: "Quantità in grammi" }).fill("125");

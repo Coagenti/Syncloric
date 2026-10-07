@@ -60,7 +60,10 @@ async function withPendingSync(width: number, outcome: Outcome, run: (
         release();
         await completed;
         await pw(trigger).toBeEnabled();
-        await pw(page.getByRole("status").filter({ hasText: outcome.message })).toBeVisible();
+        if (outcome.status === 200) {
+          await pw(page.locator(".sync-dot.ok")).toBeVisible();
+          await pw(page.locator("#sync-status")).toHaveText(outcome.message);
+        } else await pw(page.getByRole("status").filter({ hasText: outcome.message })).toBeVisible();
         expect(syncRequests, "Exactly one keyboard-initiated sync request").toBe(1);
       });
     } finally { release(); }
@@ -68,6 +71,12 @@ async function withPendingSync(width: number, outcome: Outcome, run: (
 }
 
 async function assertReadableFeedback(page: Page, outcome: Outcome) {
+  if (outcome.status === 200) {
+    await pw(page.locator(".sync-dot.ok")).toBeVisible();
+    await pw(page.locator("#sync-status")).toHaveText(outcome.message);
+    await pw(page.getByRole("button", { name: "Sincronizza ora", exact: true })).toHaveAttribute("aria-describedby", "sync-status");
+    return;
+  }
   const feedback = page.getByText(outcome.message, { exact: true });
   await pw(feedback).toBeVisible();
   await feedback.scrollIntoViewIfNeeded();

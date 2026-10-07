@@ -4,6 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Syncloric",
+  icons: { icon: [{ url: "/favicon.ico" }, { url: "/brand/favicon-32.png", type: "image/png", sizes: "32x32" }] },
   description:
     "Diario calorie self-hosted con import automatico da norish (docs/ARCHITECTURE.md)",
 };
@@ -18,8 +19,9 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="it">
+    <html lang="it" suppressHydrationWarning>
       <body className="min-h-dvh antialiased">
+        <script dangerouslySetInnerHTML={{ __html: `(()=>{let saved;try{saved=localStorage.getItem('syncloric.reduce-motion')}catch{}document.documentElement.dataset.motion=(saved==='true'||(saved!=='false'&&matchMedia('(prefers-reduced-motion: reduce)').matches))?'reduce':'full'})()` }} />
         <Providers>{children}</Providers>
       </body>
     </html>

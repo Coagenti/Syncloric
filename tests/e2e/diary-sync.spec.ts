@@ -8,7 +8,7 @@ it("a later feed run replaces the temporary on-demand result", async () => {
     await page.route("**/api/v1/**", route => route.fulfill({ json: route.request().url().endsWith("/sync") ? feedSync : { entries: [], sync: feedSync, target: null } }));
     await page.goto(diaryUrl(page));
     await page.getByRole("button", { name: "Sincronizza ora" }).click();
-    await pw(page.getByText("Sincronizzazione Norish: completata.", { exact: true })).toBeVisible();
+    await pw(page.locator(".sync-dot.ok")).toBeVisible();
     feedSync = { status: "error", reason: "auth", origin: "https://norish.example.invalid", finishedAt: "2026-09-29T13:00:00Z" };
     await page.getByRole("button", { name: "Giorno successivo" }).click();
     await pw(page.getByRole("alert")).toContainText("Verifica o sostituisci la tua chiave personale");
@@ -35,7 +35,7 @@ it("sync on demand shows completed/partial/auth failure and distinguishes busy w
     await pw(page.getByText("Sincronizzazione Norish: completata.", { exact: true })).toHaveCount(0);
     status = 200;
     await trigger.click();
-    await pw(page.getByText("Sincronizzazione Norish: completata.", { exact: true })).toBeVisible();
+    await pw(page.locator(".sync-dot.ok")).toBeVisible();
     sync = { status: "partial", reason: null, origin: null };
     await trigger.click();
     await pw(page.getByText("Sincronizzazione Norish: parziale.", { exact: true })).toBeVisible();

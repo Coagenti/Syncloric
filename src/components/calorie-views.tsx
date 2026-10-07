@@ -1,34 +1,42 @@
-import type { CSSProperties } from "react";
+import { useId, type CSSProperties } from "react";
 import { UiIcon } from "@/components/ui-icon";
+import { EnergyRippleFilter } from "@/components/energy-ripple-filter";
 import { dailySummary, formatDate, monthDays, slotLabels, slots, type DiaryEntry, type Slot } from "@/lib/diary";
 
 const number = (value: number) => new Intl.NumberFormat("it-IT", { useGrouping: "always" }).format(value);
 const sourceLabel = (entry: DiaryEntry) => entry.source === "norish_sync" ? "Da norish" : "Manuale";
 
-export function DashboardView({ entries, date, target }: { entries: DiaryEntry[]; date: string; target: number | null }) {
+export function DashboardView({ entries, date, target, showTitle = true }: { entries: DiaryEntry[]; date: string; target: number | null; showTitle?: boolean }) {
+  const fillMaskId = useId();
   const summary = dailySummary(entries, date, target);
   const progress = target === null || target <= 0 ? 0 : Math.min(summary.consumed / target, 1) * 100;
+  const excess = summary.remaining !== null && summary.remaining < 0;
   return <div className="view-stack">
-    <div className="eyebrow"><span className="signal-dot" /> PANORAMICA / {date}</div>
-    <div className="view-title"><div><h1>Riepilogo del giorno<span className="title-punctuation">.</span></h1><p>Un giorno alla volta, tutto sotto controllo.</p></div><span className="view-index">01 / 03</span></div>
-    <section className="energy-card" aria-label="Bilancio energetico">
+    {showTitle && <div className="view-title"><div><h1>Riepilogo del giorno<span className="title-punctuation">.</span></h1></div></div>}
+    <section className={`energy-card ${excess ? "is-over-target" : summary.remaining !== null && summary.remaining > 0 ? "is-under-target" : ""}`} aria-label="Bilancio energetico" style={{ "--energy-ripple": `url(#${fillMaskId}-ripple)` } as CSSProperties}>
+      <EnergyRippleFilter id={`${fillMaskId}-ripple`} />
       <div className="energy-header"><span className="section-kicker">BILANCIO ENERGETICO</span><span className="energy-tag"><span className="signal-dot" /> DIARIO / LIVE</span></div>
       <div className="energy-console">
         <div className="energy-gauge" style={{ "--gauge-offset": 100 - progress } as CSSProperties}>
           <svg className="gauge-art" viewBox="0 0 320 320" fill="none" aria-hidden="true">
+            <defs><mask id={fillMaskId}><circle cx="160" cy="160" r="136" stroke="white" strokeWidth="12" pathLength="100" strokeDasharray="100" strokeDashoffset={100 - progress} transform="rotate(-90 160 160)" /></mask></defs>
             <circle className="gauge-orbit" cx="160" cy="160" r="153" strokeWidth="1" strokeDasharray="2 10" />
             <circle className="gauge-track" cx="160" cy="160" r="136" strokeWidth="9" />
             <circle className="gauge-fill" cx="160" cy="160" r="136" strokeWidth="9" strokeLinecap="round" pathLength="100" strokeDasharray="100" transform="rotate(-90 160 160)" />
+            <g mask={`url(#${fillMaskId})`}>
+              <circle className="gauge-wave" cx="160" cy="160" r="136" strokeWidth="9" strokeLinecap="round" pathLength="100" strokeDasharray="12 88" transform="rotate(-90 160 160)" />
+              <circle className="gauge-glitch" cx="160" cy="160" r="136" strokeWidth="5" pathLength="100" strokeDasharray="18 3 7 5" />
+            </g>
             <circle className="gauge-inner" cx="160" cy="160" r="119" strokeWidth="1" />
             <path className="gauge-flame" d="M166 63c7 40 44 46 44 79 0 30-22 48-50 48-31 0-50-21-50-47 0-23 16-35 23-48 0 23 11 27 16 28 8-17 20-28 17-60Z" />
             <path className="gauge-crosshair" d="M160 11v15 M160 294v15 M11 160h15 M294 160h15" />
           </svg>
-          <div className="energy-readout"><span className="section-kicker">ENERGIA REGISTRATA</span><div className="energy-number">{number(summary.consumed)}</div><span className="energy-unit">kcal</span><span className="energy-date">{formatDate(date, { day: "numeric", month: "long" })}</span></div>
+          <div className="energy-readout"><span className="section-kicker">ENERGIA REGISTRATA</span><div className="energy-number">{number(summary.consumed)}</div><span className="energy-unit">kcal</span>{summary.remaining !== null && <div className="energy-balance"><span>{excess ? "In eccesso" : "Rimanenti"}</span><strong>{number(Math.abs(summary.remaining))} <small>kcal</small></strong></div>}</div>
         </div>
         <div className="energy-details"><span className="energy-caption">IL TUO OBIETTIVO QUOTIDIANO</span>
           <div className="energy-target">{target === null ? "Da configurare" : <>{number(target)} <small>kcal</small></>}</div>
           <div className="energy-rule" role="img" aria-label={target === null ? "Obiettivo non configurato" : `${number(summary.consumed)} di ${number(target)} kcal registrate`}><span style={{ width: `${progress}%` }} /></div>
-          <div className="energy-foot">{target === null ? <span>Obiettivo non configurato · riepilogo informativo</span> : <><span>{Math.round(summary.consumed / target * 100)}% registrato</span><span>{summary.remaining !== null && summary.remaining >= 0 ? `${number(summary.remaining)} kcal di differenza` : "Obiettivo raggiunto"}</span></>}</div>
+          <div className="energy-foot">{target === null ? <span>Obiettivo non configurato · riepilogo informativo</span> : <><span>{Math.round(summary.consumed / target * 100)}% registrato</span><span>{excess ? "Obiettivo superato" : summary.remaining === 0 ? "Obiettivo raggiunto" : "Bilancio del giorno"}</span></>}</div>
           <a className="goal-action" href="/profile">{target === null ? "Configura obiettivo" : "Modifica obiettivo"}<UiIcon name="right" /></a>
           {summary.unknownCount > 0 && <p className="data-note">{summary.unknownCount} {summary.unknownCount === 1 ? "voce senza kcal definite" : "voci senza kcal definite"}: non incluse nel totale.</p>}
         </div>
@@ -42,23 +50,27 @@ export function DashboardView({ entries, date, target }: { entries: DiaryEntry[]
   </div>;
 }
 
-export function DiaryView({ entries, date, onEdit, onAdd }: { entries: DiaryEntry[]; date: string; onEdit?: (entry: DiaryEntry, trigger: HTMLButtonElement) => void; onAdd?: (slot: Slot, trigger: HTMLButtonElement) => void }) {
+export function DiaryView({ entries, date, target = null, showTitle = true, onEdit, onAdd, onDelete }: { entries: DiaryEntry[]; date: string; target?: number | null; showTitle?: boolean; onEdit?: (entry: DiaryEntry, trigger: HTMLButtonElement) => void; onAdd?: (slot: Slot, trigger: HTMLButtonElement) => void; onDelete?: (entry: DiaryEntry, trigger: HTMLButtonElement) => void }) {
+  const rippleId = useId();
   const today = entries.filter((entry) => entry.date === date);
-  return <div className="view-stack"><div className="eyebrow"><span className="signal-dot" /> REGISTRO / {date}</div><div className="view-title"><div><h1>Diario<span className="title-punctuation">.</span></h1><p>Ogni pasto, al suo posto.</p></div><span className="view-index">02 / 03</span></div>
-    <div className="diary-banner"><span className="section-kicker">DATA SELEZIONATA</span><strong>{formatDate(date)}</strong><span>{today.length} {today.length === 1 ? "voce" : "voci"}</span></div>
+  const summary = dailySummary(entries, date, target);
+  const excess = summary.remaining !== null && summary.remaining < 0;
+  const progress = target && target > 0 ? Math.min(summary.consumed / target, 1) * 100 : 0;
+  return <div className="view-stack">{showTitle && <div className="view-title"><div><h1>Diario<span className="title-punctuation">.</span></h1></div><span className="muted-caption">{today.length} {today.length === 1 ? "voce" : "voci"}</span></div>}
+    <section className={`diary-balance ${excess ? "is-over-target" : summary.remaining !== null && summary.remaining > 0 ? "is-under-target" : ""}`} aria-label="Bilancio energetico" style={{ "--energy-ripple": `url(#${rippleId}-ripple)` } as CSSProperties}><EnergyRippleFilter id={`${rippleId}-ripple`} /><div><span className="section-kicker">BILANCIO ENERGETICO</span><strong>{number(summary.consumed)} <small>kcal {target !== null && <>/ {number(target)}</>}</small></strong></div>{summary.remaining !== null ? <div className="energy-balance"><span>{excess ? "In eccesso" : "Rimanenti"}</span><strong>{number(Math.abs(summary.remaining))} <small>kcal</small></strong></div> : <a className="goal-action" href="/profile">Configura obiettivo<UiIcon name="right" /></a>}<div className="energy-rule" role="img" aria-label={target === null ? "Obiettivo non configurato" : `${number(summary.consumed)} di ${number(target)} kcal registrate`}><span style={{ width: `${progress}%` }} /></div>{summary.unknownCount > 0 && <p className="data-note">{summary.unknownCount} {summary.unknownCount === 1 ? "voce senza kcal definite" : "voci senza kcal definite"}: non incluse nel totale.</p>}</section>
     {today.length === 0 && <p className="empty-note">Nessuna voce per questa data.</p>}
     <div className="diary-groups">{slots.map((slot, index) => {
       const group = today.filter((entry) => entry.slot === slot);
       return <section className="diary-group" key={slot} aria-label={slotLabels[slot]}><div className="diary-group-head"><div><span className="meal-index">0{index + 1} / PASTO</span><h2>{slotLabels[slot]}</h2></div>{onAdd && <button type="button" className="meal-add" data-add-slot={slot} aria-label={`Aggiungi alimento a ${slotLabels[slot]}`} onClick={event => onAdd(slot, event.currentTarget)}><UiIcon name="plus" /></button>}</div>
-        {group.length ? group.map((entry) => <article key={entry.id} className="entry-row"><div className="entry-icon" aria-hidden="true">{entry.entryType === "recipe" ? "✳" : "◈"}</div><div className="entry-main"><strong>{entry.name}</strong><span>{entry.entryType === "recipe" ? `${entry.servings ?? 1} ${(entry.servings ?? 1) === 1 ? "porzione" : "porzioni"}` : `${entry.quantityGrams ?? 0} g`} <span aria-hidden="true">·</span> <span className={entry.source === "norish_sync" ? "origin imported" : "origin"}>{sourceLabel(entry)}</span>{entry.norishDeleted && " · Rimossa su norish"}</span></div><div className="entry-energy">{entry.kcal === null ? <span>kcal non definite</span> : <><strong>{number(entry.kcal)}</strong><span>kcal</span></>}</div>{entry.source === "manual" && onEdit && <button type="button" className="edit-action" data-edit-id={entry.id} onClick={event => onEdit(entry, event.currentTarget)}>Modifica</button>}</article>) : <p className="empty-slot">Nessuna voce in questo pasto.</p>}
+        {group.length ? group.map((entry) => <article key={entry.id} className="entry-row"><div className="entry-icon" aria-hidden="true">{entry.entryType === "recipe" ? "✳" : "◈"}</div><div className="entry-main"><strong id={`entry-name-${entry.id}`}>{entry.name}</strong><span>{entry.entryType === "recipe" ? `${entry.servings ?? 1} ${(entry.servings ?? 1) === 1 ? "porzione" : "porzioni"}` : `${entry.quantityGrams ?? 0} g`} <span aria-hidden="true">·</span> <span className={entry.source === "norish_sync" ? "origin imported" : "origin"}>{sourceLabel(entry)}</span>{entry.norishDeleted && " · Rimossa su norish"}</span></div><div className="entry-energy">{entry.kcal === null ? <span>kcal non definite</span> : <><strong>{number(entry.kcal)}</strong><span>kcal</span></>}</div>{entry.source === "manual" && <div className="entry-controls">{onEdit && <button type="button" className="neon-action edit-action" data-edit-id={entry.id} data-return-slot={entry.slot} aria-label="Modifica" aria-describedby={`entry-name-${entry.id}`} title={`Modifica ${entry.name}`} onClick={event => onEdit(entry, event.currentTarget)}><UiIcon name="pencil" /></button>}{onDelete && <button type="button" className="neon-action delete-action" data-delete-id={entry.id} data-return-slot={entry.slot} aria-label="Elimina" aria-describedby={`entry-name-${entry.id}`} title={`Elimina ${entry.name}`} onClick={event => onDelete(entry, event.currentTarget)}><UiIcon name="trash" /></button>}</div>}</article>) : <p className="empty-slot">Nessuna voce in questo pasto.</p>}
       </section>;
     })}</div>
   </div>;
 }
 
-export function CalendarView({ entries, date, onSelect }: { entries: DiaryEntry[]; date: string; onSelect: (date: string) => void }) {
+export function CalendarView({ entries, date, onSelect, showTitle = true }: { entries: DiaryEntry[]; date: string; onSelect: (date: string) => void; showTitle?: boolean }) {
   const days = monthDays(date), month = date.slice(0, 7);
-  return <div className="view-stack"><div className="eyebrow"><span className="signal-dot" /> ARCHIVIO / CALENDARIO</div><div className="view-title"><div><h1>Calendario<span className="title-punctuation">.</span></h1><p>Una vista ampia sui tuoi pasti.</p></div><span className="view-index">03 / 03</span></div>
+  return <div className="view-stack">{showTitle && <div className="view-title"><div><h1>Calendario<span className="title-punctuation">.</span></h1></div></div>}
     <section className="calendar-panel" aria-label="Calendario pasti"><div className="calendar-heading"><div><span className="section-kicker">MESE SELEZIONATO</span><h2>{formatDate(date, { month: "long", year: "numeric" })}</h2></div><span className="calendar-key"><i /> Pasti importati</span></div>
       <div className="calendar-grid">{["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"].map((day) => <span key={day} className="weekday">{day}</span>)}{days.map((day) => {
         const imports = entries.filter((entry) => entry.date === day && entry.source === "norish_sync");

@@ -31,7 +31,7 @@ it("adds inline food to the real diary and restores focus after asynchronous sav
       return route.fulfill({ json: { entries, sync: null, target: null } });
     });
     await page.goto(`http://127.0.0.1:${(server.address() as { port: number }).port}`);
-    const trigger = page.getByRole("button", { name: "Aggiungi voce", exact: true });
+    const trigger = page.locator('[data-add-slot="Lunch"]');
     await trigger.click({ timeout: 10000 });
     const dialog = page.getByRole("dialog", { name: "Aggiungi voce" });
     await dialog.getByRole("textbox", { name: "Nome alimento" }).fill("Yogurt");

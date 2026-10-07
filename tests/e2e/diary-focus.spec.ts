@@ -18,7 +18,7 @@ it("all dialog close paths restore their add/edit trigger, including delayed sav
     });
     await page.goto(diaryUrl(page));
     for (const mode of ["add", "edit"]) {
-      const trigger = mode === "add" ? page.getByRole("button", { name: "Aggiungi voce", exact: true }) : page.getByRole("button", { name: "Modifica", exact: true });
+      const trigger = mode === "add" ? page.locator('[data-add-slot="Lunch"]') : page.getByRole("button", { name: "Modifica", exact: true });
       for (const action of ["Escape", "Chiudi", "Annulla", "Salva voce"]) {
         await trigger.click();
         const dialog = page.getByRole("dialog");

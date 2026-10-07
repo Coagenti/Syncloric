@@ -12,7 +12,7 @@ it("preserves authenticated topbar and profile target alongside diary actions", 
     await pw(page.getByRole("link", { name: "Modifica obiettivo", exact: true })).toHaveAttribute("href", "/profile");
     await pw(page.locator(".energy-target")).toHaveText("2.100 kcal");
     await pw(page.getByRole("button", { name: "Sincronizza ora", exact: true })).toBeEnabled();
-    await page.getByRole("button", { name: "Aggiungi voce", exact: true }).click();
-    await pw(page.getByRole("dialog", { name: "Aggiungi voce", exact: true })).toBeVisible();
+    await pw(page.getByRole("button", { name: "Aggiungi voce", exact: true })).toHaveCount(0);
+    await pw(page.getByRole("navigation", { name: "Navigazione mobile" }).getByRole("link", { name: "Diario", exact: true })).toHaveAttribute("href", "/diary");
   }, "dashboard");
 }, 60000);
