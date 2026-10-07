@@ -65,6 +65,6 @@ export function LabelScan({ onExtract, onBusy }: { onExtract: (label: Label) => 
     </>}
     {busy && <p role="status">Lettura etichetta in corso…</p>}
     {error && <p role="alert">{error}</p>}
-    {result && <p role="status">Valori proposti da AI: verifica il form prima di confermare.{result.servingSize != null && ` Porzione indicata: ${result.servingSize} g (non modifica i grammi registrati).`}{result.per100g.fiber != null && ` Fibre: ${result.per100g.fiber} g/100 g.`}{result.per100g.salt != null && ` Sale: ${result.per100g.salt} g/100 g.`} Fibre e sale sono informativi e non vengono salvati nel catalogo.</p>}
+    {result && <p role="status">Valori proposti da AI: verifica il form prima di confermare.{result.servingSize != null && ` Porzione indicata: ${result.servingSize} g (non modifica i grammi registrati).`}{result.per100g.fiber != null && ` Fibre: ${result.per100g.fiber} g/100 g.`}{result.per100g.salt != null && ` Sale: ${result.per100g.salt} g/100 g.`} I nutrienti leggibili sono riportati nel modulo; controlla anche le unità di vitamine e minerali.</p>}
   </section>;
 }

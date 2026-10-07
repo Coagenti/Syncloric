@@ -58,6 +58,6 @@ it("sanitizes errors inline, offers login on401 and supports food PATCH without 
     await save.click();
     await pw(dialog).not.toBeVisible();
     await pw(edit).toBeFocused();
-    expect(writes).toEqual([{ date: "2026-09-29", slot: "Snack", quantityGrams: 150, kcal: 95 }]);
+    expect(writes).toEqual([{ date: "2026-09-29", slot: "Snack", quantityGrams: 150, kcal: 95, nutrients: {} }]);
   });
 }, 600000);

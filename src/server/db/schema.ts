@@ -1,4 +1,5 @@
 import { relations, sql } from "drizzle-orm";
+import type { Nutrition } from "@/lib/nutrition";
 import {
   boolean,
   date,
@@ -156,6 +157,7 @@ export const foods = pgTable(
     proteinPer100g: numeric("protein_per_100g", { precision: 6, scale: 2 }),
     fatPer100g: numeric("fat_per_100g", { precision: 6, scale: 2 }),
     carbsPer100g: numeric("carbs_per_100g", { precision: 6, scale: 2 }),
+    nutrientsPer100g: jsonb("nutrients_per_100g").$type<Nutrition>().notNull().default({}),
     servingGrams: integer("serving_grams"),
     servingLabel: text("serving_label"),
     source: foodSourceEnum("source").notNull().default("manual"),
@@ -182,6 +184,7 @@ export const recipes = pgTable(
     proteinPerServing: text("protein_per_serving"),
     fatPerServing: text("fat_per_serving"),
     carbsPerServing: text("carbs_per_serving"),
+    nutrientsPerServing: jsonb("nutrients_per_serving").$type<Nutrition>().notNull().default({}),
     snapshot: jsonb("snapshot").notNull(),
     fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
     ...timestamps,
@@ -208,6 +211,7 @@ export const diaryEntries = pgTable(
     protein: numeric("protein", { precision: 8, scale: 2 }),
     fat: numeric("fat", { precision: 8, scale: 2 }),
     carbs: numeric("carbs", { precision: 8, scale: 2 }),
+    nutrients: jsonb("nutrients").$type<Nutrition>().notNull().default({}),
     source: diarySourceEnum("source").notNull().default("manual"),
     // ADR-0008: NULL = voce manuale non sincronizzata. MAI unique globale.
     norishItemId: uuid("norish_item_id"),
@@ -250,6 +254,17 @@ export const norishSyncRuns = pgTable(
   },
   (t) => [index("norish_sync_runs_user_started_idx").on(t.userId, t.startedAt)],
 );
+
+/** Personal read-only export tokens; never store the original bearer. */
+export const exportTokens = pgTable("export_tokens", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  label: text("label").notNull(),
+  tokenHash: text("token_hash").notNull().unique(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+}, t => [index("export_tokens_user_idx").on(t.userId)]);
 
 /** § 4.6 — Impostazioni admin singleton (chiavi: ai.*, barcode.*). */
 export const adminSettings = pgTable("admin_settings", {

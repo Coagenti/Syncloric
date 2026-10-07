@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import type { Db } from "@/server/db";
 import { diaryEntries, foods, recipes, slotEnum } from "@/server/db/schema";
+import { normalizeNutrition, scaleNutrition, nutritionColumns, nutritionSchema, per100gSchema } from "@/lib/nutrition";
 
 const amount = z.number({ error: "Indica una quantità numerica positiva." })
   .positive("La quantità deve essere positiva.")
@@ -25,6 +26,7 @@ const inputSchema = z.discriminatedUnion("entryType", [
       .min(1, "Indica il nome dell'alimento.").optional(),
     quantityGrams: amount,
     kcal: kcal.optional(),
+    nutrients: nutritionSchema.optional(),
   }).superRefine((input, ctx) => {
     if (!input.foodId && (!input.name || input.kcal === undefined)) {
       ctx.addIssue({ code: "custom", message: "Per un nuovo alimento indica nome, quantità in grammi e kcal totali." });
@@ -61,6 +63,7 @@ export function buildDiaryCreateHandlers(deps: {
         const input = parsed.data;
         const overflow = () => NextResponse.json({ error: "Quantità e kcal superano i limiti supportati." }, { status: 400 });
         if (input.entryType === "food" && !input.foodId && !kcal.safeParse(Math.round(input.kcal! * 100 / input.quantityGrams)).success) return overflow();
+        if (input.entryType === "food" && !input.foodId && !per100gSchema.safeParse(scaleNutrition(normalizeNutrition(input.nutrients), 100 / input.quantityGrams)).success) return NextResponse.json({ error: "Controlla i nutrienti totali rispetto ai grammi inseriti." }, { status: 400 });
         return await deps.getDb().transaction(async (tx) => {
           const commonValues = { userId: session.user.id, date: input.date, slot: input.slot, source: "manual" as const };
           if (input.entryType === "recipe") {
@@ -71,6 +74,7 @@ export function buildDiaryCreateHandlers(deps: {
             const [entry] = await tx.insert(diaryEntries).values({
               ...commonValues, entryType: "recipe", recipeId: recipe.id,
               servings: String(input.servings), kcal: totalKcal,
+              ...nutritionColumns(scaleNutrition(normalizeNutrition(recipe.nutrientsPerServing, { protein: recipe.proteinPerServing, fat: recipe.fatPerServing, carbs: recipe.carbsPerServing }), input.servings)),
             }).returning();
             return NextResponse.json({ entry }, { status: 201 });
           }
@@ -80,6 +84,7 @@ export function buildDiaryCreateHandlers(deps: {
               // Refinement requires both fields for inline foods.
               name: input.name!, kcalPer100g: Math.round(input.kcal! * 100 / input.quantityGrams),
               source: "manual", createdBy: session.user.id,
+              nutrientsPer100g: scaleNutrition(normalizeNutrition(input.nutrients), 100 / input.quantityGrams),
             }).returning();
           if (!food) return NextResponse.json({ error: "Alimento non trovato." }, { status: 400 });
           const totalKcal = input.foodId ? Math.round(food.kcalPer100g * input.quantityGrams / 100) : input.kcal!;
@@ -87,10 +92,12 @@ export function buildDiaryCreateHandlers(deps: {
           const [entry] = await tx.insert(diaryEntries).values({
             ...commonValues, entryType: "food", foodId: food.id,
             quantityGrams: String(input.quantityGrams), kcal: totalKcal,
+            ...nutritionColumns(input.foodId ? scaleNutrition(normalizeNutrition(food.nutrientsPer100g, { protein: food.proteinPer100g, fat: food.fatPer100g, carbs: food.carbsPer100g }), input.quantityGrams / 100) : normalizeNutrition(input.nutrients)),
           }).returning();
           return NextResponse.json({ entry }, { status: 201 });
         });
-      } catch {
+      } catch (error) {
+        if (error instanceof Error && error.message === "Nutrition overflow") return NextResponse.json({ error: "Quantità e nutrienti superano i limiti supportati." }, { status: 400 });
         return NextResponse.json({ error: "Non è stato possibile salvare la voce. Riprova." }, { status: 500 });
       }
     },

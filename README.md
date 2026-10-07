@@ -83,6 +83,11 @@ glitch, onde e transizioni. Parte dalla preferenza del dispositivo e salva la
 scelta automaticamente nel browser, mantenendola fra ricaricamenti e schede.
 Gli switch AI e Barcode accanto al titolo si applicano con il relativo pulsante Salva.
 
+L'app è installabile come PWA su browser compatibili, con HTTPS attendibile.
+Dashboard e diario mostrano macro e micronutrienti disponibili. Ogni utente
+può scaricare i propri dati in JSON/CSV e creare token export di sola lettura
+da Impostazioni. [Mobile, nutrienti ed export](docs/MOBILE-NUTRITION-EXPORT.md).
+
 ## Configurare l'URL Norish
 
 Via preferita: un amministratore autenticato apre Impostazioni (`/settings`),

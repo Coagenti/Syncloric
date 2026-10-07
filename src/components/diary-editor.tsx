@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { slotLabels, slots, type Slot, type DiaryEntry } from "@/lib/diary";
+import { NutritionFields } from "@/components/nutrition-fields";
+import { normalizeNutrition, scaleNutrition, type Nutrition, type NutrientKey } from "@/lib/nutrition";
 
 export function DiaryEditor({ date: initialDate, entry, initialSlot = "Lunch", onClose, onSaved }: {
   date: string; entry: DiaryEntry | null; initialSlot?: Slot; onClose: () => void; onSaved: (date: string) => void;
@@ -13,7 +15,9 @@ export function DiaryEditor({ date: initialDate, entry, initialSlot = "Lunch", o
   const [slot, setSlot] = useState<Slot>(entry?.slot ?? initialSlot);
   const [name, setName] = useState(entry?.name ?? "");
   const [grams, setGrams] = useState(entry?.quantityGrams?.toString() ?? "");
+  const lastValidGrams = useRef(Number(entry?.quantityGrams ?? 0));
   const [kcal, setKcal] = useState(entry?.kcal?.toString() ?? "");
+  const [nutrients, setNutrients] = useState<Partial<Record<NutrientKey, string | number>>>(() => normalizeNutrition(entry?.nutrients, { protein: entry?.protein, fat: entry?.fat, carbs: entry?.carbs }));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [login, setLogin] = useState(false);
@@ -22,7 +26,7 @@ export function DiaryEditor({ date: initialDate, entry, initialSlot = "Lunch", o
   const [servings, setServings] = useState(entry?.servings?.toString() ?? "1");
   const [recipes, setRecipes] = useState<{ id: string; name: string; servings: number; kcalPerServing: number | null }[]>([]);
   const [catalogError, setCatalogError] = useState<string | null>(null);
-  const [foods, setFoods] = useState<{ id: string; name: string; brand: string | null; kcalPer100g: number }[]>([]);
+  const [foods, setFoods] = useState<{ id: string; name: string; brand: string | null; kcalPer100g: number; nutrientsPer100g?: Nutrition; protein?: string | null; fat?: string | null; carbs?: string | null }[]>([]);
   const [selectedFood, setSelectedFood] = useState<(typeof foods)[number] | null>(null);
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
@@ -60,6 +64,7 @@ export function DiaryEditor({ date: initialDate, entry, initialSlot = "Lunch", o
     setSaving(true); setError(null); setLogin(false);
     try {
       const payload = entry ? (type === "recipe" ? { date, slot, servings: Number(servings) } : { date, slot, quantityGrams: Number(grams), ...(kcal === "" ? {} : { kcal: Number(kcal) }) }) : (type === "recipe" ? { date, slot, entryType: "recipe", recipeId, servings: Number(servings) } : { date, slot, entryType: "food", quantityGrams: Number(grams), ...(selectedFood ? { foodId: selectedFood.id } : { name: name.trim(), kcal: Number(kcal) }) });
+      if (type === "food" && !selectedFood) Object.assign(payload, { nutrients: normalizeNutrition(nutrients) });
       const response = await fetch(entry ? `/api/v1/diary/${entry.id}` : "/api/v1/diary", { method: entry ? "PATCH" : "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       if (response.status === 401) { setLogin(true); setError("Accedi per salvare nel tuo diario."); return; }
       if (!response.ok) {
@@ -100,9 +105,9 @@ export function DiaryEditor({ date: initialDate, entry, initialSlot = "Lunch", o
         {query && !searching && !foods.length && !selectedFood && <p className="form-help">Puoi usare l’inserimento manuale se non trovi l’alimento.</p>}
         {selectedFood && <button type="button" className="secondary-btn" onClick={() => { setSelectedFood(null); setQuery(""); }}>Usa inserimento manuale</button>}
       </>}
-      <label>Quantità in grammi<input required type="number" min="0.01" max="999999.99" step="0.01" value={grams} onChange={e => setGrams(e.target.value)} /></label>
+      <label>Quantità in grammi<input required type="number" min="0.01" max="999999.99" step="0.01" value={grams} onChange={e => { const next = e.target.value; const previous = lastValidGrams.current; if (!selectedFood && previous > 0 && Number(next) > 0) setNutrients(current => scaleNutrition(normalizeNutrition(current), Number(next) / previous)); if (Number(next) > 0) lastValidGrams.current = Number(next); setGrams(next); }} /></label>
       <label>Kcal totali<input readOnly={!!selectedFood} required={!entry} type="number" min="0" max="2147483647" step="1" value={selectedFood ? (grams ? Math.round(selectedFood.kcalPer100g * Number(grams) / 100) : "") : kcal} onChange={e => setKcal(e.target.value)} /></label>
-      <p className="form-help">Kcal totali della quantità inserita, non kcal per 100 g.</p></>}
+      <p className="form-help">Kcal totali della quantità inserita, non kcal per 100 g.</p><NutritionFields values={selectedFood ? scaleNutrition(normalizeNutrition(selectedFood.nutrientsPer100g, { protein: selectedFood.protein, fat: selectedFood.fat, carbs: selectedFood.carbs }), Number(grams) / 100) : nutrients} basis="totali" readOnly={!!selectedFood} onChange={selectedFood ? undefined : (key, value) => setNutrients(current => ({ ...current, [key]: value }))} /></>}
       <div className="form-columns"><label>Pasto<select value={slot} onChange={e => setSlot(e.target.value as Slot)}>{slots.map(s => <option key={s} value={s}>{slotLabels[s]}</option>)}</select></label><label>Data<input required type="date" value={date} onChange={e => setDate(e.target.value)} /></label></div>
       {error && <p role="alert">{error} {login && <a href="/login">Vai al login</a>}</p>}
       <div className="editor-actions"><button type="button" className="secondary-btn" onClick={onClose}>Annulla</button><button ref={saveButton} type="submit" className="primary-btn">{saving ? "Salvataggio…" : "Salva voce"}</button></div>

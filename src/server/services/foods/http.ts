@@ -6,12 +6,14 @@ import type { Db } from "@/server/db";
 import { foods, diaryEntries } from "@/server/db/schema";
 import { lookupBarcode } from "./lookup";
 import { getBarcodeEnabled } from "@/server/db/repositories/barcode-settings";
+import { normalizeNutrition, per100gSchema, scaleNutrition, nutritionColumns } from "@/lib/nutrition";
 
 const barcode = z.string().regex(/^\d{8,14}$/);
 const nutrient = z.number().finite().min(0).max(100).nullable().optional();
 const input = z.object({
   barcode, name: z.string().trim().min(1).max(200), brand: z.string().trim().max(200).nullable().optional(),
   kcalPer100g: z.number().int().min(0).max(10000), proteinPer100g: nutrient, fatPer100g: nutrient, carbsPer100g: nutrient,
+  nutrientsPer100g: per100gSchema.optional(),
   grams: z.number().finite().min(0.01).max(100000).multipleOf(0.01),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(d => { const date = new Date(d); return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === d; }),
   slot: z.enum(["Breakfast", "Lunch", "Snack", "Dinner"]),
@@ -63,14 +65,15 @@ export function buildBarcodeHandlers(deps: {
             barcode: data.barcode, name: data.name, brand: data.brand || null,
             kcalPer100g: data.kcalPer100g, proteinPer100g: decimal(data.proteinPer100g),
             fatPer100g: decimal(data.fatPer100g), carbsPer100g: decimal(data.carbsPer100g),
+            nutrientsPer100g: normalizeNutrition(data.nutrientsPer100g, { protein: data.proteinPer100g, fat: data.fatPer100g, carbs: data.carbsPer100g }),
             source: product ? "barcode_off" : "manual", createdBy: session.user.id,
           }).onConflictDoNothing({ target: foods.barcode, where: sql`${foods.barcode} IS NOT NULL` });
           const [food] = await tx.select().from(foods).where(eq(foods.barcode, data.barcode)).limit(1);
-          const scaled = (n: string | null) => n === null ? null : (Number(n) * data.grams / 100).toFixed(2);
           const [entry] = await tx.insert(diaryEntries).values({
             userId: session.user.id, date: data.date, slot: data.slot, entryType: "food", foodId: food.id,
             quantityGrams: data.grams.toFixed(2), kcal: Math.round(food.kcalPer100g * data.grams / 100),
-            protein: scaled(food.proteinPer100g), fat: scaled(food.fatPer100g), carbs: scaled(food.carbsPer100g), source: "manual",
+            source: "manual",
+            ...nutritionColumns(scaleNutrition(normalizeNutrition(food.nutrientsPer100g, { protein: food.proteinPer100g, fat: food.fatPer100g, carbs: food.carbsPer100g }), data.grams / 100)),
           }).returning({ id: diaryEntries.id });
           return entry;
         });

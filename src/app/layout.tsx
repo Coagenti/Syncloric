@@ -4,12 +4,15 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Syncloric",
-  icons: { icon: [{ url: "/favicon.ico" }, { url: "/brand/favicon-32.png", type: "image/png", sizes: "32x32" }] },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "Syncloric", statusBarStyle: "black-translucent" },
+  icons: { apple: "/brand/apple-touch-icon.png", icon: [{ url: "/favicon.ico" }, { url: "/brand/favicon-32.png", type: "image/png", sizes: "32x32" }] },
   description:
     "Diario calorie self-hosted con import automatico da norish (docs/ARCHITECTURE.md)",
 };
 
 export const viewport: Viewport = {
+  viewportFit: "cover",
   width: "device-width",
   initialScale: 1,
   themeColor: "#0a0e17",

@@ -13,6 +13,7 @@ import { buildBarcodeSettingsHandlers } from "@/server/services/settings/barcode
 import { buildAiHandlers } from "@/server/services/ai/http";
 import { buildNorishUrlHandlers } from "@/server/services/settings/http";
 import { buildCredentialHandlers } from "@/server/services/settings/credentials-http";
+import { buildExportTokenHandlers } from "@/server/services/export/http";
 import { resetEnvConfigCache } from "@/server/config";
 import { users } from "@/server/db/schema";
 import type { Db } from "@/server/db";
@@ -24,6 +25,7 @@ it("four admin sections: independent persistence, non-admin notice, mobile reflo
   await db.insert(users).values([{ id: adminId, username: "fixture_admin", role: "admin" }, { id: "22222222-2222-4222-8222-222222222222", username: "fixture_" + "username_lungo_".repeat(8), role: "user", banned: true, banReason: "Fixture sintetica con motivo lungo. ".repeat(12) }]);
   const deps = { getDb: () => db, getSession: async () => ({ user: { id: adminId, role: "admin" } }) };
   const handlers = { users: buildAdminUsersHandlers(deps), ai: buildAiHandlers({ ...deps, env: () => ({}) }), barcode: buildBarcodeSettingsHandlers(deps), norish: buildNorishUrlHandlers(deps), norishKey: buildCredentialHandlers(deps, "norish"), aiKey: buildCredentialHandlers({ ...deps, env: () => ({}) }, "ai") };
+  const exportHandlers = buildExportTokenHandlers(deps);
   const bundle = await build({ stdin: { contents: `import React from 'react';import {createRoot} from 'react-dom/client';import {SettingsContent} from './src/components/settings/settings-content';const member=location.search.includes('member');createRoot(document.getElementById('root')).render(<SettingsContent {...(member?{access:'requires-admin'}:{initialSaved:null,initialStatus:{enabled:false,source:'unset',urlPresent:false,apiKeyPresent:false}})}/>);`, resolveDir: process.cwd(), loader: "tsx" }, bundle: true, write: false, platform: "browser", jsx: "automatic", define: { "process.env.NODE_ENV": '"production"', "process.env": '{}' } });
   let hold = false; let release: (() => void) | undefined; let aiWrites = 0; let fail = false;
   let holdDelete = false; let releaseDelete: (() => void) | undefined;
@@ -37,7 +39,7 @@ it("four admin sections: independent persistence, non-admin notice, mobile reflo
     if (req.url?.startsWith("/api/")) {
       const chunks: Buffer[] = []; for await (const c of req) chunks.push(Buffer.from(c));
       const request = new Request(`http://${req.headers.host}${req.url}`, { method: req.method, headers: req.headers as Record<string, string>, ...(req.method !== "GET" ? { body: Buffer.concat(chunks).toString() } : {}) });
-      const chosen = req.url.endsWith("/norish-key") ? handlers.norishKey : req.url.endsWith("/ai-key") ? handlers.aiKey : req.url.includes("/admin/users") ? handlers.users : req.url.endsWith("/ai") ? handlers.ai : req.url.endsWith("/barcode") ? handlers.barcode : handlers.norish;
+      const chosen = req.url.endsWith("/export-tokens") ? exportHandlers : req.url.endsWith("/norish-key") ? handlers.norishKey : req.url.endsWith("/ai-key") ? handlers.aiKey : req.url.includes("/admin/users") ? handlers.users : req.url.endsWith("/ai") ? handlers.ai : req.url.endsWith("/barcode") ? handlers.barcode : handlers.norish;
       if (req.url.endsWith("/ai") && req.method === "PUT") { aiWrites++; if (hold) await new Promise<void>(resolve => { release = resolve; }); }
       if (req.url.endsWith("/norish-url") && req.method === "DELETE" && holdDelete) await new Promise<void>(resolve => { releaseDelete = resolve; });
       if (fail && req.method === "PUT") { res.writeHead(503, { "Content-Type": "application/json" }); res.end(JSON.stringify({ error: "Fixture server unavailable" })); return; }
@@ -53,7 +55,7 @@ it("four admin sections: independent persistence, non-admin notice, mobile reflo
     page.on("pageerror", error => console.error("ADMIN_PAGE_ERROR", error.message));
     page.on("response", response => { if (response.url().includes("/api/") && !response.ok()) console.error("ADMIN_HTTP", response.status(), response.url()); });
     await page.goto(url); await page.getByLabel("Provider AI").waitFor(); await page.getByRole("listitem").first().waitFor();
-    expect(await page.getByRole("heading", { level: 2 }).allTextContents()).toEqual(["Riduci animazioni", "Il tuo account Norish", "Norish URL", "Scansione etichetta con AI", "Barcode", "Utenti"]);
+    expect(await page.getByRole("heading", { level: 2 }).allTextContents()).toEqual(["Syncloric sul telefono", "Riduci animazioni", "I tuoi dati", "Il tuo account Norish", "Norish URL", "Scansione etichetta con AI", "Barcode", "Utenti"]);
     await page.getByRole("button", { name: "Salva Norish", exact: true }).waitFor();
     const norish = page.locator('[aria-labelledby="norish-url-heading"]'); const ai = page.locator('[aria-labelledby="ai-settings-title"]');
     await page.getByLabel("Provider AI").selectOption("ollama"); await ai.getByText("Modifiche non salvate", { exact: true }).waitFor();
@@ -95,7 +97,8 @@ it("four admin sections: independent persistence, non-admin notice, mobile reflo
       await page.setViewportSize({ width, height: 900 }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       if (process.env.ADMIN_VISUAL_DIR) await page.screenshot({ path: join(process.env.ADMIN_VISUAL_DIR, `admin-${width}.png`), fullPage: true });
     }
-    await page.goto(url + "?member"); await page.getByText("Richiede amministratore", { exact: true }).waitFor(); expect(await page.locator("input, select, textarea").count()).toBe(2);
+    await page.goto(url + "?member"); await page.getByText("Richiede amministratore", { exact: true }).waitFor(); expect(await page.getByLabel("Chiave API Norish", { exact: true }).count()).toBe(1);
+    expect(await page.getByLabel("Provider AI", { exact: true }).count()).toBe(0);
     expect(await page.getByRole("switch", { name: "Riduci animazioni" }).count()).toBe(1);
     expect(await page.getByRole("switch", { name: "Abilita scansione AI" }).count()).toBe(0);
   } finally { release?.(); releaseDelete?.(); await browser.close(); await new Promise<void>(resolve => server.close(() => resolve())); await client.close(); vi.unstubAllEnvs(); resetEnvConfigCache(); }
