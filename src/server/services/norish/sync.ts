@@ -7,6 +7,7 @@ import type { Db } from "@/server/db";
 import { diaryEntries, norishSyncRuns, profiles, recipes } from "@/server/db/schema";
 import type { RecipeDetail } from "./client";
 import type { DiarySlot } from "@/lib/types/diary";
+import { normalizeNutrition, type Nutrition } from "@/lib/nutrition";
 
 /**
  * Sync engine § 5.4 con idempotenza per coppia utente/item (ADR-0008):
@@ -59,27 +60,30 @@ export async function upsertDiaryEntry(
     recipe_id?: string | null;
     servings: number | null;
     kcal: number | null;
+    nutrients?: Nutrition;
   },
 ): Promise<void> {
-  const { user_id, norish_item_id, date, slot, recipe_id, servings, kcal } = params;
+  const { user_id, norish_item_id, date, slot, recipe_id = null, servings, kcal } = params;
+  const nutrients = params.nutrients ?? {};
   await db.execute(sql`
     INSERT INTO diary_entries
-      (id, user_id, date, slot, entry_type, recipe_id, servings, kcal, source, norish_item_id, norish_deleted)
+      (id, user_id, date, slot, entry_type, recipe_id, servings, kcal, nutrients, source, norish_item_id, norish_deleted)
     VALUES
       (gen_random_uuid(), ${user_id}::uuid, ${date}::date, ${slot}::slot, 'recipe',
-       ${recipe_id}::uuid, ${servings}::numeric, ${kcal}::int, 'norish_sync', ${norish_item_id}::uuid, false)
+       ${recipe_id}::uuid, ${servings}::numeric, ${kcal}::int, ${JSON.stringify(nutrients)}::jsonb, 'norish_sync', ${norish_item_id}::uuid, false)
     ON CONFLICT (user_id, norish_item_id) WHERE norish_item_id IS NOT NULL
     DO UPDATE SET
       date = EXCLUDED.date,
       slot = EXCLUDED.slot,
       kcal = EXCLUDED.kcal,
       recipe_id = EXCLUDED.recipe_id,
+      nutrients = EXCLUDED.nutrients,
       norish_deleted = false,
       updated_at = now()
     WHERE diary_entries.source = 'norish_sync'
-      AND (diary_entries.kcal, diary_entries.recipe_id, diary_entries.date, diary_entries.slot,
+      AND (diary_entries.kcal, diary_entries.nutrients, diary_entries.recipe_id, diary_entries.date, diary_entries.slot,
            diary_entries.norish_deleted) IS DISTINCT FROM
-          (EXCLUDED.kcal, EXCLUDED.recipe_id, EXCLUDED.date, EXCLUDED.slot, false)
+          (EXCLUDED.kcal, EXCLUDED.nutrients, EXCLUDED.recipe_id, EXCLUDED.date, EXCLUDED.slot, false)
   `);
 }
 
@@ -157,6 +161,7 @@ export async function mirrorRecipe(
     proteinPerServing: recipe.protein ?? null,
     fatPerServing: recipe.fat ?? null,
     carbsPerServing: recipe.carbs ?? null,
+    nutrientsPerServing: normalizeNutrition({}, { protein: recipe.protein, fat: recipe.fat, carbs: recipe.carbs }),
     snapshot: recipe,
     fetchedAt: new Date(),
     updatedAt: new Date(),

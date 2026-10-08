@@ -22,6 +22,7 @@ describe("normalizzazione payload Open Food Facts", () => {
       proteinPer100g: 6.3,
       fatPer100g: 30.9,
       carbsPer100g: 57.5,
+      nutrientsPer100g: { protein: 6.3, carbs: 57.5, fat: 30.9, fiber: 3.4, salt: 0.265, sodium: 107, sugars: 56.3 },
       servingGrams: 15,
     });
   });
@@ -51,6 +52,7 @@ describe("normalizzazione payload Open Food Facts", () => {
       proteinPer100g: null,
       fatPer100g: null,
       carbsPer100g: null,
+      nutrientsPer100g: {},
       servingGrams: null,
     });
   });

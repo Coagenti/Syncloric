@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { registrationEmail, validateCredentials } from "@/lib/auth";
 
 export function LoginForm() {
@@ -9,9 +9,10 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const errorRef = useRef<HTMLParagraphElement>(null);
   const usernameRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (error && !busy) errorRef.current?.focus(); }, [error, busy]);
   function fail(message: string) {
     setError(message);
-    requestAnimationFrame(() => errorRef.current?.focus());
+    errorRef.current?.focus();
   }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

@@ -4,6 +4,7 @@ import { LogoutButton } from "@/components/auth/logout-button";
 import { UiIcon } from "@/components/ui-icon";
 import { Brand, BrandMark } from "@/components/brand";
 import { MotionPreferences } from "@/components/motion-preferences";
+import { PwaRuntime } from "@/components/pwa-runtime";
 
 const navigation = [
   { id: "dashboard", label: "Oggi", href: "/dashboard" },
@@ -16,6 +17,7 @@ export function AppShell({ view, children }: { view: typeof navigation[number]["
   const label = navigation.find(item => item.id === view)?.label;
   return <div className="app-shell">
     <MotionPreferences />
+    <PwaRuntime />
     <aside className="sidebar">
       <Link href="/dashboard" className="brand" aria-label="Syncloric, vai alla dashboard"><Brand /></Link>
       <div className="side-divider" /><span className="side-label">ESPLORA</span>

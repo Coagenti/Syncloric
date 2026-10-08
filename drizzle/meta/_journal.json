@@ -29,6 +29,13 @@
       "when": 1790981206206,
       "tag": "0003_admin_audit_invariant",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791381053506,
+      "tag": "0004_nutrition_and_export_tokens",
+      "breakpoints": true
     }
   ]
 }

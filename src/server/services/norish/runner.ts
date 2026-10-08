@@ -1,6 +1,7 @@
 import { sql, type SQL } from "drizzle-orm";
 import { upsertDiaryEntry, markDeletedNorishEntries, mirrorRecipe } from "./sync";
 import { NorishApiError, type PlannedRecipe, type RecipeDetail } from "./client";
+import { normalizeNutrition } from "@/lib/nutrition";
 
 /**
  * Sync engine runner § 5.4 — orchestrates fetch→mirror→upsert→mark per user,
@@ -171,7 +172,7 @@ export async function runNorishSync(options: {
       // (source='manual', § 5.4) NON è né import né update — la upsert la
       // salta (guard source='norish_sync') e i conteggi devono rifletterlo.
       const before = await tx.execute(sql`
-        SELECT kcal, recipe_id, date::text AS date_y, slot, norish_deleted AS deleted, source
+        SELECT kcal, nutrients, recipe_id, date::text AS date_y, slot, norish_deleted AS deleted, source
         FROM diary_entries
         WHERE user_id = ${userId}::uuid AND norish_item_id = ${planned.id}::uuid
         LIMIT 1
@@ -190,6 +191,7 @@ export async function runNorishSync(options: {
         recipe_id: recipeLocalId,
         servings: 1,
         kcal,
+        nutrients: normalizeNutrition({}, { protein: recipe.protein, fat: recipe.fat, carbs: recipe.carbs }),
       });
       if (existed && !syncOwned) {
         // Owner-override: la voce appartiene all'utente (source='manual'):
@@ -200,6 +202,7 @@ export async function runNorishSync(options: {
         result.imported += 1;
       } else if (
         prev.kcal !== kcal ||
+        JSON.stringify(normalizeNutrition(prev.nutrients)) !== JSON.stringify(normalizeNutrition({}, { protein: recipe.protein, fat: recipe.fat, carbs: recipe.carbs })) ||
         (prev.recipe_id ?? null) !== (recipeLocalId ?? null) ||
         prev.date_y !== planned.date ||
         prev.slot !== planned.slot ||

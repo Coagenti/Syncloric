@@ -43,7 +43,7 @@ it("adds inline food to the real diary and restores focus after asynchronous sav
     await pw(page.locator(".entry-row")).toContainText("Yogurt");
     await pw(page.locator(".entry-row")).toContainText("80");
     await pw(trigger).toBeFocused();
-    expect(writes).toEqual([{ date: "2026-09-29", slot: "Snack", entryType: "food", name: "Yogurt", quantityGrams: 125, kcal: 80 }]);
+    expect(writes).toEqual([{ date: "2026-09-29", slot: "Snack", entryType: "food", name: "Yogurt", quantityGrams: 125, kcal: 80, nutrients: {} }]);
     await trigger.click();
     await dialog.getByRole("combobox", { name: "Tipo di voce" }).selectOption("recipe");
     await dialog.getByRole("combobox", { name: "Ricetta" }).selectOption("recipe-1");

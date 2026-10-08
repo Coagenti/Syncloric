@@ -57,14 +57,14 @@ it("label photo preview, explicit extraction, prefill without save, edit confirm
     expect(await saveButton.isDisabled()).toBe(true);
     await confirmation.check();
     expect(await page.getByLabel("Kcal per 100 g").inputValue()).toBe("400");
-    expect(await page.getByLabel("Proteine per 100 g").inputValue()).toBe("8.33");
-    expect(await page.getByLabel("Grassi per 100 g").inputValue()).toBe("12.35");
-    expect(await page.getByLabel("Carboidrati per 100 g").inputValue()).toBe("60.68");
+    expect(await page.getByLabel("Proteine per 100 g").inputValue()).toBe("8.333");
+    expect(await page.getByLabel("Grassi per 100 g").inputValue()).toBe("12.345");
+    expect(await page.getByLabel("Carboidrati per 100 g").inputValue()).toBe("60.678");
     expect(await page.getByLabel("Grammi registrati").inputValue()).toBe("25");
     expect(await page.locator('select[name="slot"]').inputValue()).toBe("Dinner");
     await page.getByLabel("Nome prodotto").fill("Snack confermato"); await page.getByLabel("Grammi registrati").fill("25");
     await page.getByRole("button",{name:"Registra nel diario"}).click(); await page.waitForFunction(() => !document.querySelector('dialog[open]'));
-    expect(saves).toBe(1); expect(last).toMatchObject({name:"Snack confermato",grams:25,slot:"Dinner",kcalPer100g:400,proteinPer100g:8.33,fatPer100g:12.35,carbsPer100g:60.68});
+    expect(saves).toBe(1); expect(last).toMatchObject({name:"Snack confermato",grams:25,slot:"Dinner",kcalPer100g:400,proteinPer100g:8.333,fatPer100g:12.345,carbsPer100g:60.678});
     await page.getByRole("button",{name:"Scansiona",exact:true}).click(); await page.getByLabel("Codice a barre",{exact:true}).fill("8001234567899"); await page.getByRole("button",{name:"Cerca prodotto"}).click();
     await page.getByLabel("Nome prodotto").fill("Manuale mantenuto"); invalid = true;
     await page.getByLabel("Foto etichetta").setInputFiles({name:"label.png",mimeType:"image/png",buffer:Buffer.from("iVBORw0KGgo=","base64")});

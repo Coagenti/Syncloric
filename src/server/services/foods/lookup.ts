@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { nutrientSpecs, type Nutrition } from "@/lib/nutrition";
 
 /**
  * Lookup cibi (§ 3 services/foods): ricerca barcode su OPEN FOOD FACTS.
@@ -17,7 +18,7 @@ const offProductSchema = z.object({
       proteins_100g: z.number().nullish(),
       fat_100g: z.number().nullish(),
       carbohydrates_100g: z.number().nullish(),
-    })
+    }).catchall(z.unknown())
     .nullish(),
 });
 export type OffProduct = z.infer<typeof offProductSchema>;
@@ -34,6 +35,7 @@ export function normalizeOffProduct(product: OffProductPayload) {
     proteinPer100g: nutrient(product.nutriments?.proteins_100g),
     fatPer100g: nutrient(product.nutriments?.fat_100g),
     carbsPer100g: nutrient(product.nutriments?.carbohydrates_100g),
+    nutrientsPer100g: normalizeOffNutrients(product.nutriments ?? {}),
     servingGrams: parseServingGrams(product.serving_size),
   };
 }
@@ -46,8 +48,19 @@ export interface FoodLookupResult {
   proteinPer100g: number | null;
   fatPer100g: number | null;
   carbsPer100g: number | null;
+  nutrientsPer100g?: Nutrition;
   servingGrams: number | null;
   raw: OffProduct;
+}
+
+const offKeys: Record<string, string> = { protein: "proteins", carbs: "carbohydrates", fat: "fat", saturatedFat: "saturated-fat", sugars: "sugars", fiber: "fiber", salt: "salt", sodium: "sodium", potassium: "potassium", calcium: "calcium", magnesium: "magnesium", phosphorus: "phosphorus", iron: "iron", zinc: "zinc", copper: "copper", manganese: "manganese", selenium: "selenium", iodine: "iodine", vitaminA: "vitamin-a", vitaminD: "vitamin-d", vitaminE: "vitamin-e", vitaminK: "vitamin-k", vitaminC: "vitamin-c", vitaminB1: "vitamin-b1", vitaminB2: "vitamin-b2", vitaminB3: "vitamin-pp", vitaminB5: "pantothenic-acid", vitaminB6: "vitamin-b6", vitaminB7: "biotin", vitaminB9: "folates", vitaminB12: "vitamin-b12", cholesterol: "cholesterol" };
+/** OFF _100g mass values are normalized grams, independent of the label's _unit. */
+export function normalizeOffNutrients(values: Record<string, unknown>): Nutrition {
+  return Object.fromEntries(nutrientSpecs.flatMap(spec => {
+    const raw = values[`${offKeys[spec.key]}_100g`];
+    if (typeof raw !== "number" || !Number.isFinite(raw) || raw < 0 || raw > 100) return [];
+    return [[spec.key, Math.round(raw * (spec.unit === "g" ? 1 : spec.unit === "mg" ? 1000 : 1000000) * 1e6) / 1e6]];
+  })) as Nutrition;
 }
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1_000; // 24h: risposta pubblica, serve a limitare le chiamate (§ 6.6)

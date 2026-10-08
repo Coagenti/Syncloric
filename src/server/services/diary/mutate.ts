@@ -4,6 +4,7 @@ import { isAllowedRequestOrigin } from "@/server/http/request-origin";
 import { z } from "zod";
 import type { Db } from "@/server/db";
 import { diaryEntries, foods, recipes, slotEnum } from "@/server/db/schema";
+import { normalizeNutrition, scaleNutrition, nutritionColumns, nutritionSchema } from "@/lib/nutrition";
 
 type Context = { params: Promise<{ id: string }> };
 type Entry = typeof diaryEntries.$inferSelect;
@@ -24,6 +25,7 @@ const patchSchema = z.object({
   quantityGrams: amount.optional(),
   kcal: kcal.optional(),
   servings: amount.optional(),
+  nutrients: nutritionSchema.optional(),
 }).strict()
   .refine((input) => Object.keys(input).length > 0, "Indica almeno un campo da aggiornare.");
 
@@ -88,6 +90,8 @@ export function buildDiaryMutationHandlers(deps: {
           if (input.kcal !== undefined) updates.kcal = input.kcal;
           if (input.servings !== undefined) updates.servings = String(input.servings);
           if (entry.entryType === "food") {
+            if (input.nutrients !== undefined) Object.assign(updates, nutritionColumns(normalizeNutrition(input.nutrients)));
+            else if (input.quantityGrams !== undefined) Object.assign(updates, nutritionColumns(scaleNutrition(normalizeNutrition(entry.nutrients, { protein: entry.protein, fat: entry.fat, carbs: entry.carbs }), input.quantityGrams / Number(entry.quantityGrams ?? input.quantityGrams))));
             if (input.servings !== undefined) return NextResponse.json({ error: "Le porzioni si applicano solo alle ricette." }, { status: 400 });
             if (input.quantityGrams !== undefined && input.kcal === undefined) {
               const total = loaded.foodKcal === null ? null : Math.round(loaded.foodKcal * input.quantityGrams / 100);
@@ -95,18 +99,22 @@ export function buildDiaryMutationHandlers(deps: {
               updates.kcal = total;
             }
           } else {
+            if (input.nutrients !== undefined) return NextResponse.json({ error: "I nutrienti della ricetta vengono ricalcolati dalle porzioni." }, { status: 400 });
             if (input.quantityGrams !== undefined) return NextResponse.json({ error: "I grammi si applicano solo agli alimenti." }, { status: 400 });
             if (input.kcal !== undefined) return NextResponse.json({ error: "Le kcal della ricetta vengono ricalcolate dalle porzioni." }, { status: 400 });
             if (input.servings !== undefined) {
               const total = loaded.recipeKcal === null ? null : Math.round(loaded.recipeKcal * input.servings);
               if (total !== null && !kcal.safeParse(total).success) return overflow();
               updates.kcal = total;
+              const [recipe] = await tx.select().from(recipes).where(eq(recipes.id, entry.recipeId!));
+              Object.assign(updates, nutritionColumns(scaleNutrition(normalizeNutrition(recipe?.nutrientsPerServing, { protein: recipe?.proteinPerServing, fat: recipe?.fatPerServing, carbs: recipe?.carbsPerServing }), input.servings)));
             }
           }
           const [updated] = await tx.update(diaryEntries).set(updates).where(eq(diaryEntries.id, id)).returning();
           return NextResponse.json({ entry: updated });
         });
-      } catch {
+      } catch (error) {
+        if (error instanceof Error && error.message === "Nutrition overflow") return NextResponse.json({ error: "Quantità e nutrienti superano i limiti supportati." }, { status: 400 });
         return NextResponse.json({ error: "Non è stato possibile aggiornare la voce. Riprova." }, { status: 500 });
       }
     },

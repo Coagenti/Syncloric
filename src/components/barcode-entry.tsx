@@ -3,12 +3,15 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { LabelScan } from "./label-scan";
 import { UiIcon } from "./ui-icon";
+import { createBarcodeReader } from "@/lib/barcode-reader";
+import { NutritionFields } from "@/components/nutrition-fields";
+import { normalizeNutrition, nutrientSpecs, type Nutrition } from "@/lib/nutrition";
 
-type Product = { name: string; brand: string | null; kcalPer100g: number | null; proteinPer100g: number | string | null; fatPer100g: number | string | null; carbsPer100g: number | string | null; source?: string };
+type Product = { name: string; brand: string | null; kcalPer100g: number | null; proteinPer100g: number | string | null; fatPer100g: number | string | null; carbsPer100g: number | string | null; nutrientsPer100g?: Nutrition; source?: string };
 type Detector = { detect: (video: HTMLVideoElement) => Promise<{ rawValue: string }[]> };
 type DetectorClass = new (options: { formats: string[] }) => Detector;
 
-/** Native camera only; all lookup and persistence goes through the authenticated API. */
+/** Camera decoding stays local; lookup and persistence use the authenticated API. */
 export function BarcodeEntry({ date, onSaved, compact = false }: { date: string; onSaved: () => void; compact?: boolean }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -77,10 +80,12 @@ export function BarcodeEntry({ date, onSaved, compact = false }: { date: string;
 
   async function startCamera() {
     const NativeDetector = (window as unknown as { BarcodeDetector?: DetectorClass }).BarcodeDetector;
-    if (!NativeDetector || !navigator.mediaDevices?.getUserMedia) { setError("Fotocamera non supportata: inserisci il codice manualmente."); return; }
+    if (!window.isSecureContext) { setError("La fotocamera richiede HTTPS. Apri Syncloric tramite HTTPS oppure inserisci il codice manualmente."); return; }
+    if (!navigator.mediaDevices?.getUserMedia) { setError("Fotocamera non disponibile in questo browser: inserisci il codice manualmente."); return; }
     stopCamera(); const run = cameraRun.current; setError("");
     try {
-      const detector = new NativeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e"] });
+      const detector = await createBarcodeReader(NativeDetector);
+      if (run !== cameraRun.current || !dialog.current?.open) return;
       const media = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
       if (run !== cameraRun.current || !dialog.current?.open) { media.getTracks().forEach(track => track.stop()); return; }
       stream.current = media; setCamera(true);
@@ -107,7 +112,7 @@ export function BarcodeEntry({ date, onSaved, compact = false }: { date: string;
     const controller = new AbortController(); request.current = controller;
     try {
       const response = await fetch("/api/v1/barcode", { method: "POST", headers: { "Content-Type": "application/json" }, signal: controller.signal,
-        body: JSON.stringify({ barcode: code, name: values.get("name"), brand: values.get("brand"), kcalPer100g: Number(values.get("kcal")), proteinPer100g: nutrient("protein"), fatPer100g: nutrient("fat"), carbsPer100g: nutrient("carbs"), grams: Number(values.get("grams")), date, slot: values.get("slot") }) });
+        body: JSON.stringify({ barcode: code, name: values.get("name"), brand: values.get("brand"), kcalPer100g: Number(values.get("kcal")), proteinPer100g: nutrient("protein"), fatPer100g: nutrient("fat"), carbsPer100g: nutrient("carbs"), nutrientsPer100g: Object.fromEntries(nutrientSpecs.map(spec => [spec.key, nutrient(spec.key)])), grams: Number(values.get("grams")), date, slot: values.get("slot") }) });
       if (controller.signal.aborted) return;
       if (!response.ok) {
         setError(response.status === 401 ? "Accedi per registrare un prodotto." : response.status === 400 || response.status === 422 ? "Controlla i valori: nome obbligatorio, kcal intere da 0 a 10000, nutrienti da 0 a 100 e grammi da 0,01 a 100000 (massimo due decimali). Poi riprova Registra nel diario." : response.status === 403 ? "Salvataggio non consentito. Riapri la pagina e riprova." : "Servizio di salvataggio non disponibile. I valori sono conservati: riprova Registra nel diario."); return;
@@ -143,11 +148,15 @@ export function BarcodeEntry({ date, onSaved, compact = false }: { date: string;
             const input = productForm.current?.elements.namedItem(key);
             if (input instanceof HTMLInputElement) input.value = String(value);
           }
+          for (const spec of nutrientSpecs) {
+            const input = productForm.current?.elements.namedItem(spec.key);
+            if (input instanceof HTMLInputElement) input.value = label.per100g[spec.key] == null ? "" : String(label.per100g[spec.key]);
+          }
         }} />}
         <label>Nome prodotto<input name="name" required maxLength={200} defaultValue={product.name} readOnly={origin === "local"} /></label>
         <label>Marca<input name="brand" maxLength={200} defaultValue={product.brand ?? ""} readOnly={origin === "local"} /></label>
         <label>Kcal per 100 g<input name="kcal" type="number" required min="0" max="10000" step="1" defaultValue={product.kcalPer100g ?? ""} readOnly={origin === "local"} /></label>
-        <div className="form-columns">{([ ["protein", "Proteine", product.proteinPer100g], ["fat", "Grassi", product.fatPer100g], ["carbs", "Carboidrati", product.carbsPer100g] ] as const).map(([key, label, value]) => <label key={key}>{label} per 100 g<input name={key} type="number" min="0" max="100" step="0.01" defaultValue={value ?? ""} readOnly={origin === "local"} /></label>)}</div>
+        <NutritionFields prefix="" basis="per 100 g" readOnly={origin === "local"} values={normalizeNutrition(product.nutrientsPer100g, { protein: product.proteinPer100g, fat: product.fatPer100g, carbs: product.carbsPer100g })} />
         <label>Grammi registrati<input name="grams" type="number" required min="0.01" max="100000" step="0.01" defaultValue="100" /></label>
         <label>Pasto<select name="slot" defaultValue="Snack"><option value="Breakfast">Colazione</option><option value="Lunch">Pranzo</option><option value="Snack">Spuntino</option><option value="Dinner">Cena</option></select></label>
         <p className="form-help">Nutrienti per 100 g; calorie del diario proporzionali ai grammi. I campi facoltativi vuoti restano sconosciuti.</p>

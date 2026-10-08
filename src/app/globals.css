@@ -195,6 +195,36 @@ h1,h2,h3,p { margin-top: 0; }
 .cyber-switch input:checked + .cyber-switch-track .cyber-switch-state { right: auto; left: 9px; color: #84faff; }
 .cyber-switch input:focus-visible + .cyber-switch-track { outline: 2px solid var(--color-cyber-yellow); outline-offset: 4px; }
 .cyber-switch.is-disabled { cursor: not-allowed; opacity: .5; }
+.nutrition-summary { border: 1px solid #324a58; border-radius: 16px; padding: 18px; background: #101b25; }
+.app-shell { padding-top: env(safe-area-inset-top); }
+@media (max-width:760px) { .mobile-nav { padding-bottom: calc(12px + env(safe-area-inset-bottom)); } }
+.nutrition-summary .section-heading { margin-bottom: 14px; }
+.nutrition-summary h2 { font-size: 18px; margin: 0; }
+.macro-summary,.macro-fields { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+.macro-card { display: flex; flex-direction: column; gap: 8px; border-left: 2px solid #00f0ff; padding: 12px; background: #00f0ff08; min-width: 0; }
+.macro-card > span { font-size: 11px; color: #bce9ee; }
+.macro-card > strong { font-size: 24px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.macro-card small { font-size: 10px; color: #afc9d5; font-weight: 500; }
+.macro-fat { border-color: #ff8bad; background: #ff497708; }
+.macro-carbs { border-color: #fcee0a; background: #fcee0a08; }
+.extra-nutrients { margin-top: 16px; }
+.extra-nutrients > summary,.entry-nutrients > summary,.export-api-help > summary { color: #80f8ff; min-height: 44px; cursor: pointer; font-size: 12px; padding-block: 12px; }
+.micro-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+.nutrient-list { margin: 0; display: grid; gap: 10px; }
+.nutrient-list > div { display: flex; justify-content: space-between; gap: 15px; border-bottom: 1px solid #2c4350; padding-bottom: 8px; font-size: 12px; }
+.nutrient-list dd { margin: 0; color: #e7f9ff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.nutrient-list dt small { display: block; color: #99b5c5; font-size: 10px; margin-top: 3px; }
+.entry-nutrients { margin-top: 6px; max-width: 480px; }
+.entry-nutrients > summary { min-height: 34px; padding-block: 8px; }
+.entry-main .nutrient-list dt { color: #aaccd9; }
+.export-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-block: 16px; }
+.export-actions a { text-decoration: none; }
+.export-token-list { list-style: none; margin: 20px 0; padding: 0; display: grid; gap: 12px; }
+.export-token-list li { display: grid; gap: 8px; border: 1px solid #36515f; padding: 14px; border-radius: 10px; overflow-wrap: anywhere; }
+.export-token-list li > span { font-size: 12px; color: #aac7d4; }
+.token-secret { margin-top: 20px; padding: 14px; border: 1px solid #00f0ff55; border-radius: 10px; }
+.export-api-help p { font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
+@media (max-width:480px) { .macro-fields,.micro-fields { grid-template-columns: 1fr; } .macro-card { padding: 9px 7px; } .macro-card > strong { font-size: 20px; } .macro-card > span { font-size: 10px; } .macro-card > small { font-size: 9px; } }
 .barcode-dialog .ai-confirmation { display: flex; align-items: center; gap: 12px; min-height: 46px; line-height: 1.5; }
 .barcode-dialog .ai-confirmation input { flex: 0 0 24px; width: 24px; min-height: 24px; height: 24px; padding: 0; accent-color: var(--color-cyber-cyan); }
 .form-columns { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }

@@ -20,9 +20,9 @@ export function buildDiaryCatalogHandlers(deps: {
       const prefix = (params.get("query") ?? "").trim().replace(/[\\%_]/g, "\\$&");
       const db = deps.getDb();
       const [foodRows, recipeRows] = await Promise.all([
-        db.select({ id: foods.id, name: foods.name, brand: foods.brand, kcalPer100g: foods.kcalPer100g, servingGrams: foods.servingGrams, servingLabel: foods.servingLabel, source: foods.source }).from(foods)
+        db.select({ id: foods.id, name: foods.name, brand: foods.brand, kcalPer100g: foods.kcalPer100g, nutrientsPer100g: foods.nutrientsPer100g, protein: foods.proteinPer100g, fat: foods.fatPer100g, carbs: foods.carbsPer100g, servingGrams: foods.servingGrams, servingLabel: foods.servingLabel, source: foods.source }).from(foods)
           .where(prefix ? ilike(foods.name, `${prefix}%`) : undefined).orderBy(asc(foods.name), asc(foods.id)).limit(limit),
-        db.select({ id: recipes.id, name: recipes.name, servings: recipes.servings, kcalPerServing: recipes.kcalPerServing }).from(recipes).orderBy(asc(recipes.name), asc(recipes.id)),
+        db.select({ id: recipes.id, name: recipes.name, servings: recipes.servings, kcalPerServing: recipes.kcalPerServing, nutrientsPerServing: recipes.nutrientsPerServing }).from(recipes).orderBy(asc(recipes.name), asc(recipes.id)),
       ]);
       return NextResponse.json({ foods: foodRows.map(food => ({ ...food, servingGrams: food.servingGrams === null ? null : Number(food.servingGrams) })), recipes: recipeRows }, { headers });
     } catch {
