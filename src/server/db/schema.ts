@@ -217,6 +217,8 @@ export const diaryEntries = pgTable(
     norishItemId: uuid("norish_item_id"),
     // § 5.4: item upstream non più nel payload → marcato, non cancellato (no-autodelete)
     norishDeleted: boolean("norish_deleted").notNull().default(false),
+    copiedMeal: boolean("copied_meal").notNull().default(false),
+    copiedName: text("copied_name"),
     ...timestamps,
   },
   (t) => [
@@ -265,6 +267,37 @@ export const exportTokens = pgTable("export_tokens", {
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
 }, t => [index("export_tokens_user_idx").on(t.userId)]);
+
+/** One household per user. Household ownership is separate from instance administration. */
+export const households = pgTable("households", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  ownerId: uuid("owner_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  joinCodeHash: text("join_code_hash").unique(),
+  joinCodeExpiresAt: timestamp("join_code_expires_at", { withTimezone: true }),
+  ...timestamps,
+});
+export const householdMembers = pgTable("household_members", {
+  userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  householdId: uuid("household_id").notNull().references(() => households.id, { onDelete: "cascade" }),
+  joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
+}, t => [index("household_members_household_idx").on(t.householdId)]);
+/** Persisted per-account throttling for short numeric invitations. */
+export const householdJoinAttempts = pgTable("household_join_attempts", {
+  userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  attempts: integer("attempts").notNull(),
+  windowStartedAt: timestamp("window_started_at", { withTimezone: true }).notNull(),
+});
+export const mealShareLinks = pgTable("meal_share_links", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  date: date("date").notNull(),
+  slot: slotEnum("slot").notNull(),
+  tokenHash: text("token_hash").notNull().unique(),
+  meal: jsonb("meal").$type<import("@/lib/meal-sharing").SharedMeal>().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+}, t => [uniqueIndex("meal_share_links_meal_unique").on(t.userId, t.date, t.slot)]);
 
 /** § 4.6 — Impostazioni admin singleton (chiavi: ai.*, barcode.*). */
 export const adminSettings = pgTable("admin_settings", {

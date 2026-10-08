@@ -278,6 +278,20 @@ h1,h2,h3,p { margin-top: 0; }
 .editor-panel { border-radius: 20px; }
 .editor-panel input,.editor-panel select { border-radius: 10px; }
 .settings-grid { display: grid; gap: 20px; min-width: 0; }
+.settings-workspace { min-width:0; }
+.settings-tab-bar { display:flex; align-items:end; gap:5px; overflow-x:auto; max-width:100%; padding:8px 4px 0; border-bottom:1px solid #00f0ff55; scrollbar-width:thin; scrollbar-color:#365466 #101923; }
+.settings-tab { position:relative; display:inline-flex; flex:0 0 auto; align-items:center; justify-content:center; gap:9px; min-height:48px; padding:12px 18px; margin-bottom:0; border:1px solid #344451; border-bottom:0; border-radius:15px 15px 0 0; background:linear-gradient(180deg,#17212c,#101821); color:#9bafbd; font-size:12px; font-weight:750; white-space:nowrap; transition:background .2s,color .2s,border-color .2s; }
+.settings-tab:not(.is-active) { margin-top:5px; min-height:43px; }
+.settings-tab:hover { color:#e4fbff; border-color:#547580; background:#1a2b36; }
+.settings-tab.is-active { color:#7af5ff; background:linear-gradient(180deg,#00f0ff17,#111923); border-color:#00f0ff77; box-shadow:inset 0 2px 0 #00f0ff,0 -6px 22px #00f0ff08; }
+.settings-tab.is-active:after { content:''; position:absolute; left:16px; right:16px; bottom:0; height:2px; background:#00f0ff; box-shadow:0 0 9px #00f0ff88; }
+.settings-tab svg { width:18px; height:18px; flex:none; }
+.settings-tab.is-active svg { filter:drop-shadow(0 0 4px #00f0ff55); }
+.settings-tab small { color:#fcee0a; font-size:7px; letter-spacing:.08em; border:1px solid #fcee0a40; border-radius:4px; padding:3px 4px; }
+.settings-tab:focus-visible { outline:2px solid #fcee0a; outline-offset:-5px; }
+.settings-tab-panel { padding-top:22px; min-width:0; }
+.settings-tab-panel[hidden] { display:none !important; }
+@media(max-width:480px) { .settings-tab { padding-inline:14px; gap:7px; } .settings-tab-panel { padding-top:16px; } }
 .settings-grid > section { width: 100%; max-width: none; margin: 0; border-radius: 18px; background: #111923; border: 1px solid #34404b; padding: clamp(20px,3vw,30px); }
 .settings-grid > section > h2 { font-size: 20px; margin-bottom: 12px; }
 .settings-grid .norish-url-card input { min-width: 0; min-height: 46px; border-color: #75828b; border-radius: 10px; }
@@ -422,4 +436,40 @@ html:not([data-motion="reduce"]) .is-over-target .energy-rule > span::after { ba
 }
 @media (max-width:480px) { .topbar-path > strong { display: none; } .diary-title-actions { gap: 9px; } .diary-title-actions .muted-caption { font-size: 10px; } }
 html[data-motion="reduce"] *,html[data-motion="reduce"] *::before,html[data-motion="reduce"] *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
+.meal-head-actions { display:flex; align-items:center; gap:8px; }
+.sharing-dialog { max-width:620px; }
+.sharing-dialog fieldset,.household-card fieldset,.shared-meal-card fieldset { border:0; padding:0; margin:0; min-width:0; }
+.settings-card-heading { display:flex; align-items:center; gap:12px; color:var(--cyan,#00f0ff); }
+.household-name { overflow-wrap:anywhere; margin:16px 0 8px; font-size:22px; }
+.household-card form { display:grid; gap:12px; }
+.household-join,.household-invite { border-top:1px solid #00f0ff25; padding-top:18px; margin:20px 0; }
+.household-member-list,.shared-meal-entries { list-style:none; padding:0; margin:16px 0; }
+.household-member-list li { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; border-bottom:1px solid #00f0ff20; padding:12px 0; }
+.household-member-list small { display:block; color:#8eafbb; font-size:11px; }
+.household-member-actions { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.household-confirm { border:1px solid #ff497750; padding:14px; border-radius:12px; margin-top:14px; }
+.household-confirm button { margin:4px; }
+.household-card details { margin:18px 0; }
+.share-secret { display:grid; gap:12px; padding:16px; background:#00f0ff08; border:1px solid #00f0ff35; border-radius:12px; margin-top:16px; }
+.share-secret input { width:100%; min-width:0; font-family:monospace; color:#68f5ff; }
+.share-expiry { font-family:monospace; font-size:13px; color:#fff000; }
+.share-selection-actions { display:flex; flex-wrap:wrap; gap:16px; margin:12px 0; }
+.shared-meal-entries li { padding:12px; margin:8px 0; border:1px solid #00f0ff25; background:#00f0ff05; border-radius:12px; }
+.share-entry-check { display:flex !important; flex-direction:row !important; gap:12px; align-items:center; cursor:pointer; }
+.share-entry-check input { width:20px; height:20px; flex-shrink:0; accent-color:#00f0ff; }
+.share-entry-check span { min-width:0; }
+.share-entry-check strong { display:block; overflow-wrap:anywhere; }
+.share-entry-check small { display:block; color:#8eafbb; margin-top:4px; }
+.shared-meal-shell { max-width:720px; margin:auto; padding:32px 20px; }
+.shared-meal-shell > .brand { display:flex; width:fit-content; margin-bottom:28px; }
+.household-card,.shared-meal-card { width:100%; }
+.shared-meal-card h1 { margin:16px 0; font-size:36px; font-weight:850; letter-spacing:-.04em; }
+.shared-meal-card fieldset { display:grid; gap:12px; }
+.shared-meal-card a,.sharing-dialog a { color:#68f5ff; text-decoration:underline; }
+.shared-meal-card [role="alert"] { border-left:3px solid #ff4977; padding:12px; background:#ff497710; line-height:1.6; }
+.sharing-dialog .text-btn,.shared-meal-card .text-btn,.household-card .text-btn { min-height:44px; padding:6px 0; background:transparent; border:0; color:#68f5ff; font-size:12px; font-weight:700; }
+.sharing-dialog .text-btn:hover,.shared-meal-card .text-btn:hover,.household-card .text-btn:hover { text-decoration:underline; }
+.editor-panel .share-entry-check input { width:20px; height:20px; min-height:20px; padding:0; }
+.sharing-dialog .form-columns,.shared-meal-card .form-columns { margin:16px 0; }
+@media(max-width:480px) { .family-action-label { display:none; } .diary-title-actions { flex-wrap:wrap; } .sharing-dialog .form-columns,.shared-meal-card .form-columns { grid-template-columns:minmax(0,1fr); } .shared-meal-shell { padding:20px 12px; } .household-member-actions { width:100%; } .household-member-actions .secondary-btn { flex:1; } }
 @media (prefers-reduced-motion:reduce) { html:not([data-motion="full"]) *,html:not([data-motion="full"]) *::before,html:not([data-motion="full"]) *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }

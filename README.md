@@ -359,6 +359,8 @@ senza modifiche automatiche alle credenziali.
 
 ## Sviluppo
 
+Nuclei familiari, inviti e copia dei pasti: [guida e API](docs/HOUSEHOLDS-MEAL-SHARING.md).
+
 - Architettura e decisioni di stack: `docs/ARCHITECTURE.md` (§ 3 struttura, § 4
   modello dati, § 5 integrazione norish, § 9 deployment)
 - Il codice arriva tramite branch e pull request, senza merge diretti su main

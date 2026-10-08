@@ -1,6 +1,8 @@
 import type { SVGProps } from "react";
 
 const paths = {
+  family: "M8 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6 M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6 M2 21v-4a6 6 0 0 1 12 0v4 M16 14a6 6 0 0 1 6 6v1",
+  share: "M16 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6 M5 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6 M16 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6 M8 10l5-4 M8 14l5 4",
   dashboard: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z",
   diary: "M5 3h14v18H5z M9 8h6 M9 12h6 M9 16h4",
   calendar: "M4 5h16v16H4z M8 3v4 M16 3v4 M4 10h16 M8 14h2 M14 14h2",

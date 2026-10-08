@@ -48,13 +48,15 @@ it("settings switches: keyboard access, system default, persistent motion overri
     await pw(second.locator("html")).toHaveAttribute("data-motion", "full");
     if (css) expect(await second.locator(".gauge-wave").evaluate(el => getComputedStyle(el).animationName)).toBe("gauge-wave");
     await page.goto(`${base}/settings`);
+    expect(await motion.evaluate(el => !!el.closest(".settings-toggle-heading")?.querySelector("h2"))).toBe(true);
     const ai = page.getByRole("switch", { name: "Abilita scansione AI" });
+    await page.getByRole("tab", { name: "Scansione", exact: true }).click();
     const barcode = page.getByRole("switch", { name: "Ricerca prodotti su Open Food Facts" });
     await pw(ai).toBeDisabled(); await pw(barcode).toBeChecked();
     await page.getByLabel("Provider AI").selectOption("ollama");
     await pw(ai).toBeEnabled(); await ai.check(); await pw(ai).toBeChecked();
     await pw(page.getByRole("checkbox")).toHaveCount(0);
-    for (const toggle of [motion, ai, barcode]) {
+    for (const toggle of [ai, barcode]) {
       expect(await toggle.evaluate(el => !!el.closest(".settings-toggle-heading")?.querySelector("h2"))).toBe(true);
     }
     if (css) for (const width of [320, 390, 1440]) {

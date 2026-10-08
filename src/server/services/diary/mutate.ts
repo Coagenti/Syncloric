@@ -94,7 +94,9 @@ export function buildDiaryMutationHandlers(deps: {
             else if (input.quantityGrams !== undefined) Object.assign(updates, nutritionColumns(scaleNutrition(normalizeNutrition(entry.nutrients, { protein: entry.protein, fat: entry.fat, carbs: entry.carbs }), input.quantityGrams / Number(entry.quantityGrams ?? input.quantityGrams))));
             if (input.servings !== undefined) return NextResponse.json({ error: "Le porzioni si applicano solo alle ricette." }, { status: 400 });
             if (input.quantityGrams !== undefined && input.kcal === undefined) {
-              const total = loaded.foodKcal === null ? null : Math.round(loaded.foodKcal * input.quantityGrams / 100);
+              const basis = entry.copiedMeal ? entry.kcal : loaded.foodKcal;
+              const factor = entry.copiedMeal ? input.quantityGrams / Number(entry.quantityGrams ?? input.quantityGrams) : input.quantityGrams / 100;
+              const total = basis === null ? null : Math.round(basis * factor);
               if (total !== null && !kcal.safeParse(total).success) return overflow();
               updates.kcal = total;
             }
@@ -103,11 +105,16 @@ export function buildDiaryMutationHandlers(deps: {
             if (input.quantityGrams !== undefined) return NextResponse.json({ error: "I grammi si applicano solo agli alimenti." }, { status: 400 });
             if (input.kcal !== undefined) return NextResponse.json({ error: "Le kcal della ricetta vengono ricalcolate dalle porzioni." }, { status: 400 });
             if (input.servings !== undefined) {
-              const total = loaded.recipeKcal === null ? null : Math.round(loaded.recipeKcal * input.servings);
+              const basis = entry.copiedMeal ? entry.kcal : loaded.recipeKcal;
+              const factor = entry.copiedMeal ? input.servings / Number(entry.servings ?? 1) : input.servings;
+              const total = basis === null ? null : Math.round(basis * factor);
               if (total !== null && !kcal.safeParse(total).success) return overflow();
               updates.kcal = total;
-              const [recipe] = await tx.select().from(recipes).where(eq(recipes.id, entry.recipeId!));
-              Object.assign(updates, nutritionColumns(scaleNutrition(normalizeNutrition(recipe?.nutrientsPerServing, { protein: recipe?.proteinPerServing, fat: recipe?.fatPerServing, carbs: recipe?.carbsPerServing }), input.servings)));
+              if (entry.copiedMeal) Object.assign(updates, nutritionColumns(scaleNutrition(normalizeNutrition(entry.nutrients, { protein: entry.protein, fat: entry.fat, carbs: entry.carbs }), factor)));
+              else {
+                const [recipe] = await tx.select().from(recipes).where(eq(recipes.id, entry.recipeId!));
+                Object.assign(updates, nutritionColumns(scaleNutrition(normalizeNutrition(recipe?.nutrientsPerServing, { protein: recipe?.proteinPerServing, fat: recipe?.fatPerServing, carbs: recipe?.carbsPerServing }), factor)));
+              }
             }
           }
           const [updated] = await tx.update(diaryEntries).set(updates).where(eq(diaryEntries.id, id)).returning();

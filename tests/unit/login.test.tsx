@@ -10,8 +10,8 @@ import { SettingsAccessNotice } from "@/components/settings/settings-access-noti
 describe("username/password access", () => {
   it("uses the production settings branch for regular users", () => {
     const html = renderToStaticMarkup(<SettingsContent access="requires-admin" />);
-    expect(html).toContain("Richiede amministratore");
-    expect(html).toContain("Chiave API Norish");
+    expect(html).toContain('id="settings-tab-norish"');
+    expect(html).not.toContain('id="settings-tab-utenti"');
     expect(html).not.toContain("Provider AI");
   });
   it("supports every valid username without creating malformed or colliding metadata emails", () => {

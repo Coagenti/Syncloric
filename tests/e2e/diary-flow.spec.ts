@@ -254,7 +254,7 @@ it("browser: login → inline food/recipe → persisted feed/dashboard → manua
       await expect(page.getByRole(status === "error" ? "alert" : "status").filter({ hasText: text })).toBeVisible();
     }
     await expect(page.getByRole("alert")).toContainText("Verifica o sostituisci la tua chiave personale");
-    await expect(page.getByRole("alert").getByRole("link", { name: "Impostazioni" })).toHaveAttribute("href", "/settings");
+    await expect(page.getByRole("alert").getByRole("link", { name: "Impostazioni" })).toHaveAttribute("href", "/settings#norish");
     jestExpect(runSync).toHaveBeenCalledTimes(3);
     jestExpect(resolveClient).toHaveBeenCalledTimes(3);
     for (const method of Object.values(client)) jestExpect(method).not.toHaveBeenCalled();

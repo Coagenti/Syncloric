@@ -7,6 +7,7 @@ export type DiaryEntry = {
   id: string; date: string; slot: Slot; entryType: "food" | "recipe";
   name: string; quantityGrams: number | null; servings: number | null;
   foodId?: string | null; recipeId?: string | null;
+  copiedMeal?: boolean;
   nutrients?: Nutrition;
   kcal: number | null; protein: number | null; fat: number | null; carbs: number | null;
   source: "manual" | "barcode" | "ai_label" | "norish_sync"; norishDeleted: boolean;

@@ -40,6 +40,7 @@ it("production settings: member Norish key and admin AI keys persist, rotate and
     try {
       if (req.url === "/app.js") { res.setHeader("Content-Type", "application/javascript"); res.end(bundle.outputFiles[0].text); return; }
       if (req.url?.startsWith("/api/")) {
+        if (req.url === "/api/v1/household" && req.method === "GET") { res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ household: null })); return; }
         const handler = endpoints[req.url]?.[req.method!]; if (!handler) throw new Error("Unexpected API");
         const chunks: Buffer[] = []; for await (const chunk of req) chunks.push(Buffer.from(chunk));
         const request = new Request(`http://${req.headers.host}${req.url}`, { method: req.method, headers: req.headers as Record<string,string>, ...(req.method === "GET" ? {} : { body: Buffer.concat(chunks).toString() }) });
@@ -57,6 +58,7 @@ it("production settings: member Norish key and admin AI keys persist, rotate and
     const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
     const url = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
     await page.setExtraHTTPHeaders({ "x-test-user": member }); await page.goto(url + "/member");
+    await page.getByRole("tab", { name: "Norish", exact: true }).click();
     await pw(page.getByText("Chiave Norish non configurata.", { exact: true })).toBeVisible();
     await pw(page.getByLabel("Provider AI")).toHaveCount(0);
     const norish = page.getByLabel("Chiave API Norish", { exact: true });
@@ -68,7 +70,9 @@ it("production settings: member Norish key and admin AI keys persist, rotate and
     await page.getByRole("button", { name: "Rimuovi chiave Norish", exact: true }).click();
     await pw(page.getByText("Chiave Norish non configurata.", { exact: true })).toBeVisible();
     await page.setExtraHTTPHeaders({ "x-test-user": admin }); await page.goto(url + "/admin");
+    await page.getByRole("tab", { name: "Norish", exact: true }).click();
     await pw(page.getByText("Chiave Norish non configurata.", { exact: true })).toBeVisible(); // no cross-user fallback
+    await page.getByRole("tab", { name: "Scansione", exact: true }).click();
     await page.getByLabel("Provider AI").selectOption("openai");
     await page.getByLabel("Chiave API OpenAI", { exact: true }).fill("browser-admin-openai");
     await page.getByRole("button", { name: "Salva chiave OpenAI", exact: true }).click();

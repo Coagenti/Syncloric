@@ -36,6 +36,13 @@
       "when": 1791381053506,
       "tag": "0004_nutrition_and_export_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791477981910,
+      "tag": "0005_households_meal_sharing",
+      "breakpoints": true
     }
   ]
 }

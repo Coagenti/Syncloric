@@ -3,7 +3,7 @@
 ## Installazione e fotocamera
 
 Syncloric include un manifest PWA, icone 192/512 px (anche maskable) e icona Apple.
-Da Impostazioni > Syncloric sul telefono è possibile aprire il prompt di
+Da Impostazioni > Generali > Syncloric sul telefono è possibile aprire il prompt di
 installazione quando disponibile, oppure seguire le indicazioni del browser.
 Su iPhone si usa Condividi > Aggiungi alla schermata Home; su Android il menu
 Installa app / Aggiungi a schermata Home.
@@ -66,7 +66,7 @@ copertura (voci con dati / voci totali), perché le somme possono essere parzial
 
 ## Download e API
 
-Tutti gli utenti autenticati possono esportare da Impostazioni > I tuoi dati.
+Tutti gli utenti autenticati possono esportare da Impostazioni > I miei dati.
 
 `GET /api/v1/export?format=json|csv&from=YYYY-MM-DD&to=YYYY-MM-DD`
 

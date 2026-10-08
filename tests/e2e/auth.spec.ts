@@ -97,6 +97,7 @@ it("browser: signup → persistent diary → logout → login, protected routes 
     const cookies = await page.context().cookies();
     expect(cookies.some(c => c.name.includes("session_token") && c.httpOnly && c.sameSite === "Lax")).toBe(true);
     await page.goto(`${url}/settings`);
+    await page.getByRole("tab", { name: "Norish", exact: true }).click();
     await expect(page.getByRole("textbox", { name: "Norish URL", exact: true })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Richiede amministratore" })).toHaveCount(0);
     await page.goto(`${url}/diary`);
@@ -140,6 +141,7 @@ it("browser: signup → persistent diary → logout → login, protected routes 
     await expect(page).toHaveURL(`${url}/diary`, { timeout: 60_000 });
     for (const route of ["dashboard", "calendar", "diary"]) { await page.goto(`${url}/${route}`); await expect(page).toHaveURL(`${url}/${route}`); }
     await page.goto(`${url}/settings`);
+    await page.getByRole("tab", { name: "Norish", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Richiede amministratore" })).toBeVisible();
     await expect(page.getByLabel("Chiave API Norish", { exact: true })).toBeVisible();
     await expect(page.getByLabel("Provider AI", { exact: true })).toHaveCount(0);

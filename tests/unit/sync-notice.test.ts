@@ -10,7 +10,7 @@ describe("last Norish sync outcome", () => {
     expect(html).toContain("chiave personale");
     expect(html).not.toContain("chiave è globale");
     expect(html).toContain("norish.example.invalid");
-    expect(html).toContain('href="/settings"');
+    expect(html).toContain('href="/settings#norish"');
     expect(html).not.toContain("DELETE");
   });
   it("does not advise key reassociation for an older auth failure followed by success", () => {

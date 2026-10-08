@@ -5,7 +5,7 @@ import { NutritionSummary, NutrientDetails, entryNutrition } from "@/components/
 import { dailySummary, formatDate, monthDays, slotLabels, slots, type DiaryEntry, type Slot } from "@/lib/diary";
 
 const number = (value: number) => new Intl.NumberFormat("it-IT", { useGrouping: "always" }).format(value);
-const sourceLabel = (entry: DiaryEntry) => entry.source === "norish_sync" ? "Da norish" : "Manuale";
+const sourceLabel = (entry: DiaryEntry) => entry.copiedMeal ? "Pasto copiato" : entry.source === "norish_sync" ? "Da norish" : "Manuale";
 
 export function DashboardView({ entries, date, target, showTitle = true }: { entries: DiaryEntry[]; date: string; target: number | null; showTitle?: boolean }) {
   const fillMaskId = useId();
@@ -53,7 +53,7 @@ export function DashboardView({ entries, date, target, showTitle = true }: { ent
   </div>;
 }
 
-export function DiaryView({ entries, date, target = null, showTitle = true, onEdit, onAdd, onDelete }: { entries: DiaryEntry[]; date: string; target?: number | null; showTitle?: boolean; onEdit?: (entry: DiaryEntry, trigger: HTMLButtonElement) => void; onAdd?: (slot: Slot, trigger: HTMLButtonElement) => void; onDelete?: (entry: DiaryEntry, trigger: HTMLButtonElement) => void }) {
+export function DiaryView({ entries, date, target = null, showTitle = true, onEdit, onAdd, onDelete, onShare }: { entries: DiaryEntry[]; date: string; target?: number | null; showTitle?: boolean; onEdit?: (entry: DiaryEntry, trigger: HTMLButtonElement) => void; onAdd?: (slot: Slot, trigger: HTMLButtonElement) => void; onDelete?: (entry: DiaryEntry, trigger: HTMLButtonElement) => void; onShare?: (slot: Slot, trigger: HTMLButtonElement) => void }) {
   const rippleId = useId();
   const today = entries.filter((entry) => entry.date === date);
   const summary = dailySummary(entries, date, target);
@@ -65,7 +65,7 @@ export function DiaryView({ entries, date, target = null, showTitle = true, onEd
     {today.length === 0 && <p className="empty-note">Nessuna voce per questa data.</p>}
     <div className="diary-groups">{slots.map((slot, index) => {
       const group = today.filter((entry) => entry.slot === slot);
-      return <section className="diary-group" key={slot} aria-label={slotLabels[slot]}><div className="diary-group-head"><div><span className="meal-index">0{index + 1} / PASTO</span><h2>{slotLabels[slot]}</h2></div>{onAdd && <button type="button" className="meal-add" data-add-slot={slot} aria-label={`Aggiungi alimento a ${slotLabels[slot]}`} onClick={event => onAdd(slot, event.currentTarget)}><UiIcon name="plus" /></button>}</div>
+      return <section className="diary-group" key={slot} aria-label={slotLabels[slot]}><div className="diary-group-head"><div><span className="meal-index">0{index + 1} / PASTO</span><h2>{slotLabels[slot]}</h2></div><div className="meal-head-actions">{onShare && group.length > 0 && <button type="button" className="neon-action" aria-label={`Condividi ${slotLabels[slot]} tramite link`} title="Condividi tramite link · 2 ore" onClick={event => onShare(slot, event.currentTarget)}><UiIcon name="share" /></button>}{onAdd && <button type="button" className="meal-add" data-add-slot={slot} aria-label={`Aggiungi alimento a ${slotLabels[slot]}`} onClick={event => onAdd(slot, event.currentTarget)}><UiIcon name="plus" /></button>}</div></div>
         {group.length ? group.map((entry) => <article key={entry.id} className="entry-row"><div className="entry-icon" aria-hidden="true">{entry.entryType === "recipe" ? "✳" : "◈"}</div><div className="entry-main"><strong id={`entry-name-${entry.id}`}>{entry.name}</strong><span>{entry.entryType === "recipe" ? `${entry.servings ?? 1} ${(entry.servings ?? 1) === 1 ? "porzione" : "porzioni"}` : `${entry.quantityGrams ?? 0} g`} <span aria-hidden="true">·</span> <span className={entry.source === "norish_sync" ? "origin imported" : "origin"}>{sourceLabel(entry)}</span>{entry.norishDeleted && " · Rimossa su norish"}</span><NutrientDetails nutrients={entryNutrition(entry)} /></div><div className="entry-energy">{entry.kcal === null ? <span>kcal non definite</span> : <><strong>{number(entry.kcal)}</strong><span>kcal</span></>}</div>{entry.source === "manual" && <div className="entry-controls">{onEdit && <button type="button" className="neon-action edit-action" data-edit-id={entry.id} data-return-slot={entry.slot} aria-label="Modifica" aria-describedby={`entry-name-${entry.id}`} title={`Modifica ${entry.name}`} onClick={event => onEdit(entry, event.currentTarget)}><UiIcon name="pencil" /></button>}{onDelete && <button type="button" className="neon-action delete-action" data-delete-id={entry.id} data-return-slot={entry.slot} aria-label="Elimina" aria-describedby={`entry-name-${entry.id}`} title={`Elimina ${entry.name}`} onClick={event => onDelete(entry, event.currentTarget)}><UiIcon name="trash" /></button>}</div>}</article>) : <p className="empty-slot">Nessuna voce in questo pasto.</p>}
       </section>;
     })}</div>

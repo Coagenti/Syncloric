@@ -9,6 +9,8 @@ import { UiIcon } from "@/components/ui-icon";
 import { CalendarView, DashboardView, DiaryView } from "@/components/calorie-views";
 import { SyncNotice, type SyncState } from "@/components/sync-notice";
 import { BarcodeEntry } from "@/components/barcode-entry";
+import { HouseholdMealsDialog } from "@/components/meal-sharing/household-meals-dialog";
+import { ShareMealDialog } from "@/components/meal-sharing/share-meal-dialog";
 import { formatDate, localDateKey, shiftDate, type DiaryEntry, type Slot } from "@/lib/diary";
 
 type View = "dashboard" | "diary" | "calendar";
@@ -22,6 +24,16 @@ export function CalorieApp({ view }: { view: View }) {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<DiaryEntry | null | false>(false);
   const [deleting, setDeleting] = useState<DiaryEntry | null>(null);
+  const [sharingSlot, setSharingSlot] = useState<Slot | null>(null);
+  const [householdMeals, setHouseholdMeals] = useState(false);
+  const sharingTrigger = useRef<HTMLButtonElement | null>(null);
+  const restoreSharingFocus = useRef(false);
+  useEffect(() => {
+    if (!sharingSlot && !householdMeals && restoreSharingFocus.current) {
+      sharingTrigger.current?.focus(); restoreSharingFocus.current = false;
+    }
+  }, [sharingSlot, householdMeals]);
+  const closeSharing = () => { restoreSharingFocus.current = true; setSharingSlot(null); setHouseholdMeals(false); };
   const [initialSlot, setInitialSlot] = useState<Slot>("Lunch");
   const [revision, setRevision] = useState(0);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -112,17 +124,19 @@ export function CalorieApp({ view }: { view: View }) {
   const syncStatusLabel = { pending: "Sincronizzazione in corso", error: "Ultima sincronizzazione fallita", ok: "Sincronizzazione Norish: completata.", partial: "Ultima sincronizzazione parziale", idle: "Non ancora sincronizzato" }[syncStatus];
   return <AppShell view={view}>
       <div className="date-toolbar compact-date-toolbar"><div className="selected-date"><span className="section-kicker">GIORNO SELEZIONATO</span><strong>{date ? formatDate(date, { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "Oggi"}</strong></div><div className="date-actions"><div className="day-stepper"><button type="button" aria-label="Giorno precedente" disabled={!date} onClick={() => setDate(shiftDate(date, -1))}><UiIcon name="left" /></button><button type="button" onClick={() => setDate(localDateKey())}>Oggi</button><button type="button" aria-label="Giorno successivo" disabled={!date} onClick={() => setDate(shiftDate(date, 1))}><UiIcon name="right" /></button></div><label className="app-date-picker"><UiIcon name="calendar" /><span className="sr-only">Data</span><input type="date" aria-label="Seleziona data" value={date} onChange={(event) => { if (event.target.value) setDate(event.target.value); }} /></label><button type="button" className="toolbar-action sync-action" ref={syncTrigger} disabled={syncing} aria-describedby="sync-status" onClick={synchronize} title={syncStatusLabel}><UiIcon name="sync" className={syncing ? "is-syncing" : undefined} /><span className="sync-action-label">{syncing ? "Sincronizzazione…" : "Sincronizza ora"}</span><i className={`sync-dot ${syncStatus}`} aria-hidden="true" /></button><span id="sync-status" role="status" className="sr-only">{syncStatusLabel}</span></div></div>
-      <div className="view-title page-heading"><h1>{{ dashboard: "Riepilogo del giorno", diary: "Diario", calendar: "Calendario" }[view]}<span className="title-punctuation">.</span></h1>{view === "diary" && <div className="diary-title-actions"><span className="muted-caption">{selectedCount} {selectedCount === 1 ? "voce" : "voci"}</span><BarcodeEntry compact date={date} onSaved={() => setRevision(value => value + 1)} /></div>}</div>
+      <div className="view-title page-heading"><h1>{{ dashboard: "Riepilogo del giorno", diary: "Diario", calendar: "Calendario" }[view]}<span className="title-punctuation">.</span></h1>{view === "diary" && <div className="diary-title-actions"><span className="muted-caption">{selectedCount} {selectedCount === 1 ? "voce" : "voci"}</span><button type="button" className="toolbar-action" aria-label="Pasti del nucleo" title="Pasti del nucleo" disabled={!date} onClick={event => { sharingTrigger.current = event.currentTarget; setHouseholdMeals(true); }}><UiIcon name="family" /><span className="family-action-label">Nucleo</span></button><BarcodeEntry compact date={date} onSaved={() => setRevision(value => value + 1)} /></div>}</div>
       {(syncMessage || effectiveSync?.status === "error" || effectiveSync?.status === "partial") && <SyncNotice sync={effectiveSync} message={syncMessage} />}
       {syncLogin && <Link href="/login">Vai al login</Link>}
       {feedback && <p role="status">{feedback}</p>}
+      {sharingSlot && <ShareMealDialog date={date} slot={sharingSlot} onClose={closeSharing} />}
+      {householdMeals && <HouseholdMealsDialog date={date} onClose={closeSharing} onCopied={(copiedDate, count) => { setDate(copiedDate); setRevision(v => v + 1); setFeedback(`${count} ${count === 1 ? "voce copiata" : "voci copiate"} nel tuo diario.`); closeSharing(); }} />}
       {editing !== false && <DiaryEditor entry={editing} initialSlot={initialSlot} date={date} onClose={closeEditor} onSaved={savedDate => { setLoading(true); setDate(savedDate); setRevision(value => value + 1); setFeedback("Voce salvata."); closeEditor(); }} />}
       {deleting && <DeleteEntryDialog entry={deleting} onClose={() => { restoreFocus.current = true; setDeleting(null); }} onDeleted={() => { setLoading(true); setRevision(value => value + 1); setFeedback("Voce eliminata."); restoreFocus.current = true; setDeleting(null); }} />}
       {loading && <p role="status">Caricamento pasti…</p>}
       {error && <p role="alert">{error} {error.startsWith("Accedi") && <Link href="/login">Vai al login</Link>}</p>}
       {feed && <>
         {view === "dashboard" && <DashboardView showTitle={false} entries={entries} date={date} target={feed.target} />}
-        {view === "diary" && <DiaryView showTitle={false} entries={entries} date={date} target={feed.target} onAdd={addEntry} onEdit={(entry, button) => { trigger.current = button; setFeedback(null); setEditing(entry); }} onDelete={(entry, button) => { trigger.current = button; setFeedback(null); setDeleting(entry); }} />}
+        {view === "diary" && <DiaryView showTitle={false} entries={entries} date={date} target={feed.target} onAdd={addEntry} onShare={(slot, button) => { sharingTrigger.current = button; setSharingSlot(slot); }} onEdit={(entry, button) => { trigger.current = button; setFeedback(null); setEditing(entry); }} onDelete={(entry, button) => { trigger.current = button; setFeedback(null); setDeleting(entry); }} />}
         {view === "calendar" && <CalendarView showTitle={false} entries={entries} date={date} onSelect={setDate} />}
       </>}
   </AppShell>;

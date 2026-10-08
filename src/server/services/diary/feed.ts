@@ -46,10 +46,10 @@ export function buildDiaryFeedHandlers(deps: {
           const nutrients = scaleNutrition(normalizeNutrition(entry.nutrients, { protein: entry.protein, fat: entry.fat, carbs: entry.carbs }), entry.entryType === "recipe" && entry.source === "norish_sync" ? Number(entry.servings ?? 1) : 1);
           return ({
           id: entry.id, foodId: entry.foodId, recipeId: entry.recipeId, date: entry.date, slot: entry.slot, entryType: entry.entryType,
-          name: recipeName ?? foodName ?? "Voce senza nome", quantityGrams: entry.quantityGrams === null ? null : Number(entry.quantityGrams),
+          name: entry.copiedName ?? recipeName ?? foodName ?? "Voce senza nome", quantityGrams: entry.quantityGrams === null ? null : Number(entry.quantityGrams),
           servings: entry.servings === null ? null : Number(entry.servings),
           kcal: entry.kcal === null ? null : entry.entryType === "recipe" && entry.source === "norish_sync" ? Math.round(entry.kcal * Number(entry.servings ?? 1)) : entry.kcal,
-          nutrients, protein: nutrients.protein ?? null, fat: nutrients.fat ?? null, carbs: nutrients.carbs ?? null, source: entry.source, norishDeleted: entry.norishDeleted,
+          nutrients, protein: nutrients.protein ?? null, fat: nutrients.fat ?? null, carbs: nutrients.carbs ?? null, source: entry.source, norishDeleted: entry.norishDeleted, copiedMeal: entry.copiedMeal,
         }); }),
         sync: last ? { status: last.status, reason: last.reason === "auth" ? "auth" : null, origin, finishedAt: last.finishedAt?.toISOString() ?? null } : null,
         target: targets[0] ? (targets[0].targetSource === "manual" ? targets[0].manual : targets[0].calculated) : null,
