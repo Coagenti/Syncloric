@@ -14,7 +14,20 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - name: Offline packaging contract
-        run: python3 tests/deploy/test_packaging.py
-      - name: Build once and smoke two dotenv deployments
-        run: python3 tests/deploy/smoke.py
+      - name: Offline packaging contract and archive regression
+        run: |
+          python3 tests/deploy/test_packaging.py
+          python3 tests/deploy/test_release_archives.py
+      - name: Package committed source assets (not the checkout)
+        run: python3 scripts/package-release.py --ref HEAD --output "$RUNNER_TEMP/release"
+      - name: Build and smoke from the actual tarball
+        run: |
+          mkdir "$RUNNER_TEMP/unpacked"
+          tar -xzf "$RUNNER_TEMP"/release/syncloric-*.tar.gz -C "$RUNNER_TEMP/unpacked"
+          python3 "$RUNNER_TEMP"/unpacked/syncloric-*/tests/deploy/smoke.py
+      - name: Retain verified source assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: syncloric-source-assets
+          path: ${{ runner.temp }}/release/
+          if-no-files-found: error
