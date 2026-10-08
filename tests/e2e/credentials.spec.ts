@@ -40,6 +40,7 @@ it("production settings: member Norish key and admin AI keys persist, rotate and
     try {
       if (req.url === "/app.js") { res.setHeader("Content-Type", "application/javascript"); res.end(bundle.outputFiles[0].text); return; }
       if (req.url?.startsWith("/api/")) {
+        if (req.url === "/api/v1/household" && req.method === "GET") { res.writeHead(200, { "Content-Type": "application/json" }); res.end(JSON.stringify({ household: null })); return; }
         const handler = endpoints[req.url]?.[req.method!]; if (!handler) throw new Error("Unexpected API");
         const chunks: Buffer[] = []; for await (const chunk of req) chunks.push(Buffer.from(chunk));
         const request = new Request(`http://${req.headers.host}${req.url}`, { method: req.method, headers: req.headers as Record<string,string>, ...(req.method === "GET" ? {} : { body: Buffer.concat(chunks).toString() }) });

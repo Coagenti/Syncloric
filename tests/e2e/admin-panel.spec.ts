@@ -55,7 +55,7 @@ it("four admin sections: independent persistence, non-admin notice, mobile reflo
     page.on("pageerror", error => console.error("ADMIN_PAGE_ERROR", error.message));
     page.on("response", response => { if (response.url().includes("/api/") && !response.ok()) console.error("ADMIN_HTTP", response.status(), response.url()); });
     await page.goto(url); await page.getByLabel("Provider AI").waitFor(); await page.getByRole("listitem").first().waitFor();
-    expect(await page.getByRole("heading", { level: 2 }).allTextContents()).toEqual(["Syncloric sul telefono", "Riduci animazioni", "I tuoi dati", "Il tuo account Norish", "Norish URL", "Scansione etichetta con AI", "Barcode", "Utenti"]);
+    expect(await page.getByRole("heading", { level: 2 }).allTextContents()).toEqual(["Syncloric sul telefono", "Riduci animazioni", "Nucleo familiare", "I tuoi dati", "Il tuo account Norish", "Norish URL", "Scansione etichetta con AI", "Barcode", "Utenti"]);
     await page.getByRole("button", { name: "Salva Norish", exact: true }).waitFor();
     const norish = page.locator('[aria-labelledby="norish-url-heading"]'); const ai = page.locator('[aria-labelledby="ai-settings-title"]');
     await page.getByLabel("Provider AI").selectOption("ollama"); await ai.getByText("Modifiche non salvate", { exact: true }).waitFor();

@@ -30,6 +30,18 @@ export function DiaryEditor({ date: initialDate, entry, initialSlot = "Lunch", o
   const [selectedFood, setSelectedFood] = useState<(typeof foods)[number] | null>(null);
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
+  const selectedRecipe = recipes.find(r => r.id === recipeId);
+  const recipeTotal = entry?.copiedMeal ? entry.kcal === null ? null : Math.round(entry.kcal * Number(servings) / (entry.servings ?? 1)) : selectedRecipe?.kcalPerServing == null ? null : Math.round(selectedRecipe.kcalPerServing * Number(servings));
+  function changeGrams(next: string) {
+    const previous = lastValidGrams.current;
+    if (!selectedFood && previous > 0 && Number(next) > 0) {
+      const factor = Number(next) / previous;
+      setNutrients(current => scaleNutrition(normalizeNutrition(current), factor));
+      if (entry?.copiedMeal) setKcal(current => current === "" ? "" : String(Math.round(Number(current) * factor)));
+    }
+    if (Number(next) > 0) lastValidGrams.current = Number(next);
+    setGrams(next);
+  }
   useEffect(() => {
     if (!query.trim() || selectedFood || entry || type !== "food") return;
     const controller = new AbortController();
@@ -95,7 +107,7 @@ export function DiaryEditor({ date: initialDate, entry, initialSlot = "Lunch", o
         {(entry || recipeId) && <p className="form-help selected-recipe" style={{ overflowWrap: "anywhere" }}>{entry?.name ?? recipes.find(r => r.id === recipeId)?.name}</p>}
         {!recipes.length && <p className="form-help">Nessuna ricetta disponibile. Puoi inserire un alimento manualmente.</p>}
         <label>Numero di porzioni<input required type="number" min="0.01" max="999999.99" step="0.01" value={servings} onChange={e => setServings(e.target.value)} /></label>
-        <p className="form-help">Kcal totali: {recipes.find(r => r.id === recipeId)?.kcalPerServing == null ? "—" : Math.round(recipes.find(r => r.id === recipeId)!.kcalPerServing! * Number(servings))}</p>
+        <p className="form-help">Kcal totali: {recipeTotal === null ? "—" : recipeTotal}</p>
       </> : <>
       <label>Nome alimento<input readOnly={!!entry} required maxLength={200} value={name} aria-describedby="food-search-help" onChange={e => { setName(e.target.value); setQuery(e.target.value); setSelectedFood(null); setFoods([]); setSearching(false); setCatalogError(null); }} /></label>
       {!entry && <>
@@ -105,7 +117,7 @@ export function DiaryEditor({ date: initialDate, entry, initialSlot = "Lunch", o
         {query && !searching && !foods.length && !selectedFood && <p className="form-help">Puoi usare l’inserimento manuale se non trovi l’alimento.</p>}
         {selectedFood && <button type="button" className="secondary-btn" onClick={() => { setSelectedFood(null); setQuery(""); }}>Usa inserimento manuale</button>}
       </>}
-      <label>Quantità in grammi<input required type="number" min="0.01" max="999999.99" step="0.01" value={grams} onChange={e => { const next = e.target.value; const previous = lastValidGrams.current; if (!selectedFood && previous > 0 && Number(next) > 0) setNutrients(current => scaleNutrition(normalizeNutrition(current), Number(next) / previous)); if (Number(next) > 0) lastValidGrams.current = Number(next); setGrams(next); }} /></label>
+      <label>Quantità in grammi<input required type="number" min="0.01" max="999999.99" step="0.01" value={grams} onChange={e => changeGrams(e.target.value)} /></label>
       <label>Kcal totali<input readOnly={!!selectedFood} required={!entry} type="number" min="0" max="2147483647" step="1" value={selectedFood ? (grams ? Math.round(selectedFood.kcalPer100g * Number(grams) / 100) : "") : kcal} onChange={e => setKcal(e.target.value)} /></label>
       <p className="form-help">Kcal totali della quantità inserita, non kcal per 100 g.</p><NutritionFields values={selectedFood ? scaleNutrition(normalizeNutrition(selectedFood.nutrientsPer100g, { protein: selectedFood.protein, fat: selectedFood.fat, carbs: selectedFood.carbs }), Number(grams) / 100) : nutrients} basis="totali" readOnly={!!selectedFood} onChange={selectedFood ? undefined : (key, value) => setNutrients(current => ({ ...current, [key]: value }))} /></>}
       <div className="form-columns"><label>Pasto<select value={slot} onChange={e => setSlot(e.target.value as Slot)}>{slots.map(s => <option key={s} value={s}>{slotLabels[s]}</option>)}</select></label><label>Data<input required type="date" value={date} onChange={e => setDate(e.target.value)} /></label></div>

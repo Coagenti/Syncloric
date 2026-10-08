@@ -422,4 +422,40 @@ html:not([data-motion="reduce"]) .is-over-target .energy-rule > span::after { ba
 }
 @media (max-width:480px) { .topbar-path > strong { display: none; } .diary-title-actions { gap: 9px; } .diary-title-actions .muted-caption { font-size: 10px; } }
 html[data-motion="reduce"] *,html[data-motion="reduce"] *::before,html[data-motion="reduce"] *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; }
+.meal-head-actions { display:flex; align-items:center; gap:8px; }
+.sharing-dialog { max-width:620px; }
+.sharing-dialog fieldset,.household-card fieldset,.shared-meal-card fieldset { border:0; padding:0; margin:0; min-width:0; }
+.settings-card-heading { display:flex; align-items:center; gap:12px; color:var(--cyan,#00f0ff); }
+.household-name { overflow-wrap:anywhere; margin:16px 0 8px; font-size:22px; }
+.household-card form { display:grid; gap:12px; }
+.household-join,.household-invite { border-top:1px solid #00f0ff25; padding-top:18px; margin:20px 0; }
+.household-member-list,.shared-meal-entries { list-style:none; padding:0; margin:16px 0; }
+.household-member-list li { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; border-bottom:1px solid #00f0ff20; padding:12px 0; }
+.household-member-list small { display:block; color:#8eafbb; font-size:11px; }
+.household-member-actions { display:flex; align-items:center; flex-wrap:wrap; gap:8px; }
+.household-confirm { border:1px solid #ff497750; padding:14px; border-radius:12px; margin-top:14px; }
+.household-confirm button { margin:4px; }
+.household-card details { margin:18px 0; }
+.share-secret { display:grid; gap:12px; padding:16px; background:#00f0ff08; border:1px solid #00f0ff35; border-radius:12px; margin-top:16px; }
+.share-secret input { width:100%; min-width:0; font-family:monospace; color:#68f5ff; }
+.share-expiry { font-family:monospace; font-size:13px; color:#fff000; }
+.share-selection-actions { display:flex; flex-wrap:wrap; gap:16px; margin:12px 0; }
+.shared-meal-entries li { padding:12px; margin:8px 0; border:1px solid #00f0ff25; background:#00f0ff05; border-radius:12px; }
+.share-entry-check { display:flex !important; flex-direction:row !important; gap:12px; align-items:center; cursor:pointer; }
+.share-entry-check input { width:20px; height:20px; flex-shrink:0; accent-color:#00f0ff; }
+.share-entry-check span { min-width:0; }
+.share-entry-check strong { display:block; overflow-wrap:anywhere; }
+.share-entry-check small { display:block; color:#8eafbb; margin-top:4px; }
+.shared-meal-shell { max-width:720px; margin:auto; padding:32px 20px; }
+.shared-meal-shell > .brand { display:flex; width:fit-content; margin-bottom:28px; }
+.household-card,.shared-meal-card { width:100%; }
+.shared-meal-card h1 { margin:16px 0; font-size:36px; font-weight:850; letter-spacing:-.04em; }
+.shared-meal-card fieldset { display:grid; gap:12px; }
+.shared-meal-card a,.sharing-dialog a { color:#68f5ff; text-decoration:underline; }
+.shared-meal-card [role="alert"] { border-left:3px solid #ff4977; padding:12px; background:#ff497710; line-height:1.6; }
+.sharing-dialog .text-btn,.shared-meal-card .text-btn,.household-card .text-btn { min-height:44px; padding:6px 0; background:transparent; border:0; color:#68f5ff; font-size:12px; font-weight:700; }
+.sharing-dialog .text-btn:hover,.shared-meal-card .text-btn:hover,.household-card .text-btn:hover { text-decoration:underline; }
+.editor-panel .share-entry-check input { width:20px; height:20px; min-height:20px; padding:0; }
+.sharing-dialog .form-columns,.shared-meal-card .form-columns { margin:16px 0; }
+@media(max-width:480px) { .family-action-label { display:none; } .diary-title-actions { flex-wrap:wrap; } .sharing-dialog .form-columns,.shared-meal-card .form-columns { grid-template-columns:minmax(0,1fr); } .shared-meal-shell { padding:20px 12px; } .household-member-actions { width:100%; } .household-member-actions .secondary-btn { flex:1; } }
 @media (prefers-reduced-motion:reduce) { html:not([data-motion="full"]) *,html:not([data-motion="full"]) *::before,html:not([data-motion="full"]) *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
