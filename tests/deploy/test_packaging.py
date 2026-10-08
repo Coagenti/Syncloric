@@ -26,6 +26,19 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class PackagingTests(unittest.TestCase):
+    def test_windows_style_checkout_preserves_runtime_and_lockfile_lf(self):
+        with tempfile.TemporaryDirectory() as directory:
+            subprocess.run(['git', 'clone', '--quiet', '--no-checkout', str(ROOT), directory], check=True)
+            subprocess.run(['git', '-C', directory, 'config', 'core.autocrlf', 'true'], check=True)
+            # Include pending attributes before the first checkout (no stat-cache reuse).
+            attributes = ROOT / '.gitattributes'
+            if attributes.exists():
+                (Path(directory) / '.gitattributes').write_bytes(attributes.read_bytes())
+            subprocess.run(['git', '-C', directory, 'checkout', '--quiet', 'HEAD'], check=True)
+            for name in ['docker/entrypoint.sh', 'pnpm-lock.yaml', 'docker/Dockerfile', 'docker/docker-compose.yml']:
+                with self.subTest(path=name):
+                    self.assertNotIn(b'\r\n', (Path(directory) / name).read_bytes())
+
     def test_compose_does_not_supply_a_shared_norish_key(self):
         text = (ROOT / 'docker/docker-compose.yml').read_text()
         self.assertNotIn('NORISH_API_KEY:', text)
