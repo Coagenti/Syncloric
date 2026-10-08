@@ -52,9 +52,11 @@ it("household UI joins two accounts, copies selected editable entries, shares pu
     const contexts = await Promise.all([alice, bob, eve].map(async id => { const context = await browser.newContext({ viewport: { width: 390, height: 844 } }); await context.addCookies([{ name: "test-user", value: id, url: base }]); return context; }));
     const [a, b, e] = await Promise.all(contexts.map(c => c.newPage())); for (const page of [a, b, e]) await page.clock.setFixedTime(new Date("2026-10-08T12:00:00"));
     await a.goto(`${base}/settings`); const card = a.getByRole("region", { name: "Nucleo familiare" });
+    await a.getByRole("tab", { name: "Nucleo", exact: true }).click();
     await card.getByLabel("Nome del nucleo", { exact: true }).fill("Casa neon"); await card.getByRole("button", { name: "Crea nucleo", exact: true }).click();
     await pw(card.getByLabel("Codice da condividere")).toBeVisible(); const code = await card.getByLabel("Codice da condividere").inputValue();
     await b.goto(`${base}/settings`); const bobCard = b.getByRole("region", { name: "Nucleo familiare" });
+    await b.getByRole("tab", { name: "Nucleo", exact: true }).click();
     await bobCard.getByLabel("Codice di invito").fill(code); await bobCard.getByRole("button", { name: "Unisciti al nucleo" }).click(); await pw(bobCard.getByText("Casa neon", { exact: true })).toBeVisible();
     await b.goto(`${base}/diary`); const familyButton = b.getByRole("button", { name: "Pasti del nucleo", exact: true }); await familyButton.click();
     const familyDialog = b.getByRole("dialog", { name: "Pasti del nucleo" }); await pw(familyDialog.getByText("Mochi", { exact: true })).toBeVisible();

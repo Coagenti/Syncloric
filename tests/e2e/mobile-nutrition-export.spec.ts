@@ -77,6 +77,7 @@ it("production mobile flows: nutrients, downloads, token lifecycle, PWA privacy 
     await page.waitForFunction(() => !!navigator.serviceWorker.controller);
     expect((await (await page.context().newCDPSession(page)).send("Page.getInstallabilityErrors")).installabilityErrors).toEqual([]);
     await page.goto(`${base}/settings`);
+    await page.getByRole("tab", { name: "I miei dati", exact: true }).click();
     const exportCard = page.locator('[aria-labelledby="export-settings-title"]');
     await exportCard.getByLabel("Nome token", { exact: true }).fill("My script"); await exportCard.getByRole("button", { name: "Genera token export" }).click();
     const generated = exportCard.getByLabel("Token appena creato", { exact: true }); await pw(generated).toBeVisible(); const secret = await generated.inputValue();

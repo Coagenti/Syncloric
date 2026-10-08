@@ -2,7 +2,7 @@
 
 ## Nucleo
 
-Da **Impostazioni → Nucleo familiare** ogni utente può creare un nucleo oppure
+Da **Impostazioni → Nucleo → Nucleo familiare** ogni utente può creare un nucleo oppure
 inserire un codice di invito. Un utente appartiene a un solo nucleo alla volta.
 Chi lo crea diventa amministratore del nucleo, indipendentemente dal ruolo di
 amministratore dell’istanza.

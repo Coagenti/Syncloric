@@ -6,6 +6,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
 import { mkdirSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { productionCss } from "./helpers/production-css";
 import { join } from "node:path";
 import { buildAdminUsersHandlers } from "@/server/services/settings/admin-users-http";
@@ -22,7 +23,7 @@ it("four admin sections: independent persistence, non-admin notice, mobile reflo
   const client = new PGlite(); const db = drizzle(client) as unknown as Db;
   await migrate(db as never, { migrationsFolder: "./drizzle" });
   const adminId = "11111111-1111-4111-8111-111111111111";
-  await db.insert(users).values([{ id: adminId, username: "fixture_admin", role: "admin" }, { id: "22222222-2222-4222-8222-222222222222", username: "fixture_" + "username_lungo_".repeat(8), role: "user", banned: true, banReason: "Fixture sintetica con motivo lungo. ".repeat(12) }]);
+  await db.insert(users).values([{ id: adminId, username: "fixture_admin", role: "admin" }, { id: "22222222-2222-4222-8222-222222222222", username: "fixture_" + "username_lungo_".repeat(8), role: "user", banned: true, banReason: "Fixture sintetica con motivo lungo. ".repeat(12) }, { id: "33333333-3333-4333-8333-333333333333", username: "fixture_other_admin", role: "admin" }]);
   const deps = { getDb: () => db, getSession: async () => ({ user: { id: adminId, role: "admin" } }) };
   const handlers = { users: buildAdminUsersHandlers(deps), ai: buildAiHandlers({ ...deps, env: () => ({}) }), barcode: buildBarcodeSettingsHandlers(deps), norish: buildNorishUrlHandlers(deps), norishKey: buildCredentialHandlers(deps, "norish"), aiKey: buildCredentialHandlers({ ...deps, env: () => ({}) }, "ai") };
   const exportHandlers = buildExportTokenHandlers(deps);
@@ -36,6 +37,7 @@ it("four admin sections: independent persistence, non-admin notice, mobile reflo
   }
   const server = createServer(async (req, res) => {
     if (req.url === "/app.js") { res.setHeader("Content-Type", "application/javascript"); res.end(bundle.outputFiles[0].text); return; }
+    if (req.url === "/brand/syncloric-mark.png") { res.setHeader("Content-Type", "image/png"); res.end(await readFile("public/brand/syncloric-mark.png")); return; }
     if (req.url?.startsWith("/api/")) {
       const chunks: Buffer[] = []; for await (const c of req) chunks.push(Buffer.from(c));
       const request = new Request(`http://${req.headers.host}${req.url}`, { method: req.method, headers: req.headers as Record<string, string>, ...(req.method !== "GET" ? { body: Buffer.concat(chunks).toString() } : {}) });
@@ -54,18 +56,23 @@ it("four admin sections: independent persistence, non-admin notice, mobile reflo
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } }); const url = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
     page.on("pageerror", error => console.error("ADMIN_PAGE_ERROR", error.message));
     page.on("response", response => { if (response.url().includes("/api/") && !response.ok()) console.error("ADMIN_HTTP", response.status(), response.url()); });
-    await page.goto(url); await page.getByLabel("Provider AI").waitFor(); await page.getByRole("listitem").first().waitFor();
-    expect(await page.getByRole("heading", { level: 2 }).allTextContents()).toEqual(["Syncloric sul telefono", "Riduci animazioni", "Nucleo familiare", "I tuoi dati", "Il tuo account Norish", "Norish URL", "Scansione etichetta con AI", "Barcode", "Utenti"]);
+    await page.goto(url + "/settings"); await page.getByRole("tabpanel", { name: "Generali", exact: true }).waitFor();
+    expect(await page.getByRole("tab").allTextContents()).toEqual(["Generali", "Nucleo", "Norish", "I miei dati", "ScansioneADMIN", "UtentiADMIN"]);
+    expect(await page.getByLabel("Provider AI").count()).toBe(0);
+    await page.getByRole("tab", { name: "Utenti", exact: true }).click(); await page.getByRole("listitem").first().waitFor();
+    await page.getByRole("tab", { name: "Norish", exact: true }).click();
     await page.getByRole("button", { name: "Salva Norish", exact: true }).waitFor();
+    await page.getByRole("tab", { name: "Scansione", exact: true }).click();
     const norish = page.locator('[aria-labelledby="norish-url-heading"]'); const ai = page.locator('[aria-labelledby="ai-settings-title"]');
     await page.getByLabel("Provider AI").selectOption("ollama"); await ai.getByText("Modifiche non salvate", { exact: true }).waitFor();
     await page.getByLabel("Abilita scansione AI").check(); hold = true;
     await page.getByRole("button", { name: "Salva AI", exact: true }).click();
     await ai.getByText("Salvataggio AI in corso…").waitFor();
     await page.getByRole("button", { name: "Salva AI", exact: true }).dispatchEvent("click");
+    await page.getByRole("tab", { name: "Norish", exact: true }).click();
     await page.getByRole("textbox", { name: "Norish URL" }).fill("https://fixture.example.invalid");
     await page.getByRole("textbox", { name: "Norish URL" }).focus(); expect(aiWrites).toBe(1); release?.(); hold = false;
-    await page.getByText("Impostazioni AI salvate.", { exact: true }).waitFor();
+    await page.getByText("Impostazioni AI salvate.", { exact: true }).waitFor({ state: "attached" });
     expect(await page.getByRole("textbox", { name: "Norish URL" }).evaluate(e => e === document.activeElement)).toBe(true);
     await norish.getByText("Modifiche non salvate", { exact: true }).waitFor();
     await page.getByRole("button", { name: "Salva Norish", exact: true }).click();
@@ -89,16 +96,44 @@ it("four admin sections: independent persistence, non-admin notice, mobile reflo
     await norish.getByRole("button", { name: "Salva Norish", exact: true }).click();
     await norish.getByText("URL aggiornato: verifica le tue chiavi Norish", { exact: true }).waitFor();
     expect(await norish.getByText("Modifiche non salvate", { exact: true }).count()).toBe(0);
+    await page.getByRole("tab", { name: "Scansione", exact: true }).click();
     await page.getByLabel("Ricerca prodotti su Open Food Facts").uncheck(); await page.getByRole("button", { name: "Salva Barcode" }).click(); await page.getByText("Impostazioni Barcode salvate.", { exact: true }).waitFor();
     await page.reload(); await page.getByLabel("Provider AI").waitFor(); expect(await page.getByLabel("Provider AI").inputValue()).toBe("ollama"); expect(await page.getByLabel("Ricerca prodotti su Open Food Facts").isChecked()).toBe(false);
     await page.getByLabel("Provider AI").selectOption("anthropic"); fail = true; await page.getByRole("button", { name: "Salva AI", exact: true }).click();
     await ai.getByRole("alert").waitFor(); expect(await ai.getByRole("alert").innerText()).toContain("Non è stato possibile verificare il salvataggio."); expect(await page.getByLabel("Provider AI").inputValue()).toBe("anthropic"); fail = false;
+    // Arrow/Home/End navigation uses one focusable tab and keeps the unsaved draft mounted.
+    const scanTab = page.getByRole("tab", { name: "Scansione", exact: true });
+    await scanTab.focus(); await scanTab.press("Home"); await page.getByRole("tabpanel", { name: "Generali", exact: true }).waitFor();
+    expect(await page.getByRole("tab", { name: "Generali", exact: true }).evaluate(el => el === document.activeElement)).toBe(true);
+    await page.keyboard.press("End"); await page.getByRole("tabpanel", { name: "Utenti", exact: true }).waitFor();
+    await page.keyboard.press("ArrowLeft"); await page.getByRole("tabpanel", { name: "Scansione", exact: true }).waitFor();
+    expect(await page.getByLabel("Provider AI").inputValue()).toBe("anthropic");
+    expect(await page.getByRole("tablist").locator('[tabindex="0"]').count()).toBe(1);
     for (const width of [320, 390, 1440]) {
       await page.setViewportSize({ width, height: 900 }); expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       if (process.env.ADMIN_VISUAL_DIR) await page.screenshot({ path: join(process.env.ADMIN_VISUAL_DIR, `admin-${width}.png`), fullPage: true });
+      await page.getByRole("tab", { name: "Generali", exact: true }).click();
+      await page.mouse.move(0, 0);
+      if (process.env.ADMIN_VISUAL_DIR) await page.screenshot({ path: join(process.env.ADMIN_VISUAL_DIR, `generali-${width}.png`), fullPage: true });
+      await page.getByRole("tab", { name: "Scansione", exact: true }).click();
     }
-    await page.goto(url + "?member"); await page.getByText("Richiede amministratore", { exact: true }).waitFor(); expect(await page.getByLabel("Chiave API Norish", { exact: true }).count()).toBe(1);
+    // Losing the admin role removes previously visited privileged panels as well as their tabs.
+    await page.getByRole("tab", { name: "Utenti", exact: true }).click();
+    const self = page.getByRole("listitem").filter({ has: page.getByRole("heading", { name: "fixture_admin", exact: true }) });
+    await self.getByRole("button", { name: "Rimuovi ruolo amministratore", exact: true }).click();
+    await self.getByRole("button", { name: "Conferma rimozione ruolo", exact: true }).click();
+    await page.getByRole("heading", { name: "Richiede amministratore", exact: true }).waitFor();
+    expect(await page.getByRole("tab", { name: "Utenti", exact: true }).count()).toBe(0);
+    expect(await page.getByRole("tab", { name: "Scansione", exact: true }).count()).toBe(0);
     expect(await page.getByLabel("Provider AI", { exact: true }).count()).toBe(0);
+    expect(await page.getByRole("tab", { name: "Generali", exact: true }).getAttribute("aria-selected")).toBe("true");
+    expect(await page.locator('.settings-page > [tabindex="-1"]').evaluate(el => el === document.activeElement)).toBe(true);
+    await page.goto(url + "?member");
+    expect(await page.getByRole("tab", { name: "Utenti", exact: true }).count()).toBe(0);
+    expect(await page.getByRole("tab", { name: "Scansione", exact: true }).count()).toBe(0);
+    await page.getByRole("tab", { name: "Norish", exact: true }).click(); await page.getByText("Richiede amministratore", { exact: true }).waitFor(); expect(await page.getByLabel("Chiave API Norish", { exact: true }).count()).toBe(1);
+    expect(await page.getByLabel("Provider AI", { exact: true }).count()).toBe(0);
+    await page.getByRole("tab", { name: "Generali", exact: true }).click();
     expect(await page.getByRole("switch", { name: "Riduci animazioni" }).count()).toBe(1);
     expect(await page.getByRole("switch", { name: "Abilita scansione AI" }).count()).toBe(0);
   } finally { release?.(); releaseDelete?.(); await browser.close(); await new Promise<void>(resolve => server.close(() => resolve())); await client.close(); vi.unstubAllEnvs(); resetEnvConfigCache(); }
