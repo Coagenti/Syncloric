@@ -30,10 +30,8 @@ class PackagingTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             subprocess.run(['git', 'clone', '--quiet', '--no-checkout', str(ROOT), directory], check=True)
             subprocess.run(['git', '-C', directory, 'config', 'core.autocrlf', 'true'], check=True)
-            # Include pending attributes before the first checkout (no stat-cache reuse).
-            attributes = ROOT / '.gitattributes'
-            if attributes.exists():
-                (Path(directory) / '.gitattributes').write_bytes(attributes.read_bytes())
+            # Test committed attributes during the first checkout, as on CI.
+            # Prewriting a tracked .gitattributes would block Git's checkout.
             subprocess.run(['git', '-C', directory, 'checkout', '--quiet', 'HEAD'], check=True)
             for name in ['docker/entrypoint.sh', 'pnpm-lock.yaml', 'docker/Dockerfile', 'docker/docker-compose.yml']:
                 with self.subTest(path=name):
