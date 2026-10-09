@@ -19,6 +19,17 @@ diario, sync, profilo, barcode, AI e impostazioni confrontano Origin con la
 stessa origine pubblica. Il confronto precedente con `request.url` poteva
 confrontare il dominio HTTPS del browser con l’URL HTTP interno di Next e
 produrre 403. Non servono IP interni, wildcard o disattivazione dei controlli CSRF.
+Se `BETTER_AUTH_URL` non coincide con l’Origin del browser (ad esempio conserva
+l’URL LAN HTTP dopo l’attivazione del dominio HTTPS), gli endpoint `/api/auth/*`
+rifiutano le POST con `403` e codice `INVALID_ORIGIN`; le API `/api/v1/*` protette
+dalla guardia custom rispondono `403` con `Origine non consentita.`. Correggere
+`BETTER_AUTH_URL` nell’ambiente del deployment e ricreare il container, mantenendo
+allineate eventuali copie dell’env gestite dall’operatore. Aggiungere soltanto
+`BETTER_AUTH_TRUSTED_ORIGINS` non corregge le guardie custom dell’app: non è
+un’alternativa all’URL pubblico corretto. Non modificare il proxy se inoltra già
+Origin intatto e non aggiungere il dominio di una singola istanza come default
+nel repository.
+
 Host, Forwarded e X-Forwarded-* ricevuti non concedono fiducia ad altre origini.
 Cambiare schema, dominio o porta nel browser richiede aggiornare questa variabile;
 le altre origini sono rifiutate anche se coincidono con l’URL backend.
