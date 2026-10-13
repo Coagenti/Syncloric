@@ -82,8 +82,9 @@ async function throttle() {
 
 function parseServingGrams(servingSize: string | null | undefined): number | null {
   if (!servingSize) return null;
-  const match = /([0-9]+(?:\.[0-9]+)?)\s*g/i.exec(servingSize);
-  return match ? Math.round(parseFloat(match[1])) : null;
+  const match = /([0-9]+(?:[.,][0-9]+)?)\s*g\b/i.exec(servingSize);
+  const grams = match ? Math.round(Number(match[1].replace(",", ".")) * 100) / 100 : 0;
+  return grams > 0 && grams <= 999999.99 ? grams : null;
 }
 
 /**

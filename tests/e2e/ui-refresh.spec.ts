@@ -4,12 +4,13 @@ import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { diaryUrl, withDiaryBrowser } from "./helpers/diary-harness";
 
-it("each meal + preserves the selected date and slot through save and restores focus after the feed reload", async () => {
+it("each meal + opens a dedicated view and preserves the selected date and slot through save", async () => {
   await withDiaryBrowser(async page => {
     const entries: Record<string, unknown>[] = [];
     const writes: Record<string, unknown>[] = [];
     await page.route("**/api/v1/**", async route => {
       const req = route.request();
+      if (req.url().includes("/frequent")) return route.fulfill({ json: { foods: [] } });
       if (req.url().includes("/catalog")) return route.fulfill({ json: { foods: [], recipes: [] } });
       if (req.method() === "POST") {
         const body = req.postDataJSON(); writes.push(body);
@@ -24,19 +25,17 @@ it("each meal + preserves the selected date and slot through save and restores f
     for (const slot of slots) {
       const trigger = page.locator(`[data-add-slot="${slot}"]`);
       await trigger.click();
-      const dialog = page.getByRole("dialog");
-      await pw(dialog.getByRole("combobox", { name: "Pasto" })).toHaveValue(slot);
-      await pw(dialog.getByLabel("Data", { exact: true })).toHaveValue("2026-10-05");
-      await dialog.getByLabel("Nome alimento").fill(`Alimento ${slot}`);
-      await dialog.getByLabel("Quantità in grammi").fill("100");
-      await dialog.getByLabel("Kcal totali").fill("200");
-      await dialog.getByRole("button", { name: "Salva voce" }).click();
-      await pw(dialog).not.toBeVisible();
-      await pw(page.locator(`[data-add-slot="${slot}"]`)).toBeFocused();
+      await pw(page.getByLabel("Pasto", { exact: true })).toHaveValue(slot);
+      await pw(page.getByLabel("Data inserimento", { exact: true })).toHaveValue("2026-10-05");
+      await page.getByRole("button", { name: "Inserisci un alimento manualmente" }).click();
+      await page.getByLabel("Nome alimento", { exact: true }).fill(`Alimento ${slot}`);
+      await page.getByLabel("Quantità in grammi", { exact: true }).fill("100");
+      await page.getByLabel("Kcal per 100 g", { exact: true }).fill("200");
+      await page.getByRole("button", { name: /^Aggiungi a / }).click();
+      await pw(page.getByRole("status")).toContainText("aggiunto");
+      await page.getByRole("link", { name: "Fine", exact: true }).click();
     }
     expect(writes.map(write => [write.date, write.slot])).toEqual(slots.map(slot => ["2026-10-05", slot]));
-    const trigger = page.locator('[data-add-slot="Breakfast"]');
-    await trigger.click(); await page.keyboard.press("Escape"); await pw(trigger).toBeFocused();
     if (process.env.DIARY_VISUAL_CSS === "1") {
       const dir = process.env.UI_EVIDENCE_DIR ?? "test-results/ui-refresh";
       await mkdir(dir, { recursive: true });

@@ -2,7 +2,7 @@ import { it, expect } from "vitest";
 import { expect as pw } from "@playwright/test";
 import { diaryUrl, withDiaryBrowser } from "./helpers/diary-harness";
 
-it("all dialog close paths restore their add/edit trigger, including delayed saves", async () => {
+it("all edit dialog close paths restore their trigger, including delayed saves", async () => {
   await withDiaryBrowser(async page => {
     const entry = { id: "manual-1", date: "2026-09-29", slot: "Lunch", entryType: "food", foodId: "food-1", recipeId: null, name: "Yogurt", quantityGrams: 125, servings: null, kcal: 80, source: "manual", norishDeleted: false, protein: null, fat: null, carbs: null };
     let release: (() => void) | undefined;
@@ -17,7 +17,7 @@ it("all dialog close paths restore their add/edit trigger, including delayed sav
       return route.fulfill({ json: { entries: [entry], sync: null, target: null } });
     });
     await page.goto(diaryUrl(page));
-    for (const mode of ["add", "edit"]) {
+    for (const mode of ["edit"]) {
       const trigger = mode === "add" ? page.locator('[data-add-slot="Lunch"]') : page.getByRole("button", { name: "Modifica", exact: true });
       for (const action of ["Escape", "Chiudi", "Annulla", "Salva voce"]) {
         await trigger.click();
@@ -42,6 +42,6 @@ it("all dialog close paths restore their add/edit trigger, including delayed sav
         await pw(trigger).toBeFocused();
       }
     }
-    expect(count).toBe(2);
+    expect(count).toBe(1);
   });
 }, 600000);

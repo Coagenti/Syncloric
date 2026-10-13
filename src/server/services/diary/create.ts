@@ -5,6 +5,8 @@ import { z } from "zod";
 import type { Db } from "@/server/db";
 import { diaryEntries, foods, recipes, slotEnum } from "@/server/db/schema";
 import { normalizeNutrition, scaleNutrition, nutritionColumns, nutritionSchema, per100gSchema } from "@/lib/nutrition";
+import { foodPortionsSchema, portionColumns, portionSnapshotSchema, portionTotalGrams } from "@/lib/food-portions";
+import { saveFoodPreferences } from "@/server/services/foods/entry-http";
 
 const amount = z.number({ error: "Indica una quantità numerica positiva." })
   .positive("La quantità deve essere positiva.")
@@ -25,9 +27,12 @@ const inputSchema = z.discriminatedUnion("entryType", [
     name: z.string({ error: "Indica il nome dell'alimento." }).trim()
       .min(1, "Indica il nome dell'alimento.").optional(),
     quantityGrams: amount,
+    portion: portionSnapshotSchema.nullable().optional(),
+    portions: foodPortionsSchema.optional(),
     kcal: kcal.optional(),
     nutrients: nutritionSchema.optional(),
   }).superRefine((input, ctx) => {
+    if (input.portion && portionTotalGrams(input.portion.grams, input.portion.quantity) !== input.quantityGrams) ctx.addIssue({ code: "custom", message: "Porzione e grammi non corrispondono." });
     if (!input.foodId && (!input.name || input.kcal === undefined)) {
       ctx.addIssue({ code: "custom", message: "Per un nuovo alimento indica nome, quantità in grammi e kcal totali." });
     }
@@ -89,9 +94,11 @@ export function buildDiaryCreateHandlers(deps: {
           if (!food) return NextResponse.json({ error: "Alimento non trovato." }, { status: 400 });
           const totalKcal = input.foodId ? Math.round(food.kcalPer100g * input.quantityGrams / 100) : input.kcal!;
           if (!kcal.safeParse(totalKcal).success) return overflow();
+          if (input.portions) await saveFoodPreferences(tx, session.user.id, food.id, input.portions);
           const [entry] = await tx.insert(diaryEntries).values({
             ...commonValues, entryType: "food", foodId: food.id,
             quantityGrams: String(input.quantityGrams), kcal: totalKcal,
+            ...portionColumns(input.portion),
             ...nutritionColumns(input.foodId ? scaleNutrition(normalizeNutrition(food.nutrientsPer100g, { protein: food.proteinPer100g, fat: food.fatPer100g, carbs: food.carbsPer100g }), input.quantityGrams / 100) : normalizeNutrition(input.nutrients)),
           }).returning();
           return NextResponse.json({ entry }, { status: 201 });

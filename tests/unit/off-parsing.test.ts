@@ -40,7 +40,7 @@ describe("normalizzazione payload Open Food Facts", () => {
     expect(normalized.proteinPer100g).toBe(2.51);
     expect(normalized.fatPer100g).toBe(0.49);
     expect(normalized.carbsPer100g).toBe(99.95);
-    expect(normalized.servingGrams).toBe(41);
+    expect(normalized.servingGrams).toBe(40.6);
   });
 
   it("kcal mancanti o malformate vengono fuori come NULL, non come zero", () => {

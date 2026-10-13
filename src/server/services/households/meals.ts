@@ -4,6 +4,7 @@ import { z } from "zod";
 import { diaryEntries, foods, householdMembers, mealShareLinks, recipes, slotEnum, users } from "@/server/db/schema";
 import { normalizeNutrition, nutritionColumns, scaleNutrition } from "@/lib/nutrition";
 import type { SharedMeal } from "@/lib/meal-sharing";
+import { portionColumns } from "@/lib/food-portions";
 import { activeUser, checkOrigin, handle, hash, HttpError, input, json, lockHouseholds, sessionUserId, type Deps, type Tx } from "./common";
 import { memberHousehold } from "./http";
 
@@ -33,6 +34,7 @@ async function loadMeal(tx: Tx, userId: string, date: string, slot: typeof slotE
     return { id: entry.id, name: entry.copiedName ?? recipeName ?? foodName ?? "Voce senza nome", entryType: entry.entryType,
       quantityGrams: entry.quantityGrams === null ? null : Number(entry.quantityGrams), servings: entry.servings === null ? null : Number(entry.servings),
       kcal: entry.kcal === null ? null : Math.round(entry.kcal * factor),
+      portion: entry.portionLabel && entry.portionGrams && entry.portionQuantity ? { label: entry.portionLabel, grams: Number(entry.portionGrams), quantity: Number(entry.portionQuantity) } : null,
       nutrients: scaleNutrition(normalizeNutrition(entry.nutrients, { protein: entry.protein, fat: entry.fat, carbs: entry.carbs }), factor) };
   }) };
 }
@@ -107,7 +109,7 @@ export function buildMealCopyHandlers(deps: Deps) {
         // Keep private name and totals snapshots. No catalog duplication or inferred zero kcal.
         const [copy] = await tx.insert(diaryEntries).values({ userId, date: data.targetDate, slot: data.targetSlot, entryType: entry.entryType,
           foodId: null, recipeId: null, copiedName: entry.name, quantityGrams: entry.quantityGrams === null ? null : String(entry.quantityGrams), servings: entry.servings === null ? null : String(entry.servings),
-          kcal: entry.kcal, ...nutritionColumns(entry.nutrients), source: "manual", copiedMeal: true, norishItemId: null, norishDeleted: false }).returning({ id: diaryEntries.id });
+          kcal: entry.kcal, ...portionColumns(entry.portion), ...nutritionColumns(entry.nutrients), source: "manual", copiedMeal: true, norishItemId: null, norishDeleted: false }).returning({ id: diaryEntries.id });
         ids.push(copy.id);
       }
       return json({ ids, count: ids.length, date: data.targetDate }, 201);

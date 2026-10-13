@@ -8,6 +8,7 @@ import { resetEnvConfigCache } from "@/server/config";
 import { buildDiaryFeedHandlers } from "@/server/services/diary/feed";
 import { buildDiaryCreateHandlers } from "@/server/services/diary/create";
 import { buildDiaryMutationHandlers } from "@/server/services/diary/mutate";
+import { buildFoodEntryHandlers } from "@/server/services/foods/entry-http";
 import { buildDiaryCatalogHandlers } from "@/server/services/diary/catalog";
 import { buildSyncHandlers } from "@/server/services/norish/http";
 import { NorishApiError } from "@/server/services/norish/client";
@@ -53,6 +54,7 @@ it("browser: login → inline food/recipe → persisted feed/dashboard → manua
     const create = buildDiaryCreateHandlers(deps);
     const mutate = buildDiaryMutationHandlers(deps);
     const catalog = buildDiaryCatalogHandlers(deps);
+    const foodEntry = buildFoodEntryHandlers({ ...deps, lookup: async () => null, search: async () => ({ foods: [], hasMore: false }) });
     // DI only at the upstream boundary: HTTP guards, lock, audit and feed stay real.
     const client: SyncPort = {
       getPlannedRecipesWeek: vi.fn(), getPlannedRecipesToday: vi.fn(), getRecipe: vi.fn(),
@@ -72,8 +74,9 @@ it("browser: login → inline food/recipe → persisted feed/dashboard → manua
     const bundle = await build({
       stdin: { contents: `import React from 'react';import{createRoot}from'react-dom/client';
         import{LoginForm}from'./src/components/auth/login-form';
+        import{FoodEntryView}from'./src/components/food-entry/food-entry-view';
         import{CalorieApp}from'./src/components/calorie-app';
-        createRoot(document.getElementById('root')).render(location.pathname==='/login'?<LoginForm/>:<CalorieApp view={location.pathname==='/dashboard'?'dashboard':'diary'}/>);`, resolveDir: process.cwd(), loader: "tsx" },
+        createRoot(document.getElementById('root')).render(location.pathname==='/login'?<LoginForm/>:location.pathname==='/diary/add'?<FoodEntryView initialDate={new URLSearchParams(location.search).get('date')||''} initialSlot={new URLSearchParams(location.search).get('slot')||'Lunch'}/>:<CalorieApp view={location.pathname==='/dashboard'?'dashboard':'diary'}/>);`, resolveDir: process.cwd(), loader: "tsx" },
       bundle: true, write: false, platform: "browser", jsx: "automatic",
       define: { "process.env.NODE_ENV": '"production"', "process.env": '{}' },
     });
@@ -94,6 +97,9 @@ it("browser: login → inline food/recipe → persisted feed/dashboard → manua
           const pathname = new URL(request.url).pathname;
           const response = pathname.startsWith("/api/auth/") ? await auth.handler(request)
             : pathname === "/api/v1/sync" && req.method === "POST" ? await sync.POST(request)
+            : pathname === "/api/v1/foods/frequent" ? await foodEntry.FREQUENT(request)
+            : pathname === "/api/v1/foods" && req.method === "POST" ? await foodEntry.POST(request)
+            : pathname.startsWith("/api/v1/foods/") ? await foodEntry.GET(request, pathname.split("/").pop()!)
             : pathname === "/api/v1/diary/catalog" ? await catalog.GET(request)
             : pathname === "/api/v1/diary" && req.method === "GET" ? await feed.GET(request)
             : pathname === "/api/v1/diary" && req.method === "POST" ? await create.POST(request)
@@ -164,37 +170,30 @@ it("browser: login → inline food/recipe → persisted feed/dashboard → manua
     expect((await getFeed()).entries).toEqual([]);
     log("empty feed asserted");
     await page.locator('[data-add-slot="Lunch"]').click();
-    const dialog = page.getByRole("dialog", { name: "Aggiungi voce" });
-    await dialog.getByRole("textbox", { name: "Nome alimento" }).fill("Yogurt fixture");
-    await dialog.getByRole("spinbutton", { name: "Quantità in grammi" }).fill("125");
-    await dialog.getByRole("spinbutton", { name: "Kcal totali" }).fill("80");
-    await dialog.getByRole("combobox", { name: "Pasto" }).selectOption("Snack");
-    const foodWrite = page.waitForResponse(r => r.url().endsWith("/api/v1/diary") && r.request().method() === "POST");
-    await dialog.getByRole("button", { name: "Salva voce" }).click();
+    await page.getByLabel("Pasto", { exact: true }).selectOption("Snack");
+    await page.getByRole("button", { name: "Inserisci un alimento manualmente" }).click();
+    await page.getByLabel("Nome alimento", { exact: true }).fill("Yogurt fixture");
+    await page.getByLabel("Quantità in grammi", { exact: true }).fill("125");
+    await page.getByLabel("Kcal per 100 g", { exact: true }).fill("64");
+    const foodWrite = page.waitForResponse(r => r.url().endsWith("/api/v1/foods") && r.request().method() === "POST");
+    await page.getByRole("button", { name: "Aggiungi a Spuntino", exact: true }).click();
     expect((await foodWrite).status()).toBe(201);
-    log("inline food POST 201");
-    await expect(dialog).not.toBeVisible();
-    await expect(page.locator(".entry-row").filter({ hasText: "Yogurt fixture" })).toContainText("80");
+    await expect(page.getByRole("status")).toContainText("Yogurt fixture aggiunto");
+    await page.getByRole("link", { name: "Fine", exact: true }).click();
     const food = (await getFeed()).entries[0];
     expect(food).toMatchObject({ name: "Yogurt fixture", source: "manual", entryType: "food", quantityGrams: 125, kcal: 80, slot: "Snack", date: "2026-09-29" });
     expect(food.foodId).toBeTruthy();
-    log("food persisted in feed");
     await page.locator('[data-add-slot="Lunch"]').click();
-    await dialog.getByRole("combobox", { name: "Tipo di voce" }).selectOption("recipe");
-    await dialog.getByRole("combobox", { name: "Ricetta" }).selectOption(recipeId);
-    await dialog.getByRole("spinbutton", { name: "Numero di porzioni" }).fill("2.5");
+    await page.locator(".entry-recipes summary").click();
+    await page.getByRole("button", { name: "Scegli Pasta fixture", exact: true }).click();
+    await page.getByLabel("Numero di porzioni").fill("2.5");
     const recipeWrite = page.waitForResponse(r => r.url().endsWith("/api/v1/diary") && r.request().method() === "POST");
-    await dialog.getByRole("button", { name: "Salva voce" }).click();
+    await page.getByRole("button", { name: "Aggiungi a Pranzo", exact: true }).click();
     expect((await recipeWrite).status()).toBe(201);
-    log("recipe POST 201");
-    await expect(dialog).not.toBeVisible();
-    await expect(page.locator(".entry-row").filter({ hasText: "Pasta fixture" })).toContainText("800");
-    expect((await getFeed()).entries).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: food.id, kcal: 80 }),
-      expect.objectContaining({ recipeId, name: "Pasta fixture", source: "manual", servings: 2.5, kcal: 800 }),
-    ]));
+    await expect(page.getByRole("status")).toContainText("Pasta fixture aggiunto");
+    await page.getByRole("link", { name: "Fine", exact: true }).click();
+    expect((await getFeed()).entries).toEqual(expect.arrayContaining([expect.objectContaining({ id: food.id, kcal: 80 }), expect.objectContaining({ recipeId, name: "Pasta fixture", source: "manual", servings: 2.5, kcal: 800 })]));
     expect((await getFeed()).entries).toHaveLength(2);
-    log("recipe persisted in feed");
     await page.goto(`${url}/dashboard`);
     await expect(page.locator(".meal-card").filter({ hasText: "Yogurt fixture" })).toContainText("80");
     await expect(page.locator(".meal-card").filter({ hasText: "Pasta fixture" })).toContainText("800");

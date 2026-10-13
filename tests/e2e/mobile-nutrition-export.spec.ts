@@ -9,6 +9,7 @@ import { users } from "@/server/db/schema";
 import { buildDiaryCreateHandlers } from "@/server/services/diary/create";
 import { buildDiaryMutationHandlers } from "@/server/services/diary/mutate";
 import { buildDiaryFeedHandlers } from "@/server/services/diary/feed";
+import { buildFoodEntryHandlers } from "@/server/services/foods/entry-http";
 import { buildDiaryCatalogHandlers } from "@/server/services/diary/catalog";
 import { buildExportHandlers, buildExportTokenHandlers } from "@/server/services/export/http";
 import { productionCss } from "./helpers/production-css";
@@ -17,8 +18,9 @@ it("production mobile flows: nutrients, downloads, token lifecycle, PWA privacy 
   const db = await makeTestDb(); const userId = "11111111-1111-4111-8111-111111111111";
   await db.insert(users).values({ id: userId, username: "mobile" });
   const deps = { getDb: () => db as unknown as Db, getSession: async () => ({ user: { id: userId } }) };
+  const foodEntry = buildFoodEntryHandlers({ ...deps, lookup: async () => null });
   const feed = buildDiaryFeedHandlers(deps), create = buildDiaryCreateHandlers(deps), mutation = buildDiaryMutationHandlers(deps), catalog = buildDiaryCatalogHandlers(deps), tokens = buildExportTokenHandlers(deps), exporter = buildExportHandlers(deps);
-  const bundle = await build({ stdin: { contents: `import React from'react';import{createRoot}from'react-dom/client';import{CalorieApp}from'./src/components/calorie-app';import{SettingsContent}from'./src/components/settings/settings-content';import{createBarcodeReader}from'./src/lib/barcode-reader';window.decodeTestCanvas=async data=>{const canvas=document.createElement('canvas');canvas.width=data.width;canvas.height=data.height;canvas.videoWidth=data.width;canvas.videoHeight=data.height;const ctx=canvas.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,data.width,data.height);ctx.fillStyle='black';data.black.forEach(([x,y])=>ctx.fillRect(x,y,1,1));return(await(await createBarcodeReader()).detect(canvas))[0]?.rawValue};createRoot(document.getElementById('root')).render(location.pathname==='/settings'?<SettingsContent access='requires-admin'/>:<CalorieApp view='diary'/>);`, resolveDir: process.cwd(), loader: "tsx" }, bundle: true, write: false, platform: "browser", jsx: "automatic", define: { "process.env.NODE_ENV": '"production"', "process.env": '{}' } });
+  const bundle = await build({ stdin: { contents: `import React from'react';import{createRoot}from'react-dom/client';import{FoodEntryView}from'./src/components/food-entry/food-entry-view';import{CalorieApp}from'./src/components/calorie-app';import{SettingsContent}from'./src/components/settings/settings-content';import{createBarcodeReader}from'./src/lib/barcode-reader';window.decodeTestCanvas=async data=>{const canvas=document.createElement('canvas');canvas.width=data.width;canvas.height=data.height;canvas.videoWidth=data.width;canvas.videoHeight=data.height;const ctx=canvas.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,data.width,data.height);ctx.fillStyle='black';data.black.forEach(([x,y])=>ctx.fillRect(x,y,1,1));return(await(await createBarcodeReader()).detect(canvas))[0]?.rawValue};createRoot(document.getElementById('root')).render(location.pathname==='/settings'?<SettingsContent access='requires-admin'/>:location.pathname==='/diary/add'?<FoodEntryView initialDate={new URLSearchParams(location.search).get('date')||''} initialSlot={new URLSearchParams(location.search).get('slot')||'Lunch'}/>:<CalorieApp view='diary'/>);`, resolveDir: process.cwd(), loader: "tsx" }, bundle: true, write: false, platform: "browser", jsx: "automatic", define: { "process.env.NODE_ENV": '"production"', "process.env": '{}' } });
   const css = process.env.DIARY_VISUAL_CSS === "1" ? await productionCss() : "";
   const errors: string[] = [];
   const server = createServer(async (req, res) => {
@@ -32,6 +34,9 @@ it("production mobile flows: nutrients, downloads, token lifecycle, PWA privacy 
         const request = new Request(url, { method: req.method, headers: req.headers as Record<string, string>, ...(req.method === "GET" ? {} : { body: Buffer.concat(chunks).toString() }) });
         let response: Response;
         if (path === "/api/v1/diary") response = req.method === "POST" ? await create.POST(request) : await feed.GET(request);
+        else if (path === "/api/v1/foods/frequent") response = await foodEntry.FREQUENT(request);
+        else if (path === "/api/v1/foods") response = await foodEntry.POST(request);
+        else if (path.startsWith("/api/v1/foods/")) response = await foodEntry.GET(request, path.split("/").at(-1)!);
         else if (path === "/api/v1/diary/catalog") response = await catalog.GET(request);
         else if (path.startsWith("/api/v1/diary/")) response = await mutation.PATCH(request, { params: Promise.resolve({ id: path.split("/").at(-1)! }) });
         else if (path === "/api/v1/settings/export-tokens") response = await tokens[req.method as "GET" | "POST" | "DELETE"](request);
@@ -48,11 +53,12 @@ it("production mobile flows: nutrients, downloads, token lifecycle, PWA privacy 
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } }); await page.clock.setFixedTime(new Date("2026-10-07T12:00:00"));
     await page.goto(`${base}/diary`);
     await page.getByRole("button", { name: "Aggiungi alimento a Colazione" }).click();
-    const dialog = page.getByRole("dialog", { name: "Aggiungi voce" });
-    await dialog.getByLabel("Nome alimento").fill("Latte"); await dialog.getByLabel("Quantità in grammi").fill("200"); await dialog.getByLabel("Kcal totali", { exact: true }).fill("100");
-    await dialog.getByLabel("Proteine totali").fill("6"); await dialog.getByText("Fibre, zuccheri, vitamine e minerali", { exact: true }).click();
-    await dialog.getByLabel("Vitamina D (µg) totali", { exact: true }).fill("2.5");
-    await dialog.getByRole("button", { name: "Salva voce", exact: true }).click(); await pw(dialog).not.toBeVisible();
+    await page.getByRole("button", { name: "Inserisci un alimento manualmente" }).click();
+    await page.getByLabel("Nome alimento", { exact: true }).fill("Latte"); await page.getByLabel("Quantità in grammi", { exact: true }).fill("200"); await page.getByLabel("Kcal per 100 g", { exact: true }).fill("50");
+    await page.getByLabel("Proteine per 100 g", { exact: true }).fill("3"); await page.getByText("Fibre, zuccheri, vitamine e minerali", { exact: true }).click();
+    await page.getByLabel("Vitamina D (µg) per 100 g", { exact: true }).fill("1.25");
+    await page.getByRole("button", { name: "Aggiungi a Colazione", exact: true }).click(); await pw(page.getByRole("status")).toContainText("Latte aggiunto");
+    await page.getByRole("link", { name: "Fine", exact: true }).click();
     await pw(page.locator(".macro-protein")).toContainText("6"); await page.locator(".nutrition-summary summary").click(); await pw(page.locator(".nutrition-summary")).toContainText("2,5 µg");
     await page.getByRole("button", { name: "Modifica", exact: true }).click();
     const editor = page.getByRole("dialog", { name: "Modifica voce" });

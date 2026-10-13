@@ -45,7 +45,7 @@ it("neon diary: icon actions, protected imports, confirmed DELETE, focus restora
     for (const width of [320, 390, 1440]) {
       await page.setViewportSize({ width, height: 950 });
       if (process.env.DIARY_VISUAL_CSS === "1") expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
-      await pw(page.getByRole("button", { name: "Scansiona", exact: true })).toBeVisible();
+      await pw(page.getByRole("link", { name: "Scansiona", exact: true })).toBeVisible();
     }
   });
 }, 60_000);

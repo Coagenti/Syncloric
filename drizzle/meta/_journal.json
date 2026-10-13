@@ -43,6 +43,13 @@
       "when": 1791477981910,
       "tag": "0005_households_meal_sharing",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791900709142,
+      "tag": "0006_food_portions",
+      "breakpoints": true
     }
   ]
 }

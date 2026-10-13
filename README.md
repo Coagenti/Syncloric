@@ -145,9 +145,11 @@ le voci senza kcal non entrano nel totale. L'obiettivo viene dal profilo, se pre
 La UI non usa più localStorage o dati dimostrativi. Le API autenticate
 `POST /api/v1/diary` ([contratto](docs/DIARY-WRITES.md)), `PATCH` e
 `DELETE /api/v1/diary/:id` ([contratto](docs/DIARY-MUTATE.md)) gestiscono le
-voci manuali nel feed. I dialog reali aggiungono food inline/catalogo o ricette
-con porzioni, e modificano le sole voci manuali; «Sincronizza ora» invoca
+voci manuali nel feed. Il + apre una pagina dedicata con Ricerca, Scansione
+ed Etichetta AI; i dialog modificano le sole voci manuali; «Sincronizza ora» invoca
 `POST /api/v1/sync`. Catalogo locale e prove browser: [DIARY-UI](docs/DIARY-UI.md).
+La nuova [vista inserimento](docs/FOOD-ENTRY.md) offre ricerca per nome su Open
+Food Facts, più usati per utente/pasto e porzioni multiple personali.
 Il Diario offre anche **Scansiona** per il barcode: codice manuale sempre
 disponibile, camera nativa dove supportata, ricerca locale-first + Open Food
 Facts e conferma prodotto/grammi con scrittura reale nel diario. Nel form nuovo
@@ -209,8 +211,8 @@ chiavi, usa OLLAMA_BASE_URL (default http://localhost:11434). In Compose localho
 Modelli vision default: gpt-4.1-mini, claude-haiku-4-5-20251001, llama3.2-vision;
 SYNCLORIC_AI_MODEL permette un override compatibile con il provider selezionato.
 
-Nel form nuovo prodotto: foto/upload JPEG/PNG/WebP (5 MB), preview locale,
-Scansiona etichetta, verifica/modifica, Registra nel diario. La selezione della
+Nella tab **Etichetta AI** della pagina di inserimento: foto/upload JPEG/PNG/WebP (5 MB), preview locale,
+Scansiona etichetta, verifica/modifica, Aggiungi al pasto. La selezione della
 foto non la invia: occorre premere il pulsante. La UI dichiara il destinatario;
 OpenAI e Anthropic ricevono la foto nel cloud, Ollama sul server configurato.
 Syncloric non salva/logga le foto; la conservazione lato provider dipende dalle

@@ -6,7 +6,7 @@ import { readFile } from "node:fs/promises";
 
 /** Real client bundle + real Chromium; all API traffic must be intercepted by the caller. */
 export async function withDiaryBrowser(run: (page: Page) => Promise<void>, view = "diary") {
-  const bundle = await build({ stdin: { contents: `import React from 'react';import{createRoot}from'react-dom/client';import{CalorieApp}from'./src/components/calorie-app';const view=['dashboard','diary','calendar'].find(view=>location.pathname==='/'+view)||'${view}';createRoot(document.getElementById('root')).render(<CalorieApp view={view}/>);`, resolveDir: process.cwd(), loader: "tsx" }, bundle: true, write: false, platform: "browser", jsx: "automatic", define: { "process.env.NODE_ENV": '"production"', "process.env": '{}' } });
+  const bundle = await build({ stdin: { contents: `import React from 'react';import{createRoot}from'react-dom/client';import{FoodEntryView}from'./src/components/food-entry/food-entry-view';import{CalorieApp}from'./src/components/calorie-app';const view=['dashboard','diary','calendar'].find(view=>location.pathname==='/'+view)||'${view}';createRoot(document.getElementById('root')).render(location.pathname==='/diary/add'?<FoodEntryView initialDate={new URLSearchParams(location.search).get('date')||''} initialSlot={new URLSearchParams(location.search).get('slot')||'Lunch'}/>:<CalorieApp view={view}/>);`, resolveDir: process.cwd(), loader: "tsx" }, bundle: true, write: false, platform: "browser", jsx: "automatic", define: { "process.env.NODE_ENV": '"production"', "process.env": '{}' } });
   let css = "";
   if (process.env.DIARY_VISUAL_CSS === "1") {
     css = await productionCss();

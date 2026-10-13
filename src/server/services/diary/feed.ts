@@ -48,6 +48,7 @@ export function buildDiaryFeedHandlers(deps: {
           id: entry.id, foodId: entry.foodId, recipeId: entry.recipeId, date: entry.date, slot: entry.slot, entryType: entry.entryType,
           name: entry.copiedName ?? recipeName ?? foodName ?? "Voce senza nome", quantityGrams: entry.quantityGrams === null ? null : Number(entry.quantityGrams),
           servings: entry.servings === null ? null : Number(entry.servings),
+          portion: entry.portionLabel && entry.portionGrams && entry.portionQuantity ? { label: entry.portionLabel, grams: Number(entry.portionGrams), quantity: Number(entry.portionQuantity) } : null,
           kcal: entry.kcal === null ? null : entry.entryType === "recipe" && entry.source === "norish_sync" ? Math.round(entry.kcal * Number(entry.servings ?? 1)) : entry.kcal,
           nutrients, protein: nutrients.protein ?? null, fat: nutrients.fat ?? null, carbs: nutrients.carbs ?? null, source: entry.source, norishDeleted: entry.norishDeleted, copiedMeal: entry.copiedMeal,
         }); }),

@@ -1,6 +1,8 @@
 import type { SVGProps } from "react";
 
 const paths = {
+  search: "M10.5 3a7.5 7.5 0 1 0 0 15 7.5 7.5 0 0 0 0-15 M16 16l5 5",
+  camera: "M3 7h4l2-3h6l2 3h4v14H3z M12 10a4 4 0 1 0 0 8 4 4 0 0 0 0-8",
   family: "M8 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6 M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6 M2 21v-4a6 6 0 0 1 12 0v4 M16 14a6 6 0 0 1 6 6v1",
   share: "M16 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6 M5 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6 M16 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6 M8 10l5-4 M8 14l5 4",
   dashboard: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z",

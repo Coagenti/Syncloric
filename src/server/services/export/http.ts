@@ -2,7 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { and, asc, desc, eq, gt, gte, lte, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Db } from "@/server/db";
-import { diaryEntries, exportTokens, foods, profiles, recipes, users } from "@/server/db/schema";
+import { diaryEntries, exportTokens, foodPreferences, foods, profiles, recipes, users } from "@/server/db/schema";
 import { isAllowedRequestOrigin } from "@/server/http/request-origin";
 import { nutrientSpecs, normalizeNutrition, scaleNutrition } from "@/lib/nutrition";
 
@@ -102,7 +102,7 @@ export function buildExportHandlers(deps: Deps) {
             .orderBy(asc(diaryEntries.date), asc(diaryEntries.id)).limit(500);
           for (const { entry, foodName, recipeName } of rows) {
             const factor = entry.source === "norish_sync" && entry.entryType === "recipe" ? Number(entry.servings ?? 1) : 1;
-            yield { id: entry.id, date: entry.date, slot: entry.slot, entryType: entry.entryType, name: entry.copiedName ?? recipeName ?? foodName ?? "Voce senza nome", foodId: entry.foodId, recipeId: entry.recipeId, quantityGrams: entry.quantityGrams === null ? null : Number(entry.quantityGrams), servings: entry.servings === null ? null : Number(entry.servings), kcal: entry.kcal === null ? null : Math.round(entry.kcal * factor), nutrients: scaleNutrition(normalizeNutrition(entry.nutrients, { protein: entry.protein, fat: entry.fat, carbs: entry.carbs }), factor), source: entry.source, norishDeleted: entry.norishDeleted, createdAt: entry.createdAt, updatedAt: entry.updatedAt };
+            yield { id: entry.id, date: entry.date, slot: entry.slot, entryType: entry.entryType, name: entry.copiedName ?? recipeName ?? foodName ?? "Voce senza nome", foodId: entry.foodId, recipeId: entry.recipeId, quantityGrams: entry.quantityGrams === null ? null : Number(entry.quantityGrams), servings: entry.servings === null ? null : Number(entry.servings), portionLabel: entry.portionLabel, portionGrams: entry.portionGrams === null ? null : Number(entry.portionGrams), portionQuantity: entry.portionQuantity === null ? null : Number(entry.portionQuantity), kcal: entry.kcal === null ? null : Math.round(entry.kcal * factor), nutrients: scaleNutrition(normalizeNutrition(entry.nutrients, { protein: entry.protein, fat: entry.fat, carbs: entry.carbs }), factor), source: entry.source, norishDeleted: entry.norishDeleted, createdAt: entry.createdAt, updatedAt: entry.updatedAt };
           }
           if (rows.length < 500) return;
           const last = rows.at(-1)!.entry; cursor = { date: last.date, id: last.id };
@@ -110,17 +110,25 @@ export function buildExportHandlers(deps: Deps) {
       }
       async function* chunks() {
         if (format === "csv") {
-          yield "\uFEFF" + ["id", "date", "slot", "entryType", "name", "source", "quantityGrams", "servings", "kcal", ...nutrientSpecs.map(s => `${s.key}_${s.unit === "µg" ? "ug" : s.unit}`), "norishDeleted"].map(csvCell).join(",") + "\r\n";
-          for await (const entry of entries()) yield [entry.id, entry.date, entry.slot, entry.entryType, entry.name, entry.source, entry.quantityGrams, entry.servings, entry.kcal, ...nutrientSpecs.map(s => entry.nutrients[s.key]), entry.norishDeleted].map(csvCell).join(",") + "\r\n";
+          yield "\uFEFF" + ["id", "date", "slot", "entryType", "name", "source", "quantityGrams", "servings", "kcal", ...nutrientSpecs.map(s => `${s.key}_${s.unit === "µg" ? "ug" : s.unit}`), "norishDeleted", "portionLabel", "portionGrams", "portionQuantity"].map(csvCell).join(",") + "\r\n";
+          for await (const entry of entries()) yield [entry.id, entry.date, entry.slot, entry.entryType, entry.name, entry.source, entry.quantityGrams, entry.servings, entry.kcal, ...nutrientSpecs.map(s => entry.nutrients[s.key]), entry.norishDeleted, entry.portionLabel, entry.portionGrams, entry.portionQuantity].map(csvCell).join(",") + "\r\n";
         } else {
           const metadata = { version: 1, generatedAt: now().toISOString(), user: { id: userId, username: user!.username }, range: { from: from ?? null, to: to ?? null }, units: Object.fromEntries(nutrientSpecs.map(s => [s.key, s.unit])), profile: profile ?? null };
           yield JSON.stringify(metadata).slice(0, -1) + ',"foods":[';
           let foodCursor: string | null = null; let comma = "";
           for (;;) {
             if (request.signal.aborted) return;
-            const rows = await db.select({ id: foods.id, name: foods.name, brand: foods.brand, barcode: foods.barcode, kcalPer100g: foods.kcalPer100g, nutrientsPer100g: foods.nutrientsPer100g, protein: foods.proteinPer100g, fat: foods.fatPer100g, carbs: foods.carbsPer100g }).from(foods).where(and(eq(foods.createdBy, userId), foodCursor ? gt(foods.id, foodCursor) : undefined)).orderBy(asc(foods.id)).limit(500);
+            const rows = await db.select({ id: foods.id, name: foods.name, brand: foods.brand, barcode: foods.barcode, portions: foods.portions, kcalPer100g: foods.kcalPer100g, nutrientsPer100g: foods.nutrientsPer100g, protein: foods.proteinPer100g, fat: foods.fatPer100g, carbs: foods.carbsPer100g }).from(foods).where(and(eq(foods.createdBy, userId), foodCursor ? gt(foods.id, foodCursor) : undefined)).orderBy(asc(foods.id)).limit(500);
             for (const { protein, fat, carbs, ...food } of rows) { yield comma + JSON.stringify({ ...food, nutrientsPer100g: normalizeNutrition(food.nutrientsPer100g, { protein, fat, carbs }) }); comma = ","; }
             if (rows.length < 500) break; foodCursor = rows.at(-1)!.id;
+          }
+          yield '],"foodPreferences":['; comma = "";
+          let preferenceCursor: string | null = null;
+          for (;;) {
+            if (request.signal.aborted) return;
+            const preferences = await db.select({ id: foodPreferences.id, foodId: foodPreferences.foodId, portions: foodPreferences.portions }).from(foodPreferences).where(and(eq(foodPreferences.userId, userId), preferenceCursor ? gt(foodPreferences.id, preferenceCursor) : undefined)).orderBy(asc(foodPreferences.id)).limit(500);
+            for (const preference of preferences) { yield comma + JSON.stringify(preference); comma = ","; }
+            if (preferences.length < 500) break; preferenceCursor = preferences.at(-1)!.id;
           }
           yield '],"entries":['; comma = "";
           for await (const entry of entries()) { yield comma + JSON.stringify(entry); comma = ","; }
