@@ -1,5 +1,6 @@
 import { relations, sql } from "drizzle-orm";
 import type { Nutrition } from "@/lib/nutrition";
+import type { FoodPortion } from "@/lib/food-portions";
 import {
   boolean,
   date,
@@ -160,6 +161,7 @@ export const foods = pgTable(
     nutrientsPer100g: jsonb("nutrients_per_100g").$type<Nutrition>().notNull().default({}),
     servingGrams: integer("serving_grams"),
     servingLabel: text("serving_label"),
+    portions: jsonb("portions").$type<FoodPortion[]>().notNull().default([]),
     source: foodSourceEnum("source").notNull().default("manual"),
     sourcePayload: jsonb("source_payload"),
     createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
@@ -192,6 +194,15 @@ export const recipes = pgTable(
   (t) => [uniqueIndex("recipes_norish_recipe_id_unique").on(t.norishRecipeId)],
 );
 
+/** Personal portion definitions never change another user's quantities. */
+export const foodPreferences = pgTable("food_preferences", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  foodId: uuid("food_id").notNull().references(() => foods.id, { onDelete: "cascade" }),
+  portions: jsonb("portions").$type<FoodPortion[]>().notNull(),
+  ...timestamps,
+}, t => [uniqueIndex("food_preferences_user_food_unique").on(t.userId, t.foodId)]);
+
 /** § 4.5 — Diario (tabella centrale): macro snapshottati, idempotenza ADR-0008. */
 export const diaryEntries = pgTable(
   "diary_entries",
@@ -206,6 +217,9 @@ export const diaryEntries = pgTable(
     foodId: uuid("food_id").references(() => foods.id, { onDelete: "set null" }),
     recipeId: uuid("recipe_id").references(() => recipes.id, { onDelete: "set null" }),
     quantityGrams: numeric("quantity_grams", { precision: 8, scale: 2 }),
+    portionLabel: text("portion_label"),
+    portionGrams: numeric("portion_grams", { precision: 8, scale: 2 }),
+    portionQuantity: numeric("portion_quantity", { precision: 8, scale: 2 }),
     servings: numeric("servings", { precision: 8, scale: 2 }),
     kcal: integer("kcal"),
     protein: numeric("protein", { precision: 8, scale: 2 }),
@@ -224,6 +238,7 @@ export const diaryEntries = pgTable(
   (t) => [
     // Indici di query non-univoci (dashboard/registro, § 4.5)
     index("diary_entries_user_date_idx").on(t.userId, t.date),
+    index("diary_entries_user_slot_food_idx").on(t.userId, t.slot, t.foodId),
     index("diary_entries_user_date_slot_item_idx").on(
       t.userId,
       t.date,

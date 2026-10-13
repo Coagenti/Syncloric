@@ -1,5 +1,6 @@
 /** View model mirrors diary_entries in ARCHITECTURE.md §4.5; demo only, no DB writes. */
 import type { Nutrition } from "@/lib/nutrition";
+import type { PortionSnapshot } from "@/lib/food-portions";
 export type Slot = "Breakfast" | "Lunch" | "Snack" | "Dinner";
 export const slots: Slot[] = ["Breakfast", "Lunch", "Snack", "Dinner"];
 export const slotLabels: Record<Slot, string> = { Breakfast: "Colazione", Lunch: "Pranzo", Snack: "Spuntino", Dinner: "Cena" };
@@ -7,6 +8,7 @@ export type DiaryEntry = {
   id: string; date: string; slot: Slot; entryType: "food" | "recipe";
   name: string; quantityGrams: number | null; servings: number | null;
   foodId?: string | null; recipeId?: string | null;
+  portion?: PortionSnapshot | null;
   copiedMeal?: boolean;
   nutrients?: Nutrition;
   kcal: number | null; protein: number | null; fat: number | null; carbs: number | null;

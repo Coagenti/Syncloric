@@ -6,6 +6,8 @@ import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
 import { buildBarcodeHandlers } from "@/server/services/foods/http";
+import { buildFoodEntryHandlers } from "@/server/services/foods/entry-http";
+import { buildDiaryCatalogHandlers } from "@/server/services/diary/catalog";
 import { buildDiaryFeedHandlers } from "@/server/services/diary/feed";
 import type { Db } from "@/server/db";
 import { resetEnvConfigCache } from "@/server/config";
@@ -23,7 +25,9 @@ it("manual barcode: unknown product, confirmation, proportional diary kcal, relo
   const deps = { getDb: () => db, getSession: async () => ({ user: { id: user } }) };
   const barcode = buildBarcodeHandlers({ ...deps, lookup: async () => { calls++; return null; } });
   const diary = buildDiaryFeedHandlers(deps);
-  const bundle = await build({ stdin: { contents: `import React from 'react'; import {createRoot} from 'react-dom/client'; import {CalorieApp} from './src/components/calorie-app'; createRoot(document.getElementById('root')).render(<CalorieApp view="diary"/>);`, resolveDir: process.cwd(), loader: "tsx" }, bundle: true, write: false, platform: "browser", jsx: "automatic", define: { "process.env.NODE_ENV": '"production"', "process.env": '{}' } });
+  const foodEntry = buildFoodEntryHandlers({ ...deps, lookup: async () => { calls++; return null; } });
+  const catalog = buildDiaryCatalogHandlers(deps);
+  const bundle = await build({ stdin: { contents: `import React from 'react'; import {createRoot} from 'react-dom/client'; import {FoodEntryView} from './src/components/food-entry/food-entry-view'; import {CalorieApp} from './src/components/calorie-app'; createRoot(document.getElementById('root')).render(location.pathname==='/diary/add'?<FoodEntryView initialDate={new URLSearchParams(location.search).get('date')||''} initialSlot={new URLSearchParams(location.search).get('slot')||'Snack'}/>:<CalorieApp view="diary"/>);`, resolveDir: process.cwd(), loader: "tsx" }, bundle: true, write: false, platform: "browser", jsx: "automatic", define: { "process.env.NODE_ENV": '"production"', "process.env": '{}' } });
   const server = createServer(async (req, res) => {
     try {
       if (req.url === "/app.js") { res.setHeader("Content-Type", "application/javascript"); res.end(bundle.outputFiles[0].text); return; }
@@ -31,7 +35,12 @@ it("manual barcode: unknown product, confirmation, proportional diary kcal, relo
         const chunks: Buffer[] = []; for await (const chunk of req) chunks.push(Buffer.from(chunk));
         const url = `http://${req.headers.host}${req.url}`;
         const request = new Request(url, { method: req.method, headers: req.headers as Record<string,string>, ...(req.method === "POST" ? { body: Buffer.concat(chunks).toString() } : {}) });
-        const response = req.url.startsWith("/api/v1/barcode") ? await barcode[req.method === "POST" ? "POST" : "GET"](request) : await diary.GET(request);
+        const pathname = new URL(url).pathname;
+        const response = pathname.startsWith("/api/v1/barcode") ? await barcode.GET(request)
+          : pathname === "/api/v1/foods/frequent" ? await foodEntry.FREQUENT(request)
+          : pathname === "/api/v1/foods" ? await foodEntry.POST(request)
+          : pathname.startsWith("/api/v1/foods/") ? await foodEntry.GET(request, pathname.split("/").at(-1)!)
+          : pathname === "/api/v1/diary/catalog" ? await catalog.GET(request) : await diary.GET(request);
         res.writeHead(response.status, { "Content-Type": "application/json" }); res.end(await response.text()); return;
       }
       res.end('<html lang="it"><meta name="viewport" content="width=device-width"><div id="root"></div><script src="/app.js"></script></html>');
@@ -44,24 +53,24 @@ it("manual barcode: unknown product, confirmation, proportional diary kcal, relo
     const errors: string[] = []; page.on("pageerror", e => errors.push(e.message));
     await page.clock.setFixedTime(new Date("2026-10-01T12:00:00"));
     await page.goto(`http://127.0.0.1:${(server.address() as {port:number}).port}`);
-    const scan = page.getByRole("button", { name: "Scansiona", exact: true });
+    const scan = page.getByRole("link", { name: "Scansiona", exact: true });
     await scan.click({ timeout: 10000 });
     await page.getByLabel("Codice a barre", { exact: true }).fill("8001234567890");
     await page.getByRole("button", { name: "Cerca prodotto" }).click();
-    await page.getByLabel("Nome prodotto").fill("Snack barcode");
+    await page.getByLabel("Nome alimento", { exact: true }).fill("Snack barcode");
     await page.getByLabel("Kcal per 100 g").fill("400");
-    await page.getByLabel("Grammi registrati").fill("25");
-    await page.getByRole("button", { name: "Registra nel diario" }).click();
-    await page.getByText("Snack barcode", { exact: true }).waitFor();
+    await page.getByLabel("Quantità in grammi", { exact: true }).fill("25");
+    await page.getByRole("button", { name: "Aggiungi a Spuntino", exact: true }).click();
+    await page.locator(".entry-success").waitFor(); await page.getByRole("link", { name: "Fine", exact: true }).click(); await page.getByText("Snack barcode", { exact: true }).waitFor();
     expect((await client.query<{kcal:number}>("SELECT kcal FROM diary_entries")).rows[0].kcal).toBe(100);
     await page.reload(); await page.getByText("Snack barcode", { exact: true }).waitFor();
     const before = calls;
     await scan.click(); await page.getByLabel("Codice a barre", { exact: true }).fill("8001234567890");
     await page.getByRole("button", { name: "Cerca prodotto" }).click();
-    await page.getByText("Prodotto nel catalogo locale.", { exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Snack barcode", exact: true }).waitFor();
     expect(calls).toBe(before);
-    await page.keyboard.press("Escape");
-    expect(await scan.evaluate(el => el === document.activeElement)).toBe(true);
+    await page.goBack();
+    await page.getByRole("tab", { name: "Scansione", exact: true }).waitFor();
     expect(errors).toEqual([]);
   } finally {
     await browser.close(); await new Promise<void>(resolve => server.close(() => resolve())); await client.close(); process.env = env; resetEnvConfigCache();

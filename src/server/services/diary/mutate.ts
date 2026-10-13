@@ -4,12 +4,13 @@ import { isAllowedRequestOrigin } from "@/server/http/request-origin";
 import { z } from "zod";
 import type { Db } from "@/server/db";
 import { diaryEntries, foods, recipes, slotEnum } from "@/server/db/schema";
-import { normalizeNutrition, scaleNutrition, nutritionColumns, nutritionSchema } from "@/lib/nutrition";
+import { normalizeNutrition, scaleNutrition, nutritionColumns, nutritionSchema, type Nutrition } from "@/lib/nutrition";
+import { portionColumns, portionSnapshotSchema, portionTotalGrams } from "@/lib/food-portions";
 
 type Context = { params: Promise<{ id: string }> };
 type Entry = typeof diaryEntries.$inferSelect;
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
-type Loaded = { entry: Entry | null; foodKcal: number | null; recipeKcal: number | null; guard: NextResponse | null };
+type Loaded = { entry: Entry | null; foodKcal: number | null; foodNutrition: Nutrition | null; recipeKcal: number | null; guard: NextResponse | null };
 
 const amount = z.number({ error: "Indica una quantità numerica positiva." })
   .positive("La quantità deve essere positiva.")
@@ -23,6 +24,7 @@ const patchSchema = z.object({
   date: z.iso.date({ error: "Data non valida: usa YYYY-MM-DD." }).optional(),
   slot: z.enum(slotEnum.enumValues, { error: "Pasto non valido: usa Breakfast, Lunch, Dinner o Snack." }).optional(),
   quantityGrams: amount.optional(),
+  portion: portionSnapshotSchema.nullable().optional(),
   kcal: kcal.optional(),
   servings: amount.optional(),
   nutrients: nutritionSchema.optional(),
@@ -46,17 +48,17 @@ export function buildDiaryMutationHandlers(deps: {
   getSession: (headers: Headers) => Promise<{ user: { id: string } } | null>;
 }) {
   const load = async (tx: Tx, userId: string, id: string): Promise<Loaded> => {
-    const [row] = await tx.select({ entry: diaryEntries, foodKcal: foods.kcalPer100g, recipeKcal: recipes.kcalPerServing })
+    const [row] = await tx.select({ entry: diaryEntries, foodKcal: foods.kcalPer100g, foodNutrients: foods.nutrientsPer100g, foodProtein: foods.proteinPer100g, foodFat: foods.fatPer100g, foodCarbs: foods.carbsPer100g, recipeKcal: recipes.kcalPerServing })
       .from(diaryEntries)
       .leftJoin(foods, eq(diaryEntries.foodId, foods.id))
       .leftJoin(recipes, eq(diaryEntries.recipeId, recipes.id))
       .where(and(eq(diaryEntries.id, id), eq(diaryEntries.userId, userId)));
-    if (!row) return { entry: null, foodKcal: null, recipeKcal: null, guard: NOT_FOUND };
+    if (!row) return { entry: null, foodKcal: null, foodNutrition: null, recipeKcal: null, guard: NOT_FOUND };
     if (row.entry.source !== "manual") {
-      return { entry: null, foodKcal: null, recipeKcal: null,
+      return { entry: null, foodKcal: null, foodNutrition: null, recipeKcal: null,
         guard: NextResponse.json({ error: row.entry.source === "norish_sync" ? LOCKED : NOT_MANUAL }, { status: 403 }) };
     }
-    return { entry: row.entry, foodKcal: row.foodKcal, recipeKcal: row.recipeKcal, guard: null };
+    return { entry: row.entry, foodKcal: row.foodKcal, foodNutrition: row.foodNutrients ? normalizeNutrition(row.foodNutrients, { protein: row.foodProtein, fat: row.foodFat, carbs: row.foodCarbs }) : null, recipeKcal: row.recipeKcal, guard: null };
   };
   const lock = async (tx: Tx, id: string) => {
     await tx.select({ id: diaryEntries.id }).from(diaryEntries).where(eq(diaryEntries.id, id)).for("update");
@@ -82,18 +84,22 @@ export function buildDiaryMutationHandlers(deps: {
           const loaded = await load(tx, session.user.id, id);
           if (loaded.guard) return loaded.guard;
           const entry = loaded.entry!;
+          if (input.portion && (entry.entryType !== "food" || input.quantityGrams === undefined || portionTotalGrams(input.portion.grams, input.portion.quantity) !== input.quantityGrams)) return NextResponse.json({ error: "Indica i grammi corrispondenti alla porzione." }, { status: 400 });
+          if (input.portion !== undefined && entry.entryType !== "food") return NextResponse.json({ error: "Le unità alimento si applicano solo agli alimenti." }, { status: 400 });
           await lock(tx, id);
           const updates: Record<string, unknown> = { updatedAt: new Date() };
           if (input.date !== undefined) updates.date = input.date;
           if (input.slot !== undefined) updates.slot = input.slot;
           if (input.quantityGrams !== undefined) updates.quantityGrams = String(input.quantityGrams);
+          if (input.portion !== undefined || input.quantityGrams !== undefined) Object.assign(updates, portionColumns(input.portion));
           if (input.kcal !== undefined) updates.kcal = input.kcal;
           if (input.servings !== undefined) updates.servings = String(input.servings);
           if (entry.entryType === "food") {
-            if (input.nutrients !== undefined) Object.assign(updates, nutritionColumns(normalizeNutrition(input.nutrients)));
+            if (input.portion && input.quantityGrams !== undefined) Object.assign(updates, nutritionColumns(scaleNutrition(!entry.copiedMeal && loaded.foodNutrition ? loaded.foodNutrition : normalizeNutrition(entry.nutrients, { protein: entry.protein, fat: entry.fat, carbs: entry.carbs }), !entry.copiedMeal && loaded.foodNutrition ? input.quantityGrams / 100 : input.quantityGrams / Number(entry.quantityGrams ?? input.quantityGrams))));
+            else if (input.nutrients !== undefined) Object.assign(updates, nutritionColumns(normalizeNutrition(input.nutrients)));
             else if (input.quantityGrams !== undefined) Object.assign(updates, nutritionColumns(scaleNutrition(normalizeNutrition(entry.nutrients, { protein: entry.protein, fat: entry.fat, carbs: entry.carbs }), input.quantityGrams / Number(entry.quantityGrams ?? input.quantityGrams))));
             if (input.servings !== undefined) return NextResponse.json({ error: "Le porzioni si applicano solo alle ricette." }, { status: 400 });
-            if (input.quantityGrams !== undefined && input.kcal === undefined) {
+            if (input.quantityGrams !== undefined && (input.kcal === undefined || input.portion)) {
               const basis = entry.copiedMeal ? entry.kcal : loaded.foodKcal;
               const factor = entry.copiedMeal ? input.quantityGrams / Number(entry.quantityGrams ?? input.quantityGrams) : input.quantityGrams / 100;
               const total = basis === null ? null : Math.round(basis * factor);
