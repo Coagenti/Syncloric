@@ -14,7 +14,7 @@ import { ShareMealDialog } from "@/components/meal-sharing/share-meal-dialog";
 import { formatDate, localDateKey, shiftDate, type DiaryEntry, type Slot } from "@/lib/diary";
 
 type View = "dashboard" | "diary" | "calendar";
-type Feed = { entries: DiaryEntry[]; sync: SyncState; target: number | null };
+type Feed = { entries: DiaryEntry[]; sync: SyncState; target: number | null; macroGoals?: import("@/lib/goal-targets").MacroGoals | null };
 
 /** Fetch a per-user month, never cache private diary data in the browser. */
 export function CalorieApp({ view }: { view: View }) {
@@ -134,8 +134,8 @@ export function CalorieApp({ view }: { view: View }) {
       {loading && <p role="status">Caricamento pasti…</p>}
       {error && <p role="alert">{error} {error.startsWith("Accedi") && <Link href="/login">Vai al login</Link>}</p>}
       {feed && <>
-        {view === "dashboard" && <DashboardView showTitle={false} entries={entries} date={date} target={feed.target} />}
-        {view === "diary" && <DiaryView showTitle={false} entries={entries} date={date} target={feed.target} onAdd={addEntry} onShare={(slot, button) => { sharingTrigger.current = button; setSharingSlot(slot); }} onEdit={(entry, button) => { trigger.current = button; setFeedback(null); setEditing(entry); }} onDelete={(entry, button) => { trigger.current = button; setFeedback(null); setDeleting(entry); }} />}
+        {view === "dashboard" && <DashboardView showTitle={false} entries={entries} date={date} target={feed.target} macroGoals={feed.macroGoals} />}
+        {view === "diary" && <DiaryView showTitle={false} entries={entries} date={date} target={feed.target} macroGoals={feed.macroGoals} onAdd={addEntry} onShare={(slot, button) => { sharingTrigger.current = button; setSharingSlot(slot); }} onEdit={(entry, button) => { trigger.current = button; setFeedback(null); setEditing(entry); }} onDelete={(entry, button) => { trigger.current = button; setFeedback(null); setDeleting(entry); }} />}
         {view === "calendar" && <CalendarView showTitle={false} entries={entries} date={date} onSelect={setDate} />}
       </>}
   </AppShell>;

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { UiIcon } from "@/components/ui-icon";
 type Token = { id: string; label: string; createdAt: string; expiresAt: string; lastUsedAt: string | null };
 const endpoint = "/api/v1/settings/export-tokens";
 export function SettingsExportCard() {
@@ -36,7 +37,10 @@ export function SettingsExportCard() {
     <p className="form-help">JSON contiene profilo, alimenti creati da te e diario con nutrienti. CSV contiene le voci del diario con una colonna per ogni nutriente. Password, chiavi API e token sono esclusi.</p>
     <div className="form-columns"><label>Dal giorno<input type="date" value={from} onChange={e => setFrom(e.target.value)} /></label><label>Al giorno<input type="date" value={to} onChange={e => setTo(e.target.value)} /></label></div>
     {!validRange && <p role="alert">La data finale deve essere successiva o uguale alla data iniziale.</p>}
-    <div className="export-actions">{validRange && <><a className="secondary-btn" href={url("json")} download>Esporta JSON</a><a className="secondary-btn" href={url("csv")} download>Esporta CSV</a></>}</div>
+    <div className="export-actions export-downloads">{validRange && <>
+      <a className="export-download export-download-json" href={url("json")} download aria-label="Esporta JSON"><UiIcon name="download" /><span className="export-download-label"><span>Esporta</span><strong>JSON</strong></span></a>
+      <a className="export-download export-download-csv" href={url("csv")} download aria-label="Esporta CSV"><UiIcon name="download" /><span className="export-download-label"><span>Esporta</span><strong>CSV</strong></span></a>
+    </>}</div>
     <h3>Accesso API personale</h3><p className="form-help">Crea un token di sola lettura per esportare soltanto i tuoi dati. Puoi revocarlo in qualsiasi momento; non permette modifiche al diario.</p>
     <form onSubmit={e => { e.preventDefault(); void mutate(); }}><label>Nome token<input required maxLength={64} value={label} onChange={e => setLabel(e.target.value)} placeholder="Es. Il mio script" /></label>
       <label>Scadenza token<select value={days} onChange={e => setDays(e.target.value)}><option value="30">30 giorni</option><option value="90">90 giorni</option><option value="365">365 giorni</option></select></label>

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { ProfileForm } from "@/components/profile-form";
+import { ProfileContent } from "@/components/profile/profile-content";
 import { profilePageProps } from "@/server/services/profile/page-data";
 export const metadata: Metadata = { title: "Profilo — Syncloric" };
 export const dynamic = "force-dynamic";
 export default async function ProfilePage() {
-  return <ProfileForm {...await profilePageProps()} />;
+  return <ProfileContent {...await profilePageProps()} />;
 }

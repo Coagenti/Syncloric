@@ -29,10 +29,10 @@ it("profile: server preview, save/reload, target switch and dashboard without/wi
   await db.execute(sql`INSERT INTO users (id, username) VALUES (${id}::uuid, 'profile-test')`);
   const deps = { getDb: () => db as unknown as Db, getSession: async () => ({ user: { id } }) };
   const profile = buildProfileHandlers(deps), diary = buildDiaryFeedHandlers(deps);
-  const bundle = await build({ stdin: { contents: `import React from 'react'; import {createRoot} from 'react-dom/client'; import {ProfileForm} from './src/components/profile-form'; import {DashboardView} from './src/components/calorie-views';
+  const bundle = await build({ stdin: { contents: `import React from 'react'; import {createRoot} from 'react-dom/client'; import {ProfileContent} from './src/components/profile/profile-content'; import {DashboardView} from './src/components/calorie-views';
     const root=createRoot(document.getElementById('root'));
-    if(location.pathname==='/profile') fetch('/api/v1/profile').then(r=>r.json()).then(p=>root.render(<ProfileForm initialProfile={p.profile}/>));
-    else fetch('/api/v1/diary?month=2026-01').then(r=>r.json()).then(p=>root.render(<DashboardView entries={p.entries} date='2026-01-01' target={p.target}/>));`, resolveDir: process.cwd(), loader: "tsx" }, bundle: true, write: false, platform: "browser", loader: { ".css": "empty" }, jsx: "automatic", define: { "process.env.NODE_ENV": '"production"' } });
+    if(location.pathname==='/profile') fetch('/api/v1/profile').then(r=>r.json()).then(p=>root.render(<ProfileContent initialProfile={p.profile}/>));
+    else fetch('/api/v1/diary?month=2026-01').then(r=>r.json()).then(p=>root.render(<DashboardView entries={p.entries} date='2026-01-01' target={p.target}/>));`, resolveDir: process.cwd(), loader: "tsx" }, bundle: true, write: false, platform: "browser", loader: { ".css": "empty" }, jsx: "automatic", define: { "process.env.NODE_ENV": '"production"', "process.env": '{}' } });
   let css = await readFile("src/app/globals.css", "utf8") + await readFile("src/components/profile.css", "utf8");
   if (process.env.PROFILE_VISUAL === "1") {
     // Compile the real production Tailwind/PostCSS pipeline for visual evidence.
@@ -70,7 +70,7 @@ it("profile: server preview, save/reload, target switch and dashboard without/wi
     await page.getByLabel("Peso (kg)").fill("80");
     await page.getByLabel("Anno di nascita").fill(String(new Date().getFullYear() - 30));
     await page.getByLabel("Livello di attività").selectOption("moderate");
-    await page.getByLabel("Obiettivo").selectOption("maintain");
+    await page.getByRole("combobox", { name: "Obiettivo", exact: true }).selectOption("maintain");
     await expect(page.getByTestId("target-preview")).toContainText("2760 kcal");
     await page.getByRole("button", { name: "Salva profilo" }).click();
     await expect(page.getByRole("status")).toContainText("Modifiche salvate");
@@ -78,7 +78,7 @@ it("profile: server preview, save/reload, target switch and dashboard without/wi
     await expect(page.getByLabel("Peso (kg)")).toHaveValue("80");
     await page.getByRole("link", { name: "Torna alla dashboard" }).click();
     await expect(page.locator(".energy-balance")).toContainText("2.760");
-    await page.goto(base + "/profile");
+    await page.goto(base + "/profile#obiettivo");
     await page.getByLabel("Manuale", { exact: true }).check();
     await page.getByLabel("Target manuale (kcal)").fill("2101");
     await page.getByRole("button", { name: "Salva profilo" }).click();
@@ -86,12 +86,12 @@ it("profile: server preview, save/reload, target switch and dashboard without/wi
     await page.getByRole("link", { name: "Torna alla dashboard" }).click();
     await expect(page.locator(".energy-balance")).toContainText("2.101");
     for (const width of [320, 390, 1440]) {
-      await page.setViewportSize({ width, height: 900 }); await page.goto(base + "/profile");
+      await page.setViewportSize({ width, height: 900 }); await page.goto(base + "/profile#obiettivo");
       await expect(page.getByRole("heading", { name: "Il tuo obiettivo." })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await page.screenshot({ path: path.resolve("..", `profile-${width}.png`), fullPage: true });
     }
-    await page.goto(base + "/profile");
+    await page.goto(base + "/profile#obiettivo");
     await page.getByLabel("Anno di nascita").fill("1800");
     const save = page.getByRole("button", { name: "Salva profilo" });
     let release!: () => void;
@@ -148,7 +148,7 @@ it("profile: server preview, save/reload, target switch and dashboard without/wi
       await weight.focus();
       await page.keyboard.press("Enter");
       await expect(page.getByRole("button", { name: "Salvataggio…" })).toBeDisabled();
-      await page.locator("form").evaluate(form => form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+      await page.getByRole("tabpanel", { name: "Obiettivo", exact: true }).locator("form").evaluate(form => form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
       const back = page.getByRole("link", { name: "Torna alla dashboard" });
       if (moveFocus) await back.focus();
       complete();

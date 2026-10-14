@@ -102,7 +102,7 @@ it("browser: signup → persistent diary → logout → login, protected routes 
     await expect(page.getByRole("heading", { name: "Richiede amministratore" })).toHaveCount(0);
     await page.goto(`${url}/diary`);
     const logoutResponse = page.waitForResponse(response => response.url().endsWith("/api/auth/sign-out"));
-    await page.getByRole("button", { name: "Esci", exact: true }).click();
+    await page.getByRole("button", { name: "Menu profilo" }).click(); await page.getByRole("menuitem", { name: "Esci", exact: true }).click();
     const logout = await logoutResponse;
     // Navigation unloads the fetch document; reading its response body can hang in Chromium.
     // Status plus the protected-page redirect below verifies successful server-side revocation.
@@ -146,7 +146,7 @@ it("browser: signup → persistent diary → logout → login, protected routes 
     await expect(page.getByLabel("Chiave API Norish", { exact: true })).toBeVisible();
     await expect(page.getByLabel("Provider AI", { exact: true })).toHaveCount(0);
     await expect(page.getByRole("navigation", { name: "Navigazione mobile" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Esci", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Menu profilo" }).click(); await expect(page.getByRole("menuitem", { name: "Esci", exact: true })).toBeVisible(); await page.getByRole("menuitem", { name: "Esci", exact: true }).press("Escape");
     const denied = await page.request.put(`${url}/api/v1/settings/norish-url`, { data: { url: "https://example.invalid" } });
     expect(denied.status()).toBe(403);
     await page.goto(`${url}/login`);

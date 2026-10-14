@@ -1,7 +1,9 @@
 import { and, desc, eq, gte, lt } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import type { Db } from "@/server/db";
-import { diaryEntries, foods, norishSyncRuns, profiles, recipes } from "@/server/db/schema";
+import { diaryEntries, foods, norishSyncRuns, recipes } from "@/server/db/schema";
+import { readProfile } from "@/server/services/profile/http";
+import { defaultMacroSettings, macroGoals } from "@/lib/goal-targets";
 import { NORISH_SETTINGS_KEY, norishBaseUrl } from "@/server/config";
 import { getAdminSetting } from "@/server/db/repositories/settings";
 import { buildAdminSettingsOverride } from "@/server/services/settings/norish-url";
@@ -22,7 +24,7 @@ export function buildDiaryFeedHandlers(deps: {
       const end = `${year + (m === 12 ? 1 : 0)}-${String(m === 12 ? 1 : m + 1).padStart(2, "0")}-01`;
       const db = deps.getDb();
       const userId = session.user.id;
-      const [rows, runs, targets] = await Promise.all([
+      const [rows, runs, profile] = await Promise.all([
         db.select({ entry: diaryEntries, recipeName: recipes.name, foodName: foods.name })
           .from(diaryEntries).leftJoin(recipes, eq(diaryEntries.recipeId, recipes.id))
           .leftJoin(foods, eq(diaryEntries.foodId, foods.id))
@@ -31,8 +33,7 @@ export function buildDiaryFeedHandlers(deps: {
         db.select({ status: norishSyncRuns.status, reason: norishSyncRuns.reason, finishedAt: norishSyncRuns.finishedAt })
           .from(norishSyncRuns).where(eq(norishSyncRuns.userId, userId))
           .orderBy(desc(norishSyncRuns.startedAt), desc(norishSyncRuns.id)).limit(1),
-        db.select({ targetSource: profiles.targetSource, manual: profiles.manualTargetKcal, calculated: profiles.calculatedTargetKcal })
-          .from(profiles).where(eq(profiles.userId, userId)).limit(1),
+        readProfile(db, userId),
       ]);
       const last = runs[0];
       let origin: string | null = null;
@@ -41,6 +42,7 @@ export function buildDiaryFeedHandlers(deps: {
         const url = norishBaseUrl(buildAdminSettingsOverride(saved ?? undefined));
         if (url) origin = new URL(url).origin;
       }
+      const target = profile ? profile.targetSource === "manual" ? profile.manualTargetKcal ?? null : profile.calculatedTargetKcal : null;
       return NextResponse.json({
         entries: rows.map(({ entry, recipeName, foodName }) => {
           const nutrients = scaleNutrition(normalizeNutrition(entry.nutrients, { protein: entry.protein, fat: entry.fat, carbs: entry.carbs }), entry.entryType === "recipe" && entry.source === "norish_sync" ? Number(entry.servings ?? 1) : 1);
@@ -53,7 +55,8 @@ export function buildDiaryFeedHandlers(deps: {
           nutrients, protein: nutrients.protein ?? null, fat: nutrients.fat ?? null, carbs: nutrients.carbs ?? null, source: entry.source, norishDeleted: entry.norishDeleted, copiedMeal: entry.copiedMeal,
         }); }),
         sync: last ? { status: last.status, reason: last.reason === "auth" ? "auth" : null, origin, finishedAt: last.finishedAt?.toISOString() ?? null } : null,
-        target: targets[0] ? (targets[0].targetSource === "manual" ? targets[0].manual : targets[0].calculated) : null,
+        target,
+        macroGoals: profile && new Date().getUTCFullYear() - profile.birthYear >= 18 ? macroGoals(target, profile.macroSettings ?? defaultMacroSettings, profile.goal, profile.activityLevel, profile.weightKg) : null,
       }, { headers: { "Cache-Control": "private, no-store" } });
     },
   };
