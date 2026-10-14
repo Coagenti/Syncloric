@@ -12,7 +12,7 @@ From the repository with Python 3 and Git installed:
 ```sh
 python3 tests/deploy/test_packaging.py
 python3 tests/deploy/test_release_archives.py
-python3 scripts/package-release.py --ref v0.1.0 --output ../release-assets
+python3 scripts/package-release.py --ref v0.2.0 --output ../release-assets
 (cd ../release-assets && sha256sum -c SHA256SUMS.txt)
 ```
 
