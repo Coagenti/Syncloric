@@ -12,7 +12,7 @@ From the repository with Python 3 and Git installed:
 ```sh
 python3 tests/deploy/test_packaging.py
 python3 tests/deploy/test_release_archives.py
-python3 scripts/package-release.py --ref v0.1.0 --output ../release-assets
+python3 scripts/package-release.py --ref v0.2.0 --output ../release-assets
 (cd ../release-assets && sha256sum -c SHA256SUMS.txt)
 ```
 
@@ -23,6 +23,9 @@ modified by this script. The script generates both formats with `git archive`,
 checks required entrypoint/lockfile bytes, rejects CRLF in UTF-8 text files,
 compares tar/zip payloads and writes LF SHA256SUMS.txt. It fails rather than
 silently rewriting bad committed blobs. Binary data is not normalized.
+Archive commands explicitly disable the host's `core.autocrlf` and use LF EOL
+configuration, so Windows Git defaults cannot convert archive text to CRLF.
+The regression test covers those defaults and rejects a committed CRLF entrypoint.
 
 `.gitattributes` enforces LF even with core.autocrlf=true; after adding it,
 `git add --renormalize .` audits/normalizes already tracked text. Existing LF

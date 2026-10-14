@@ -1,6 +1,6 @@
 {
   "name": "syncloric",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Webapp self-hosted per il conteggio calorie con import automatico da norish (vedi docs/ARCHITECTURE.md)",
   "packageManager": "pnpm@10.34.6",
