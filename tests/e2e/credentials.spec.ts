@@ -14,6 +14,7 @@ import { buildBarcodeSettingsHandlers } from "@/server/services/settings/barcode
 import { buildAdminUsersHandlers } from "@/server/services/settings/admin-users-http";
 import { productionCss } from "./helpers/production-css";
 import { buildExportTokenHandlers } from "@/server/services/export/http";
+import { buildAccountHandlers } from "@/server/services/profile/account-http";
 
 it("production settings: member Norish key and admin AI keys persist, rotate and delete without exposing values; mobile reflow", async () => {
   vi.stubEnv("DATABASE_URL", "postgres://test@localhost/test"); vi.stubEnv("BETTER_AUTH_SECRET", "x".repeat(64));
@@ -25,6 +26,7 @@ it("production settings: member Norish key and admin AI keys persist, rotate and
     const id = headers.get("x-test-user"); return id ? { user: { id, role: id === admin ? "admin" : "user" } } : null;
   } };
   const endpoints: Record<string, Record<string, (request: Request) => Promise<Response>>> = {
+    "/api/v1/account": buildAccountHandlers(deps),
     "/api/v1/settings/export-tokens": buildExportTokenHandlers(deps),
     "/api/v1/settings/norish-key": buildCredentialHandlers(deps, "norish"),
     "/api/v1/settings/ai-key": buildCredentialHandlers({ ...deps, env: () => ({}) }, "ai"),

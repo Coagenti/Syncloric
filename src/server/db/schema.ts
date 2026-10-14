@@ -1,6 +1,7 @@
 import { relations, sql } from "drizzle-orm";
 import type { Nutrition } from "@/lib/nutrition";
 import type { FoodPortion } from "@/lib/food-portions";
+import type { WeightGoal, MacroSettings } from "@/lib/goal-targets";
 import {
   boolean,
   date,
@@ -140,11 +141,24 @@ export const profiles = pgTable(
     targetSource: targetSourceEnum("target_source").notNull().default("calculated"),
     manualTargetKcal: integer("manual_target_kcal"),
     calculatedTargetKcal: integer("calculated_target_kcal"),
+    weightGoal: jsonb("weight_goal").$type<WeightGoal>(),
+    macroSettings: jsonb("macro_settings").$type<MacroSettings>(),
     recalculatedAt: timestamp("recalculated_at", { withTimezone: true }),
     ...timestamps,
   },
   (t) => [uniqueIndex("profiles_user_id_unique").on(t.userId)],
 );
+
+export const userAvatars = pgTable("user_avatars", {
+  userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  data: text("data").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+export const accountSecurityAttempts = pgTable("account_security_attempts", {
+  userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  attempts: integer("attempts").notNull(),
+  windowStartedAt: timestamp("window_started_at", { withTimezone: true }).notNull(),
+});
 
 /** § 4.4 — Cibi (convenzione UE: nutrienti per 100 g/ml; cibi condivisi nell'istanza). */
 export const foods = pgTable(

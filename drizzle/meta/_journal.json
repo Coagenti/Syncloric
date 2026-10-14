@@ -50,6 +50,13 @@
       "when": 1791900709142,
       "tag": "0006_food_portions",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791933058125,
+      "tag": "0007_goal_profile_account",
+      "breakpoints": true
     }
   ]
 }

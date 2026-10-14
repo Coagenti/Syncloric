@@ -1,0 +1,22 @@
+import { beforeAll, afterAll, expect, it, vi } from "vitest";
+import { makeTestDb, closeTestDb, type TestDb } from "./setup";
+import { buildAccountHandlers } from "@/server/services/profile/account-http";
+import type { Db } from "@/server/db";
+let db: TestDb;
+vi.mock("@/server/db", () => ({ getDb: () => db }));
+beforeAll(async () => { vi.stubEnv("DATABASE_URL", "postgres://test@localhost/test"); vi.stubEnv("BETTER_AUTH_SECRET", "test-only-not-a-real-secret-01234567890123456789"); vi.stubEnv("ENCRYPTION_KEY", "a".repeat(64)); vi.stubEnv("BETTER_AUTH_URL", "http://localhost:3000"); db = await makeTestDb(); }, 600000);
+afterAll(async () => { await closeTestDb(); vi.unstubAllEnvs(); });
+it("uses native password verification, revokes old sessions, preserves the new session and deletes only its owner", async () => {
+  const { getAuth } = await import("@/server/auth"); const auth = getAuth(); (await auth.$context).skipOriginCheck = false;
+  const call = (path: string, body: unknown, cookie = "") => auth.handler(new Request("http://localhost:3000/api/auth/" + path, { method: "POST", headers: { Origin: "http://localhost:3000", "Content-Type": "application/json", Cookie: cookie }, body: JSON.stringify(body) }));
+  for (const username of ["first_admin", "account_owner"]) expect((await call("sign-up/email", { username, name: username, email: username + "@users.invalid", password: "Current-pass-2026" })).status).toBe(200);
+  const cookies = (r: Response) => r.headers.getSetCookie().map(value => value.split(";")[0]).join("; ");
+  const login = () => call("sign-in/username", { username: "account_owner", password: "Current-pass-2026" });
+  const one = cookies(await login()), two = cookies(await login());
+  expect((await call("change-password", { currentPassword: "wrong", newPassword: "Next-pass-2026", revokeOtherSessions: true }, one)).status).toBe(400);
+  const changed = await call("change-password", { currentPassword: "Current-pass-2026", newPassword: "Next-pass-2026", revokeOtherSessions: true }, one); expect(changed.status).toBe(200);
+  expect(await auth.api.getSession({ headers: new Headers({ Cookie: one }) })).toBeNull(); expect(await auth.api.getSession({ headers: new Headers({ Cookie: two }) })).toBeNull();
+  const current = cookies(changed); expect((await auth.api.getSession({ headers: new Headers({ Cookie: current }) }))?.user.username).toBe("account_owner"); expect((await login()).status).not.toBe(200);
+  const account = buildAccountHandlers({ getDb: () => db as unknown as Db, getSession: headers => auth.api.getSession({ headers }) });
+  const removed = await account.DELETE(new Request("http://localhost:3000/api/v1/account", { method: "DELETE", headers: { Origin: "http://localhost:3000", "Content-Type": "application/json", Cookie: current }, body: JSON.stringify({ password: "Next-pass-2026", confirmation: "ELIMINA" }) })); expect(removed.status).toBe(200); expect(await auth.api.getSession({ headers: new Headers({ Cookie: current }) })).toBeNull();
+}, 120000);

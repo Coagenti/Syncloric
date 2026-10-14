@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { LogoutButton } from "@/components/auth/logout-button";
+import { AccountMenu } from "@/components/account-menu";
 import { UiIcon } from "@/components/ui-icon";
 import { Brand, BrandMark } from "@/components/brand";
 import { MotionPreferences } from "@/components/motion-preferences";
@@ -13,8 +13,8 @@ const navigation = [
   { id: "settings", label: "Impostazioni", href: "/settings" },
 ] as const;
 
-export function AppShell({ view, children }: { view: typeof navigation[number]["id"]; children: ReactNode }) {
-  const label = navigation.find(item => item.id === view)?.label;
+export function AppShell({ view, children }: { view: typeof navigation[number]["id"] | "profile"; children: ReactNode }) {
+  const label = view === "profile" ? "Profilo" : navigation.find(item => item.id === view)?.label;
   return <div className="app-shell">
     <MotionPreferences />
     <PwaRuntime />
@@ -25,7 +25,7 @@ export function AppShell({ view, children }: { view: typeof navigation[number]["
       <div className="side-bottom"><span className="side-label">IL TUO SPAZIO</span><p>Una panoramica semplice di quello che registri. Nessun giudizio, solo dati.</p><div className="side-build">SYNC / LIVE <span>●</span> V.01</div></div>
     </aside>
     <div className="app-main">
-      <header className="topbar"><div className="topbar-path"><Link href="/dashboard" className="mobile-brand-home" aria-label="Syncloric, vai alla dashboard"><BrandMark /></Link><span>SYNCLORIC</span><span aria-hidden="true">/</span><strong>{label?.toUpperCase()}</strong></div><div className="topbar-right"><Link className={`toolbar-action ${view === "settings" ? "is-current" : ""}`} href="/settings" aria-current={view === "settings" ? "page" : undefined}><UiIcon name="settings" /><span>Impostazioni</span></Link><LogoutButton /></div></header>
+      <header className="topbar"><div className="topbar-path"><Link href="/dashboard" className="mobile-brand-home" aria-label="Syncloric, vai alla dashboard"><BrandMark /></Link><span>SYNCLORIC</span><span aria-hidden="true">/</span><strong>{label?.toUpperCase()}</strong></div><div className="topbar-right"><AccountMenu /></div></header>
       <main className="content">{children}</main>
       <footer className="app-footer">SYNCLORIC <span>DIARIO CALORIE · DATI PERSONALI</span></footer>
     </div>

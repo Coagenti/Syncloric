@@ -39,5 +39,5 @@ it.each([
 it("preview ignores the unrelated manual target and source", async () => {
   const response = await handlers().PREVIEW(writeRequest({ ...valid, targetSource: "manual", manualTargetKcal: -1 }));
   expect(response.status).toBe(200);
-  expect(await response.json()).toEqual({ calculatedTargetKcal: 2760 });
+  expect(await response.json()).toMatchObject({ calculatedTargetKcal: 2760, calculation: { status: "standard" } });
 });
