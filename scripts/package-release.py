@@ -38,7 +38,11 @@ def package(repo, ref, output):
     if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.-]+)?', version):
         raise ValueError('unsafe package version')
     stem = f'syncloric-{version}'
-    raw_tar = subprocess.check_output(['git', '-C', str(repo), 'archive', '--format=tar', f'--prefix={stem}/', commit])
+    # git archive applies checkout EOL conversion when core.autocrlf is enabled.
+    # Ignore the host's Windows defaults for both formats; committed bad bytes
+    # still fail validate_files rather than being rewritten by this script.
+    archive_command = ['git', '-c', 'core.autocrlf=false', '-c', 'core.eol=lf', '-C', str(repo), 'archive']
+    raw_tar = subprocess.check_output([*archive_command, '--format=tar', f'--prefix={stem}/', commit])
     with tarfile.open(fileobj=io.BytesIO(raw_tar)) as archive:
         files = {}
         for member in archive.getmembers():
@@ -47,7 +51,7 @@ def package(repo, ref, output):
                 assert stream is not None
                 files[member.name.removeprefix(stem + '/')] = stream.read()
     validate_files(files)
-    raw_zip = subprocess.check_output(['git', '-C', str(repo), 'archive', '--format=zip', f'--prefix={stem}/', commit])
+    raw_zip = subprocess.check_output([*archive_command, '--format=zip', f'--prefix={stem}/', commit])
     with zipfile.ZipFile(io.BytesIO(raw_zip)) as archive:
         zip_files = {name.removeprefix(stem + '/'): archive.read(name) for name in archive.namelist() if not name.endswith('/')}
     if files != zip_files:

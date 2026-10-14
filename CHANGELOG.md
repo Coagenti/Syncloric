@@ -17,7 +17,8 @@
 - Pulsanti export JSON/CSV con icone e colori neon.
 - Correzioni al controllo Origin di autenticazione e API dietro reverse proxy.
 - Archivi sorgente da Git blob, controllo LF e regressione del checkout
-  Windows: entrypoint e input del container Linux preservati.
+  Windows: entrypoint e input del container Linux preservati. Il packaging
+  disabilita esplicitamente la conversione CRLF di Git per entrambi i formati.
 
 Migrazioni aggiunte dalla 0.1.0: `0006_food_portions` e
 `0007_goal_profile_account`. Backup del database prima dell’aggiornamento;
