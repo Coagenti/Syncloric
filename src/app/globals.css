@@ -114,6 +114,7 @@ h1,h2,h3,p { margin-top: 0; }
 .meal-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
 .meal-card { min-width: 0; background: var(--color-cyber-surface); border: 1px solid #34404b; padding: 20px; display: flex; flex-direction: column; min-height: 225px; }
 .meal-card:hover { border-color: #889343; }
+.meal-card:focus-visible { outline:2px solid var(--color-cyber-cyan); outline-offset:4px; }
 .meal-top,.meal-bottom { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .meal-index { font-size: 10px; font-weight: 800; letter-spacing: .14em; color: var(--color-cyber-cyan); }
 .meal-mark { color: #c0cd67; font-size: 22px; line-height: 1; }

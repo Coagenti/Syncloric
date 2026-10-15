@@ -20,7 +20,7 @@ it("production mobile flows: nutrients, downloads, token lifecycle, PWA privacy 
   const deps = { getDb: () => db as unknown as Db, getSession: async () => ({ user: { id: userId } }) };
   const foodEntry = buildFoodEntryHandlers({ ...deps, lookup: async () => null });
   const feed = buildDiaryFeedHandlers(deps), create = buildDiaryCreateHandlers(deps), mutation = buildDiaryMutationHandlers(deps), catalog = buildDiaryCatalogHandlers(deps), tokens = buildExportTokenHandlers(deps), exporter = buildExportHandlers(deps);
-  const bundle = await build({ stdin: { contents: `import React from'react';import{createRoot}from'react-dom/client';import{FoodEntryView}from'./src/components/food-entry/food-entry-view';import{CalorieApp}from'./src/components/calorie-app';import{SettingsContent}from'./src/components/settings/settings-content';import{createBarcodeReader}from'./src/lib/barcode-reader';window.decodeTestCanvas=async data=>{const canvas=document.createElement('canvas');canvas.width=data.width;canvas.height=data.height;canvas.videoWidth=data.width;canvas.videoHeight=data.height;const ctx=canvas.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,data.width,data.height);ctx.fillStyle='black';data.black.forEach(([x,y])=>ctx.fillRect(x,y,1,1));return(await(await createBarcodeReader()).detect(canvas))[0]?.rawValue};createRoot(document.getElementById('root')).render(location.pathname==='/settings'?<SettingsContent access='requires-admin'/>:location.pathname==='/diary/add'?<FoodEntryView initialDate={new URLSearchParams(location.search).get('date')||''} initialSlot={new URLSearchParams(location.search).get('slot')||'Lunch'}/>:<CalorieApp view='diary'/>);`, resolveDir: process.cwd(), loader: "tsx" }, bundle: true, write: false, platform: "browser", jsx: "automatic", define: { "process.env.NODE_ENV": '"production"', "process.env": '{}' } });
+  const bundle = await build({ stdin: { contents: `import React from'react';import{createRoot}from'react-dom/client';import{FoodEntryView}from'./src/components/food-entry/food-entry-view';import{CalorieApp}from'./src/components/calorie-app';import{SettingsContent}from'./src/components/settings/settings-content';import{createBarcodeReader}from'./src/lib/barcode-reader';window.decodeTestCanvas=async data=>{const canvas=document.createElement('canvas');canvas.width=data.width;canvas.height=data.height;canvas.videoWidth=data.width;canvas.videoHeight=data.height;const ctx=canvas.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,data.width,data.height);ctx.fillStyle='black';data.black.forEach(([x,y])=>ctx.fillRect(x,y,1,1));return(await(await createBarcodeReader()).detect(canvas))[0]?.rawValue};createRoot(document.getElementById('root')).render(location.pathname==='/settings'?<SettingsContent access='requires-admin'/>:location.pathname==='/diary/add'?<FoodEntryView initialDate={new URLSearchParams(location.search).get('date')||''} initialSlot={new URLSearchParams(location.search).get('slot')||'Lunch'}/>:<CalorieApp view={location.pathname==='/dashboard'?'dashboard':'diary'}/>);`, resolveDir: process.cwd(), loader: "tsx" }, bundle: true, write: false, platform: "browser", jsx: "automatic", define: { "process.env.NODE_ENV": '"production"', "process.env": '{}' } });
   const css = process.env.DIARY_VISUAL_CSS === "1" ? await productionCss() : "";
   const errors: string[] = [];
   const server = createServer(async (req, res) => {
@@ -59,19 +59,22 @@ it("production mobile flows: nutrients, downloads, token lifecycle, PWA privacy 
     await page.getByLabel("Vitamina D (µg) per 100 g", { exact: true }).fill("1.25");
     await page.getByRole("button", { name: "Aggiungi a Colazione", exact: true }).click(); await pw(page.getByRole("status")).toContainText("Latte aggiunto");
     await page.getByRole("link", { name: "Fine", exact: true }).click();
+    await pw(page.locator(".nutrition-summary")).toHaveCount(0);
+    await page.goto(`${base}/dashboard`);
     await pw(page.locator(".macro-protein")).toContainText("6"); await page.locator(".nutrition-summary summary").click(); await pw(page.locator(".nutrition-summary")).toContainText("2,5 µg");
+    await page.goto(`${base}/diary`);
     await page.getByRole("button", { name: "Modifica", exact: true }).click();
     const editor = page.getByRole("dialog", { name: "Modifica voce" });
     await editor.getByLabel("Quantità in grammi").fill(""); await editor.getByLabel("Quantità in grammi").fill("300");
     await pw(editor.getByLabel("Proteine totali")).toHaveValue("9");
     await editor.getByLabel("Kcal totali", { exact: true }).fill("150"); await editor.getByRole("button", { name: "Salva voce", exact: true }).click();
-    await pw(editor).not.toBeVisible(); await pw(page.locator(".macro-protein")).toContainText("9");
+    await pw(editor).not.toBeVisible(); await page.goto(`${base}/dashboard`); await pw(page.locator(".macro-protein")).toContainText("9");
     if (css) {
       await page.locator(".nutrition-summary summary").click();
       for (const width of [320, 390, 1440]) {
         await page.setViewportSize({ width, height: 950 });
         expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
-        if (process.env.MOBILE_VISUAL_DIR) { await mkdir(process.env.MOBILE_VISUAL_DIR, { recursive: true }); await page.screenshot({ path: `${process.env.MOBILE_VISUAL_DIR}/diary-${width}.png`, fullPage: true }); }
+        if (process.env.MOBILE_VISUAL_DIR) { await mkdir(process.env.MOBILE_VISUAL_DIR, { recursive: true }); await page.screenshot({ path: `${process.env.MOBILE_VISUAL_DIR}/dashboard-${width}.png`, fullPage: true }); }
       }
       await page.setViewportSize({ width: 390, height: 844 });
     }

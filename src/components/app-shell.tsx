@@ -5,6 +5,7 @@ import { UiIcon } from "@/components/ui-icon";
 import { Brand, BrandMark } from "@/components/brand";
 import { MotionPreferences } from "@/components/motion-preferences";
 import { PwaRuntime } from "@/components/pwa-runtime";
+import { MobilePageContent } from "@/components/mobile-page-content";
 
 const navigation = [
   { id: "dashboard", label: "Oggi", href: "/dashboard" },
@@ -26,7 +27,7 @@ export function AppShell({ view, children }: { view: typeof navigation[number]["
     </aside>
     <div className="app-main">
       <header className="topbar"><div className="topbar-path"><Link href="/dashboard" className="mobile-brand-home" aria-label="Syncloric, vai alla dashboard"><BrandMark /></Link><span>SYNCLORIC</span><span aria-hidden="true">/</span><strong>{label?.toUpperCase()}</strong></div><div className="topbar-right"><AccountMenu /></div></header>
-      <main className="content">{children}</main>
+      <MobilePageContent currentHref={navigation.find(item => item.id === view)?.href ?? null}>{children}</MobilePageContent>
       <footer className="app-footer">SYNCLORIC <span>DIARIO CALORIE · DATI PERSONALI</span></footer>
     </div>
     <nav className="mobile-nav" aria-label="Navigazione mobile">{navigation.map(item => <Link key={item.id} href={item.href} className={view === item.id ? "active" : ""} aria-current={view === item.id ? "page" : undefined}><UiIcon name={item.id} />{item.label}</Link>)}</nav>

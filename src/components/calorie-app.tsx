@@ -135,7 +135,7 @@ export function CalorieApp({ view }: { view: View }) {
       {error && <p role="alert">{error} {error.startsWith("Accedi") && <Link href="/login">Vai al login</Link>}</p>}
       {feed && <>
         {view === "dashboard" && <DashboardView showTitle={false} entries={entries} date={date} target={feed.target} macroGoals={feed.macroGoals} />}
-        {view === "diary" && <DiaryView showTitle={false} entries={entries} date={date} target={feed.target} macroGoals={feed.macroGoals} onAdd={addEntry} onShare={(slot, button) => { sharingTrigger.current = button; setSharingSlot(slot); }} onEdit={(entry, button) => { trigger.current = button; setFeedback(null); setEditing(entry); }} onDelete={(entry, button) => { trigger.current = button; setFeedback(null); setDeleting(entry); }} />}
+        {view === "diary" && <DiaryView showTitle={false} entries={entries} date={date} target={feed.target} onAdd={addEntry} onShare={(slot, button) => { sharingTrigger.current = button; setSharingSlot(slot); }} onEdit={(entry, button) => { trigger.current = button; setFeedback(null); setEditing(entry); }} onDelete={(entry, button) => { trigger.current = button; setFeedback(null); setDeleting(entry); }} />}
         {view === "calendar" && <CalendarView showTitle={false} entries={entries} date={date} onSelect={setDate} />}
       </>}
   </AppShell>;
