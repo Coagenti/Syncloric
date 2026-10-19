@@ -76,7 +76,8 @@ it.skipIf(process.env.DIARY_VISUAL_CSS !== "1")("production dashboard: layered a
     consumed = null; target = null;
     await page.reload();
     await pw(page.locator(".energy-number")).toHaveText("0");
-    await pw(page.getByText("1 voce senza kcal definite: non incluse nel totale.")).toBeVisible();
+    await pw(page.locator(".energy-details .data-note")).toHaveText("1 voce senza kcal definite: non incluse nel totale.");
+    await pw(page.locator(".energy-details .data-note")).toBeVisible();
     await pw(page.getByRole("link", { name: "Configura obiettivo" })).toBeVisible();
     await page.emulateMedia({ reducedMotion: "reduce" });
     consumed = 1260; target = 2000; await page.reload();

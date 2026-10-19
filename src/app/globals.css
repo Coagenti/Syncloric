@@ -105,6 +105,8 @@ h1,h2,h3,p { margin-top: 0; }
 .goal-action { display: inline-flex; align-items: center; gap: 20px; min-height: 44px; color: var(--color-cyber-cyan); font-size: 12px; font-weight: 700; margin-top: 22px; }
 .goal-action:hover { color: #fff; }
 .energy-details .data-note { margin-top: 16px; }
+.daily-overview,.energy-comparison { display: contents; }
+.energy-total,.energy-comparison-divider,.energy-unconfigured,.energy-comparison .energy-balance-unset { display: none; }
 @keyframes gauge-fill { from { stroke-dashoffset: 100; } }
 @keyframes energy-fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 .data-note { font-size: 12px; color: #b4c1ca; line-height: 1.6; margin: 0; }
@@ -114,6 +116,7 @@ h1,h2,h3,p { margin-top: 0; }
 .meal-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
 .meal-card { min-width: 0; background: var(--color-cyber-surface); border: 1px solid #34404b; padding: 20px; display: flex; flex-direction: column; min-height: 225px; }
 .meal-card:hover { border-color: #889343; }
+.meal-card:focus-visible { outline:2px solid var(--color-cyber-cyan); outline-offset:4px; }
 .meal-top,.meal-bottom { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .meal-index { font-size: 10px; font-weight: 800; letter-spacing: .14em; color: var(--color-cyber-cyan); }
 .meal-mark { color: #c0cd67; font-size: 22px; line-height: 1; }
@@ -274,6 +277,7 @@ h1,h2,h3,p { margin-top: 0; }
 .macro-target { font-size:10px !important; color:#8bc6d1 !important; }
 .macro-progress { width:100%; height:4px; overflow:hidden; background:#254452; border-radius:8px; }
 .macro-progress i { display:block; height:100%; background:#00f0ff; box-shadow:0 0 8px #00f0ff; }
+.macro-amount-compact,.macro-progress-unset,.nutrition-details-compact,.nutrition-mobile-notes { display:none; }
 .toolbar-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid #3a4958; border-radius: 12px; background: #18222e; color: #dce8ed; font-size: 12px; font-weight: 700; transition: border-color .2s ease,background .2s ease,color .2s ease; }
 .toolbar-action:hover,.toolbar-action.is-current { color: var(--color-cyber-cyan); border-color: #00f0ff80; background: #122b35; }
 .logout-action { background: transparent; }
@@ -455,6 +459,42 @@ html:not([data-motion="reduce"]) .is-over-target .energy-rule > span::after { ba
   .entry-controls { gap: 5px; }
   .neon-action { min-width: 40px; min-height: 44px; }
   .energy-gauge { max-width: 285px; }
+  .daily-overview { display:block; min-width:0; padding:18px 16px 4px; border:1px solid #435148; border-radius:20px; background:radial-gradient(ellipse at 25% 40%,#00f0ff0c,transparent 55%),radial-gradient(ellipse at 100% 0%,#fcee0a12,transparent 55%),#101923; overflow:hidden; }
+  .daily-overview.is-over-target { border-color:#ff497760; background:radial-gradient(ellipse at 25% 40%,#ff497710,transparent 60%),#101923; }
+  .daily-overview .energy-card { padding:0; border:0; border-radius:0; background:none; overflow:visible; }
+  .daily-overview .energy-tag,.daily-overview .energy-details { display:none; }
+  .daily-overview .energy-console { grid-template-columns:minmax(0,1fr); gap:0; padding:10px 0 8px; }
+  .daily-overview .energy-gauge { max-width:264px; }
+  .daily-overview .energy-readout { line-height:1; }
+  .daily-overview .energy-readout .section-kicker { margin-bottom:6px; font-size:8px; }
+  .daily-overview .energy-number { font-size:42px; }
+  .daily-overview .energy-unit { margin-top:5px; font-size:11px; }
+  .daily-overview .energy-comparison { display:grid; grid-template-columns:minmax(0,1fr) 8px minmax(0,1fr); align-items:end; gap:5px; width:90%; margin-top:12px; }
+  .daily-overview .energy-total,.daily-overview .energy-balance { display:flex; flex-direction:column; align-items:center; gap:6px; min-width:0; margin:0; }
+  .daily-overview .energy-total > span,.daily-overview .energy-balance > span { color:#b9cdd4; font-size:9px; letter-spacing:0; }
+  .daily-overview .energy-total > strong,.daily-overview .energy-balance > strong { display:flex; align-items:baseline; justify-content:center; flex-wrap:wrap; gap:3px; font-size:16px; font-weight:800; line-height:1; font-variant-numeric:tabular-nums; }
+  .daily-overview .energy-total small,.daily-overview .energy-balance small { color:inherit; font-size:8px; font-weight:500; }
+  .daily-overview .energy-total small { display:none; }
+  .daily-overview .energy-comparison-divider { display:block; padding-bottom:1px; color:#577781; font-size:16px; line-height:1; }
+  .daily-overview.is-over-target .energy-balance > span { color:#ff8aa8; }
+  .daily-overview .energy-balance-unset > strong { color:#afc3ca; }
+  .daily-overview .energy-unconfigured { display:block; margin-top:10px; font-size:9px; color:#afc3ca; }
+  .daily-overview .nutrition-summary { position:relative; border:0; border-top:1px solid #2c4350; border-radius:0; padding:14px 0 0; background:none; }
+  .daily-overview .nutrition-summary .section-heading,.daily-overview .macro-amount-full,.daily-overview .macro-target,.daily-overview .macro-progress-label,.daily-overview .macro-coverage,.daily-overview .nutrition-details-full,.daily-overview .nutrition-totals-note { display:none; }
+  .daily-overview .macro-summary { gap:12px; }
+  .daily-overview .macro-card { --macro-color:var(--color-cyber-cyan); padding:0; border:0; background:none; gap:8px; text-align:center; }
+  .daily-overview .macro-carbs { --macro-color:var(--color-cyber-yellow); }
+  .daily-overview .macro-fat { --macro-color:#ff8bad; }
+  .daily-overview .macro-card > span { color:#bce9ee; font-size:10px; }
+  .daily-overview .macro-amount-compact { display:block; order:2; font-size:13px; font-weight:700; line-height:1.5; }
+  .daily-overview .macro-amount-compact small { color:#afc9d5; font-size:10px; font-weight:400; }
+  .daily-overview .macro-progress { display:block; height:5px; }
+  .daily-overview .macro-progress i { color:var(--macro-color); background:currentColor; box-shadow:0 0 8px currentColor; }
+  .daily-overview .extra-nutrients { margin-top:8px; }
+  .daily-overview .extra-nutrients > summary { padding-block:12px; }
+  .daily-overview .nutrition-details-compact { display:inline; }
+  .daily-overview .nutrition-mobile-notes { display:block; }
+  .daily-overview .nutrition-mobile-notes .data-note { margin:12px 0; }
 }
 @media (max-width:390px) {
   .compact-date-toolbar .date-actions { display: grid; grid-template-columns: auto minmax(0,1fr) auto; }
