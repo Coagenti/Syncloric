@@ -2,7 +2,7 @@ import { it } from "vitest";
 import { chromium, expect } from "@playwright/test";
 import { build } from "esbuild";
 import { createServer } from "node:http";
-import { mkdtemp, rm, readFile } from "node:fs/promises";
+import { mkdtemp, rm, readFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { PGlite } from "@electric-sql/pglite";
@@ -62,9 +62,10 @@ it("profile: server preview, save/reload, target switch and dashboard without/wi
     page.setDefaultTimeout(60000);
     const errors: string[] = []; page.on("pageerror", e => errors.push(e.message));
     await page.goto(base + "/dashboard");
-    await expect(page.getByRole("link", { name: "Configura obiettivo" })).toBeVisible();
+    await expect(page.locator(".energy-details a[href='/profile#obiettivo']")).toBeHidden();
+    await expect(page.locator(".energy-unconfigured")).toBeVisible();
     await expect(page.getByText(/kcal di differenza/)).toHaveCount(0);
-    await page.getByRole("link", { name: "Configura obiettivo" }).click();
+    await page.goto(base + "/profile#obiettivo");
     await page.getByLabel("Sesso per il calcolo").selectOption("m");
     await page.getByLabel("Altezza (cm)").fill("180");
     await page.getByLabel("Peso (kg)").fill("80");
@@ -85,11 +86,12 @@ it("profile: server preview, save/reload, target switch and dashboard without/wi
     await expect(page.getByRole("status")).toContainText("Modifiche salvate");
     await page.getByRole("link", { name: "Torna alla dashboard" }).click();
     await expect(page.locator(".energy-balance")).toContainText("2.101");
+    await mkdir("test-results", { recursive: true });
     for (const width of [320, 390, 1440]) {
       await page.setViewportSize({ width, height: 900 }); await page.goto(base + "/profile#obiettivo");
       await expect(page.getByRole("heading", { name: "Il tuo obiettivo." })).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-      await page.screenshot({ path: path.resolve("..", `profile-${width}.png`), fullPage: true });
+      await page.screenshot({ path: path.resolve("test-results", `profile-${width}.png`), fullPage: true });
     }
     await page.goto(base + "/profile#obiettivo");
     await page.getByLabel("Anno di nascita").fill("1800");

@@ -14,8 +14,10 @@ export function DashboardView({ entries, date, target, macroGoals, showTitle = t
   const summary = dailySummary(entries, date, target);
   const progress = target === null || target <= 0 ? 0 : Math.min(summary.consumed / target, 1) * 100;
   const excess = summary.remaining !== null && summary.remaining < 0;
+  const missingCalories = summary.unknownCount > 0 ? `${summary.unknownCount} ${summary.unknownCount === 1 ? "voce senza kcal definite" : "voci senza kcal definite"}: non incluse nel totale.` : null;
   return <div className="view-stack">
     {showTitle && <div className="view-title"><div><h1>Riepilogo del giorno<span className="title-punctuation">.</span></h1></div></div>}
+    <div className={`daily-overview${excess ? " is-over-target" : ""}`}>
     <section className={`energy-card ${excess ? "is-over-target" : summary.remaining !== null && summary.remaining > 0 ? "is-under-target" : ""}`} aria-label="Bilancio energetico" style={{ "--energy-ripple": `url(#${fillMaskId}-ripple)` } as CSSProperties}>
       <EnergyRippleFilter id={`${fillMaskId}-ripple`} />
       <div className="energy-header"><span className="section-kicker">BILANCIO ENERGETICO</span><span className="energy-tag"><span className="signal-dot" /> DIARIO / LIVE</span></div>
@@ -34,18 +36,26 @@ export function DashboardView({ entries, date, target, macroGoals, showTitle = t
             <path className="gauge-flame" d="M166 63c7 40 44 46 44 79 0 30-22 48-50 48-31 0-50-21-50-47 0-23 16-35 23-48 0 23 11 27 16 28 8-17 20-28 17-60Z" />
             <path className="gauge-crosshair" d="M160 11v15 M160 294v15 M11 160h15 M294 160h15" />
           </svg>
-          <div className="energy-readout"><span className="section-kicker">ENERGIA REGISTRATA</span><div className="energy-number">{number(summary.consumed)}</div><span className="energy-unit">kcal</span>{summary.remaining !== null && <div className="energy-balance"><span>{excess ? "In eccesso" : "Rimanenti"}</span><strong>{number(Math.abs(summary.remaining))} <small>kcal</small></strong></div>}</div>
+          <div className="energy-readout"><span className="section-kicker">ENERGIA REGISTRATA</span><div className="energy-number">{number(summary.consumed)}</div><span className="energy-unit">kcal</span>
+            <div className="energy-comparison">
+              <div className="energy-total"><span>Totali</span><strong>{target === null ? "—" : number(target)} <small>kcal</small></strong></div>
+              <span className="energy-comparison-divider" aria-hidden="true">/</span>
+              <div className={`energy-balance${summary.remaining === null ? " energy-balance-unset" : ""}`}><span>{excess ? "In eccesso" : "Rimanenti"}</span><strong>{summary.remaining === null ? "—" : number(Math.abs(summary.remaining))} <small>kcal</small></strong></div>
+            </div>
+            {target === null && <span className="energy-unconfigured">Obiettivo non configurato</span>}
+          </div>
         </div>
         <div className="energy-details"><span className="energy-caption">IL TUO OBIETTIVO QUOTIDIANO</span>
           <div className="energy-target">{target === null ? "Da configurare" : <>{number(target)} <small>kcal</small></>}</div>
           <div className="energy-rule" role="img" aria-label={target === null ? "Obiettivo non configurato" : `${number(summary.consumed)} di ${number(target)} kcal registrate`}><span style={{ width: `${progress}%` }} /></div>
           <div className="energy-foot">{target === null ? <span>Obiettivo non configurato · riepilogo informativo</span> : <><span>{Math.round(summary.consumed / target * 100)}% registrato</span><span>{excess ? "Obiettivo superato" : summary.remaining === 0 ? "Obiettivo raggiunto" : "Bilancio del giorno"}</span></>}</div>
           <a className="goal-action" href="/profile#obiettivo">{target === null ? "Configura obiettivo" : "Modifica obiettivo"}<UiIcon name="right" /></a>
-          {summary.unknownCount > 0 && <p className="data-note">{summary.unknownCount} {summary.unknownCount === 1 ? "voce senza kcal definite" : "voci senza kcal definite"}: non incluse nel totale.</p>}
+          {missingCalories && <p className="data-note">{missingCalories}</p>}
         </div>
       </div>
     </section>
-    <NutritionSummary goals={macroGoals} entries={entries.filter(entry => entry.date === date)} />
+    <NutritionSummary goals={macroGoals} entries={entries.filter(entry => entry.date === date)} mobileNote={missingCalories} />
+    </div>
     <section aria-labelledby="meals-title"><div className="section-heading"><div><span className="section-kicker">IL TUO DIARIO</span><h2 id="meals-title">I quattro pasti</h2></div><span className="muted-caption">{summary.count} {summary.count === 1 ? "voce registrata" : "voci registrate"}</span></div><div className="meal-grid">{slots.map((slot, index) => {
       const slotEntries = entries.filter((entry) => entry.date === date && entry.slot === slot);
       return <a className="meal-card" key={slot} href={foodEntryUrl(date, slot)} aria-label={`Aggiungi alimenti a ${slotLabels[slot]}`}><div className="meal-top"><span className="meal-index">0{index + 1}</span><span className="meal-mark" aria-hidden="true">{["◔", "◉", "✦", "☾"][index]}</span></div><h3>{slotLabels[slot]}</h3><p>{slotEntries.length ? slotEntries.map((entry) => entry.name).join(" · ") : "Nessuna voce"}</p><div className="meal-bottom"><strong>{number(summary.bySlot[slot])} <small>kcal note</small></strong><span>{slotEntries.length} {slotEntries.length === 1 ? "voce" : "voci"}</span></div></a>;
