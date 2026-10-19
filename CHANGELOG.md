@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.2.1 — 2026-10-19
+
+- Swipe su mobile tra Oggi, Diario, Calendario e Impostazioni, senza interferire
+  con scroll, campi, tab, finestre aperte e gesti dai bordi dello schermo.
+- Le card dei pasti in Oggi aprono l’inserimento con data e pasto selezionati,
+  mantenendo la grafica e senza aggiungere pulsanti.
+- Riepilogo mobile in una sola card: bilancio energetico e macro, totale
+  dell’obiettivo e kcal rimanenti o in eccesso dentro il cerchio. Rimosso il
+  blocco obiettivo separato; la modifica resta nel profilo. Desktop invariato.
+- Macro compatti con barre e grammature; vitamine, minerali e avvertenze sui
+  dati parziali raccolti nella sezione collassabile Dettagli.
+- Il riepilogo dei nutrienti del giorno resta in Oggi; nel Diario sono
+  conservati i dettagli nutrizionali delle singole voci.
+
+Nessuna nuova migrazione rispetto alla 0.2.0. Per chi aggiorna dalla 0.1.0
+restano necessarie le migrazioni `0006_food_portions` e
+`0007_goal_profile_account`, eseguite automaticamente all’avvio del container.
+
+PR inclusa: #49.
+
 ## 0.2.0 — 2026-10-14
 
 - Inserimento alimenti in una pagina dedicata con tab Ricerca, Scansione ed
