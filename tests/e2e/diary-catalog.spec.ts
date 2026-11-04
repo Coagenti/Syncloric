@@ -13,7 +13,7 @@ it("debounces and aborts old searches, hides raw catalog parsing errors",async()
   });
   await page.goto(diaryUrl(page)+"/diary/add?date=2026-09-29&slot=Lunch");
   await pw(page.locator("body")).not.toContainText("SQL");
-  const search=page.getByRole("searchbox");await page.clock.install();await page.clock.pauseAt(new Date(Date.now()+2000));
+  const search=page.getByRole("searchbox",{name:"Cerca alimento per nome",exact:true});await page.clock.install();await page.clock.pauseAt(new Date(Date.now()+2000));
   await search.fill("R");await search.fill("Ri");await page.clock.runFor(899);expect(queries).toEqual([]);await page.clock.runFor(1);await pw.poll(()=>queries).toEqual(["Ri"]);
   await search.fill("Pa");await page.clock.runFor(900);await pw(page.getByRole("button",{name:"Scegli Pasta attuale",exact:true})).toBeVisible();release?.();await pw(page.getByRole("button",{name:"Scegli Riso vecchio",exact:true})).toHaveCount(0);
  });

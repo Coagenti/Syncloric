@@ -76,7 +76,7 @@ it("browser: login → inline food/recipe → persisted feed/dashboard → manua
         import{LoginForm}from'./src/components/auth/login-form';
         import{FoodEntryView}from'./src/components/food-entry/food-entry-view';
         import{CalorieApp}from'./src/components/calorie-app';
-        createRoot(document.getElementById('root')).render(location.pathname==='/login'?<LoginForm/>:location.pathname==='/diary/add'?<FoodEntryView initialDate={new URLSearchParams(location.search).get('date')||''} initialSlot={new URLSearchParams(location.search).get('slot')||'Lunch'}/>:<CalorieApp view={location.pathname==='/dashboard'?'dashboard':'diary'}/>);`, resolveDir: process.cwd(), loader: "tsx" },
+        createRoot(document.getElementById('root')).render(location.pathname==='/login'?<LoginForm/>:location.pathname==='/diary/add'?<FoodEntryView initialDate={new URLSearchParams(location.search).get('date')||''} initialSlot={new URLSearchParams(location.search).get('slot')||'Lunch'}/>:<CalorieApp view={location.pathname==='/dashboard'?'dashboard':location.pathname==='/diary/meal'?'meal':'diary'} initialSlot={new URLSearchParams(location.search).get('slot')||'Lunch'}/>);`, resolveDir: process.cwd(), loader: "tsx" },
       bundle: true, write: false, platform: "browser", jsx: "automatic",
       define: { "process.env.NODE_ENV": '"production"', "process.env": '{}' },
     });
@@ -200,7 +200,7 @@ it("browser: login → inline food/recipe → persisted feed/dashboard → manua
     await expect(page.locator(".energy-number")).toHaveText("880");
     await expect(page.locator(".energy-unit")).toHaveText("kcal");
     log("dashboard reflects both entries");
-    await page.goto(`${url}/diary`);
+    await page.goto(`${url}/diary/meal?date=2026-09-29&slot=Snack`);
     await page.locator(".entry-row").filter({ hasText: "Yogurt fixture" }).getByRole("button", { name: "Modifica" }).click();
     const editor = page.getByRole("dialog", { name: "Modifica voce" });
     await editor.getByRole("spinbutton", { name: "Kcal totali" }).fill("120");
@@ -210,7 +210,9 @@ it("browser: login → inline food/recipe → persisted feed/dashboard → manua
     expect((await editWrite).status()).toBe(200);
     log("manual edit PATCH 200");
     await expect(editor).not.toBeVisible();
-    await expect(page.getByRole("region", { name: "Colazione", exact: true }).locator(".entry-row")).toContainText("120");
+    await page.getByRole("link", { name: "Torna al diario", exact: true }).click();
+    await page.getByRole("link", { name: "Apri Colazione", exact: true }).click();
+    await expect(page.locator(".entry-row")).toContainText("120");
     expect((await getFeed()).entries.find((entry: { id: string }) => entry.id === food.id)).toMatchObject({ kcal: 120, slot: "Breakfast", source: "manual" });
     await page.reload();
     await expect(page.locator(".entry-row").filter({ hasText: "Yogurt fixture" })).toContainText("120");

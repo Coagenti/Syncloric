@@ -39,7 +39,8 @@ it("energy effects follow the balance, stay inside the filled arc and respect re
     await pw(card).not.toHaveClass(/is-(under|over)-target/);
     if (process.env.DIARY_VISUAL_CSS === "1") expect(await animations()).toEqual({ wave: "none", glitch: "none", bar: "none" });
     target = null;
-    await page.getByRole("button", { name: "Giorno precedente" }).click();
+    // Reload the target with the next monthly feed, rather than a cached day.
+    await page.getByLabel("Seleziona data", { exact: true }).fill("2026-08-31");
     await pw(card).toContainText("Obiettivo non configurato");
     await pw(card).not.toHaveClass(/is-(under|over)-target/);
   }, "dashboard");

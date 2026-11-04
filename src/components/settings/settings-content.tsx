@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/ui-preferences-provider";
 import { useEffect, useRef, useState } from "react";
 import { SettingsNorishCard } from "@/components/settings/settings-norish-card";
 import { SettingsAiCard } from "@/components/settings/settings-ai-card";
@@ -26,6 +27,7 @@ type Section = typeof sections[number]["id"];
 
 /** Server decides initial access. A self-demotion replaces all controls without a flash. */
 export function SettingsContent(props: Awaited<ReturnType<typeof settingsPageProps>>) {
+  const { tr } = useI18n();
   const [lostAccess, setLostAccess] = useState(false);
   const [selected, setSelected] = useState<Section>("generali");
   const [visited, setVisited] = useState<Section[]>(["generali"]);
@@ -55,12 +57,12 @@ export function SettingsContent(props: Awaited<ReturnType<typeof settingsPagePro
   }
   function accessLost() { select("generali"); setLostAccess(true); }
   return <AppShell view="settings"><section className="view-stack settings-page">
-    <div className="eyebrow"><span className="signal-dot" /> IL TUO SPAZIO / IMPOSTAZIONI</div>
-    <div className="view-title"><div><h1>Impostazioni<span className="title-punctuation">.</span></h1>
-    <p>Gestisci app, nucleo e dati personali. Gli amministratori gestiscono anche la configurazione globale dell’istanza.</p></div></div>
+    <div className="eyebrow"><span className="signal-dot" />{tr(" IL TUO SPAZIO / IMPOSTAZIONI")}</div>
+    <div className="view-title"><div><h1>{tr("Impostazioni")}<span className="title-punctuation">.</span></h1>
+    <p>{tr("Gestisci app, nucleo e dati personali. Gli amministratori gestiscono anche la configurazione globale dell’istanza.")}</p></div></div>
     {lostAccess && <div ref={notice} tabIndex={-1}><SettingsAccessNotice /></div>}
     <div className="settings-workspace">
-      <div className="settings-tab-bar" role="tablist" aria-label="Sezioni impostazioni">{tabs.map((tab, index) => <button key={tab.id} ref={element => { tabRefs.current[tab.id] = element; }} type="button" role="tab" className={`settings-tab ${active === tab.id ? "is-active" : ""}`} id={`settings-tab-${tab.id}`} aria-selected={active === tab.id} aria-controls={`settings-panel-${tab.id}`} tabIndex={active === tab.id ? 0 : -1} onClick={() => select(tab.id)} onKeyDown={event => {
+      <div className="settings-tab-bar" role="tablist" aria-label={tr("Sezioni impostazioni")}>{tabs.map((tab, index) => <button key={tab.id} ref={element => { tabRefs.current[tab.id] = element; }} type="button" role="tab" className={`settings-tab ${active === tab.id ? "is-active" : ""}`} id={`settings-tab-${tab.id}`} aria-selected={active === tab.id} aria-controls={`settings-panel-${tab.id}`} tabIndex={active === tab.id ? 0 : -1} onClick={() => select(tab.id)} onKeyDown={event => {
         let next: number;
         if (event.key === "ArrowRight") next = (index + 1) % tabs.length;
         else if (event.key === "ArrowLeft") next = (index - 1 + tabs.length) % tabs.length;
@@ -68,7 +70,7 @@ export function SettingsContent(props: Awaited<ReturnType<typeof settingsPagePro
         else if (event.key === "End") next = tabs.length - 1;
         else return;
         event.preventDefault(); select(tabs[next].id, true);
-      }}><UiIcon name={tab.icon} /><span>{tab.label}</span>{tab.admin && <small aria-hidden="true">ADMIN</small>}</button>)}</div>
+      }}><UiIcon name={tab.icon} /><span>{tr(tab.label)}</span>{tab.admin && <small aria-hidden="true">{tr("ADMIN")}</small>}</button>)}</div>
       {tabs.map(tab => <div key={tab.id} role="tabpanel" id={`settings-panel-${tab.id}`} aria-labelledby={`settings-tab-${tab.id}`} className="settings-tab-panel" tabIndex={0} hidden={active !== tab.id}>
         {visited.includes(tab.id) && <div className="settings-grid">
           {tab.id === "generali" && <><SettingsAppearanceCard /><SettingsInstallCard /></>}

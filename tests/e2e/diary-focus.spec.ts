@@ -16,7 +16,7 @@ it("all edit dialog close paths restore their trigger, including delayed saves",
       }
       return route.fulfill({ json: { entries: [entry], sync: null, target: null } });
     });
-    await page.goto(diaryUrl(page));
+    await page.goto(diaryUrl(page) + "/diary/meal?date=2026-09-29&slot=Lunch");
     for (const mode of ["edit"]) {
       const trigger = mode === "add" ? page.locator('[data-add-slot="Lunch"]') : page.getByRole("button", { name: "Modifica", exact: true });
       for (const action of ["Escape", "Chiudi", "Annulla", "Salva voce"]) {

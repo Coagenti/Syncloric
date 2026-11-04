@@ -1,0 +1,29 @@
+/* Font faces are local; a face is fetched only when its theme uses it. */
+.ui-icon-cyberpunk,.ui-icon-synthwave,.ui-icon-terminal { display:none; }
+html[data-theme="cyberpunk"] { --theme-ui-font:"Barlow",Arial,sans-serif; --theme-display-font:"Chakra Petch",Arial,sans-serif; }
+html[data-theme="synthwave"] { --theme-ui-font:"Space Grotesk",Arial,sans-serif; --theme-display-font:"Orbitron",Arial,sans-serif; }
+html[data-theme="terminal"] { --theme-ui-font:"IBM Plex Mono",monospace; --theme-display-font:"IBM Plex Mono",monospace; }
+html:is([data-theme="cyberpunk"],[data-theme="synthwave"],[data-theme="terminal"]) body { font-family:var(--theme-ui-font); }
+html:is([data-theme="cyberpunk"],[data-theme="synthwave"],[data-theme="terminal"]) :is(h1,h2,h3,legend,.brand-wordmark,.energy-number,.energy-target,.energy-total strong,.energy-balance strong,.meal-energy strong) { font-family:var(--theme-display-font); font-weight:700; }
+html:is([data-theme="cyberpunk"],[data-theme="synthwave"],[data-theme="terminal"]) .ui-icon-standard { display:none; }
+html[data-theme="cyberpunk"] .ui-icon-cyberpunk,
+html[data-theme="synthwave"] .ui-icon-synthwave,
+html[data-theme="terminal"] .ui-icon-terminal { display:inline; }
+html[data-theme="cyberpunk"] .ui-icon-cyberpunk-accent { stroke:var(--color-cyber-yellow); }
+html[data-theme="synthwave"] .ui-icon-synthwave-accent { fill:var(--color-cyber-yellow); stroke:none; }
+html[data-theme="cyberpunk"] :is(.section-kicker,.side-label,.topbar-path,.nav-link,.mobile-nav a) { font-family:var(--theme-display-font); }
+html[data-theme="synthwave"] :is(h1,h2,h3) { letter-spacing:-.025em; }
+html[data-theme="synthwave"] .view-title h1 { font-size:clamp(24px,3.3vw,34px); }
+html[data-theme="synthwave"] .meal-card h3 { font-size:18px; }
+html[data-theme="synthwave"] :is(.energy-total strong,.energy-balance strong) { font-family:var(--theme-ui-font); }
+html[data-theme="terminal"] .brand-wordmark { font-style:normal; letter-spacing:-.03em; }
+html[data-theme="terminal"] :is(.section-kicker,.side-label,.topbar-path,.nav-link,.mobile-nav a) { letter-spacing:.035em; }
+html[data-theme="terminal"] .view-title h1 { font-size:clamp(22px,3.2vw,32px); letter-spacing:-.04em; }
+html[data-theme="terminal"] :is(.settings-tab,.entry-tabs [role="tab"]) { font-size:13px; }
+@media(max-width:480px) {
+  html[data-theme="synthwave"] .view-title h1 { font-size:23px; }
+  html[data-theme="synthwave"] .meal-card h3 { font-size:16px; }
+  html:is([data-theme="synthwave"],[data-theme="terminal"]) .section-heading h2 { font-size:18px; }
+  html[data-theme="terminal"] .meal-card h3 { font-size:17px; }
+}
+@media(max-width:360px) { html[data-theme="terminal"] .mobile-nav a { font-size:11px; letter-spacing:0; } }

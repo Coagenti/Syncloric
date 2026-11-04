@@ -2,6 +2,7 @@ import { relations, sql } from "drizzle-orm";
 import type { Nutrition } from "@/lib/nutrition";
 import type { FoodPortion } from "@/lib/food-portions";
 import type { WeightGoal, MacroSettings } from "@/lib/goal-targets";
+import type { Locale, Theme } from "@/lib/ui-preferences";
 import {
   boolean,
   date,
@@ -74,6 +75,14 @@ export const users = pgTable(
   },
   (t) => [index("users_role_idx").on(t.role)],
 );
+
+/** Personal appearance and language, independent of the nutrition profile. */
+export const userUiPreferences = pgTable("user_ui_preferences", {
+  userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  locale: text("locale").$type<Locale>().notNull().default("it"),
+  theme: text("theme").$type<Theme>().notNull().default("cyberpunk"),
+  ...timestamps,
+});
 
 /** Append-only admin event history. Actor is retained after account deletion (or 'system'). */
 export const adminAuditLog = pgTable("admin_audit_log", {

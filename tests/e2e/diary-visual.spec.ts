@@ -7,7 +7,7 @@ it.skipIf(process.env.DIARY_VISUAL_CSS !== "1")("production CSS: prefilled food/
   await withDiaryBrowser(async page => {
     const entries = ["food", "recipe"].map(type => ({ id: type, date: "2026-09-29", slot: "Lunch", entryType: type, name: type === "food" ? "Yogurt" : "Pasta al pomodoro", quantityGrams: type === "food" ? 125 : null, servings: type === "recipe" ? 2 : null, foodId: type === "food" ? "food-1" : null, recipeId: type === "recipe" ? "recipe-1" : null, kcal: 320, source: "manual", norishDeleted: false, protein: null, carbs: null, fat: null }));
     await page.route("**/api/v1/**", route => route.fulfill({ json: route.request().url().includes("/catalog") ? { foods: [], recipes: [{ id: "recipe-1", name: "Pasta al pomodoro", servings: 4, kcalPerServing: 160 }] } : { entries, sync: null, target: null } }));
-    await page.goto(diaryUrl(page));
+    await page.goto(diaryUrl(page) + "/diary/meal?date=2026-09-29&slot=Lunch");
     const dir = process.env.DIARY_EVIDENCE_DIR ?? "../diary-ui-evidence";
     await mkdir(dir, { recursive: true });
     for (const width of [320, 390, 1440]) {

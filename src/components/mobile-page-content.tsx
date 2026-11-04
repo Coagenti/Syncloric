@@ -16,7 +16,7 @@ export function MobilePageContent({ currentHref, children }: { currentHref: stri
     let blockedUntil = 0;
     const cancel = () => { start = null; };
     const enabled = () => window.location.pathname === currentHref
-      && window.matchMedia("(max-width: 760px)").matches
+      && window.matchMedia("(max-width: 1024px)").matches
       && (window.visualViewport?.scale ?? 1) <= 1.01
       && !document.querySelector('dialog[open], [aria-modal="true"]')
       && !document.activeElement?.closest(editors)

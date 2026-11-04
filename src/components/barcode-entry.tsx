@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/components/ui-preferences-provider";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { LabelScan } from "./label-scan";
 import { UiIcon } from "./ui-icon";
@@ -13,6 +14,7 @@ type DetectorClass = new (options: { formats: string[] }) => Detector;
 
 /** Camera decoding stays local; lookup and persistence use the authenticated API. */
 export function BarcodeEntry({ date, onSaved, compact = false }: { date: string; onSaved: () => void; compact?: boolean }) {
+  const { tr } = useI18n();
   const dialog = useRef<HTMLDialogElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const video = useRef<HTMLVideoElement>(null);
@@ -66,22 +68,22 @@ export function BarcodeEntry({ date, onSaved, compact = false }: { date: string;
       if (controller.signal.aborted) return;
       if (!response.ok) {
         setOrigin("lookup-error"); setProduct({ name: "", brand: null, kcalPer100g: null, proteinPer100g: null, fatPer100g: null, carbsPer100g: null });
-        setError(response.status === 401 ? "Accedi per registrare un prodotto." : response.status === 400 ? "Codice non valido: usa da 8 a 14 cifre e riprova la ricerca." : "Ricerca non disponibile. Riprova Cerca prodotto o compila il prodotto manualmente."); return;
+        setError(tr(response.status === 401 ? tr("Accedi per registrare un prodotto.") : response.status === 400 ? tr("Codice non valido: usa da 8 a 14 cifre e riprova la ricerca.") : tr("Ricerca non disponibile. Riprova Cerca prodotto o compila il prodotto manualmente."))); return;
       }
       const data = await response.json() as { origin: string; food: Product | null };
       if (controller.signal.aborted) return;
       setOrigin(data.origin); setProduct(data.food ?? { name: "", brand: null, kcalPer100g: null, proteinPer100g: null, fatPer100g: null, carbsPer100g: null });
     } catch { if (!controller.signal.aborted) {
       setOrigin("lookup-error"); setProduct({ name: "", brand: null, kcalPer100g: null, proteinPer100g: null, fatPer100g: null, carbsPer100g: null });
-      setError("Connessione alla ricerca non riuscita. Riprova Cerca prodotto o compila il prodotto manualmente.");
+      setError(tr("Connessione alla ricerca non riuscita. Riprova Cerca prodotto o compila il prodotto manualmente."));
     } }
     finally { if (!controller.signal.aborted) setBusy(false); }
   }
 
   async function startCamera() {
     const NativeDetector = (window as unknown as { BarcodeDetector?: DetectorClass }).BarcodeDetector;
-    if (!window.isSecureContext) { setError("La fotocamera richiede HTTPS. Apri Syncloric tramite HTTPS oppure inserisci il codice manualmente."); return; }
-    if (!navigator.mediaDevices?.getUserMedia) { setError("Fotocamera non disponibile in questo browser: inserisci il codice manualmente."); return; }
+    if (!window.isSecureContext) { setError(tr("La fotocamera richiede HTTPS. Apri Syncloric tramite HTTPS oppure inserisci il codice manualmente.")); return; }
+    if (!navigator.mediaDevices?.getUserMedia) { setError(tr("Fotocamera non disponibile in questo browser: inserisci il codice manualmente.")); return; }
     stopCamera(); const run = cameraRun.current; setError("");
     try {
       const detector = await createBarcodeReader(NativeDetector);
@@ -98,7 +100,7 @@ export function BarcodeEntry({ date, onSaved, compact = false }: { date: string;
         if (barcode) { await lookup(barcode); return; }
         await new Promise(resolve => setTimeout(resolve, 250));
       }
-    } catch { if (run === cameraRun.current) { stopCamera(); setError("Fotocamera non disponibile o permesso negato: usa il codice manuale."); } }
+    } catch { if (run === cameraRun.current) { stopCamera(); setError(tr("Fotocamera non disponibile o permesso negato: usa il codice manuale.")); } }
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -115,30 +117,30 @@ export function BarcodeEntry({ date, onSaved, compact = false }: { date: string;
         body: JSON.stringify({ barcode: code, name: values.get("name"), brand: values.get("brand"), kcalPer100g: Number(values.get("kcal")), proteinPer100g: nutrient("protein"), fatPer100g: nutrient("fat"), carbsPer100g: nutrient("carbs"), nutrientsPer100g: Object.fromEntries(nutrientSpecs.map(spec => [spec.key, nutrient(spec.key)])), grams: Number(values.get("grams")), date, slot: values.get("slot") }) });
       if (controller.signal.aborted) return;
       if (!response.ok) {
-        setError(response.status === 401 ? "Accedi per registrare un prodotto." : response.status === 400 || response.status === 422 ? "Controlla i valori: nome obbligatorio, kcal intere da 0 a 10000, nutrienti da 0 a 100 e grammi da 0,01 a 100000 (massimo due decimali). Poi riprova Registra nel diario." : response.status === 403 ? "Salvataggio non consentito. Riapri la pagina e riprova." : "Servizio di salvataggio non disponibile. I valori sono conservati: riprova Registra nel diario."); return;
+        setError(tr(response.status === 401 ? tr("Accedi per registrare un prodotto.") : response.status === 400 || response.status === 422 ? tr("Controlla i valori: nome obbligatorio, kcal intere da 0 a 10000, nutrienti da 0 a 100 e grammi da 0,01 a 100000 (massimo due decimali). Poi riprova Registra nel diario.") : response.status === 403 ? tr("Salvataggio non consentito. Riapri la pagina e riprova.") : tr("Servizio di salvataggio non disponibile. I valori sono conservati: riprova Registra nel diario."))); return;
       }
       close(); onSaved();
-    } catch { if (!controller.signal.aborted) setError("Connessione al salvataggio non riuscita. I valori sono conservati: verifica il diario prima di riprovare Registra nel diario, per evitare duplicati."); }
+    } catch { if (!controller.signal.aborted) setError(tr("Connessione al salvataggio non riuscita. I valori sono conservati: verifica il diario prima di riprovare Registra nel diario, per evitare duplicati.")); }
     finally { if (!controller.signal.aborted) setBusy(false); }
   }
 
   return <>
-    <button ref={trigger} className={compact ? "toolbar-action scan-action" : "primary-cta"} type="button" onClick={() => { setCode(""); setProduct(null); setOrigin(""); setError(""); setAiApplied(false); setAiConfirmed(false); dialog.current?.showModal(); }}><UiIcon name="scan" />Scansiona</button>
+    <button ref={trigger} className={compact ? "toolbar-action scan-action" : "primary-cta"} type="button" onClick={() => { setCode(""); setProduct(null); setOrigin(""); setError(""); setAiApplied(false); setAiConfirmed(false); dialog.current?.showModal(); }}><UiIcon name="scan" />{tr("Scansiona")}</button>
     <dialog ref={dialog} className="editor-panel barcode-dialog" aria-labelledby="barcode-title" onFocusCapture={() => { if (busy && pendingFocus.current) pendingFocus.current.moved = true; }} onCancel={event => { event.preventDefault(); close(); }}>
-      <div className="editor-heading"><h2 id="barcode-title">Registra un prodotto</h2><button className="close-editor" type="button" aria-label="Chiudi scanner" onClick={close}>×</button></div>
-      <p className="form-help">Inserisci il codice o usa la fotocamera. Lo scanner barcode non invia foto; la scansione AI dell’etichetta è separata e facoltativa.</p>
+      <div className="editor-heading"><h2 id="barcode-title">{tr("Registra un prodotto")}</h2><button className="close-editor" type="button" aria-label={tr("Chiudi scanner")} onClick={close}>×</button></div>
+      <p className="form-help">{tr("Inserisci il codice o usa la fotocamera. Lo scanner barcode non invia foto; la scansione AI dell’etichetta è separata e facoltativa.")}</p>
       <form onSubmit={event => { event.preventDefault(); void lookup(code); }}>
-        <label>Codice a barre<input autoFocus inputMode="numeric" pattern="[0-9]{8,14}" required value={code} onChange={event => { setCode(event.target.value); setProduct(null); setAiApplied(false); setAiConfirmed(false); }} disabled={busy || aiBusy} /></label>
-        <button className="secondary-btn" disabled={busy || aiBusy} type="submit">Cerca prodotto</button>
-        <button className="secondary-btn" disabled={busy || aiBusy} type="button" onClick={() => void startCamera()}>Usa fotocamera</button>
+        <label>{tr("Codice a barre")}<input autoFocus inputMode="numeric" pattern="[0-9]{8,14}" required value={code} onChange={event => { setCode(event.target.value); setProduct(null); setAiApplied(false); setAiConfirmed(false); }} disabled={busy || aiBusy} /></label>
+        <button className="secondary-btn" disabled={busy || aiBusy} type="submit">{tr("Cerca prodotto")}</button>
+        <button className="secondary-btn" disabled={busy || aiBusy} type="button" onClick={() => void startCamera()}>{tr("Usa fotocamera")}</button>
       </form>
-      <video ref={video} hidden={!camera} muted playsInline style={{ width: "100%" }} aria-label="Anteprima scanner" />
-      {camera && <button type="button" className="secondary-btn" onClick={stopCamera}>Ferma fotocamera</button>}
-      {busy && <p role="status">Operazione in corso…</p>}
-      {error && <p ref={feedback} role="alert" tabIndex={-1}>{error}</p>}
+      <video ref={video} hidden={!camera} muted playsInline style={{ width: "100%" }} aria-label={tr("Anteprima scanner")} />
+      {camera && <button type="button" className="secondary-btn" onClick={stopCamera}>{tr("Ferma fotocamera")}</button>}
+      {busy && <p role="status">{tr("Operazione in corso…")}</p>}
+      {error && <p ref={feedback} role="alert" tabIndex={-1}>{tr(error)}</p>}
       {product && <form ref={productForm} key={`${code}-${origin}`} onSubmit={save}>
         <fieldset disabled={busy || aiBusy}>
-        <p className="form-help">{origin === "local" ? "Prodotto nel catalogo locale." : origin === "off" ? "Dati da Open Food Facts: verifica prima di confermare." : origin === "lookup-error" ? "Ricerca non conclusa: puoi registrare il prodotto manualmente." : "Prodotto non trovato: registra come nuovo."}</p>
+        <p className="form-help">{origin === "local" ? tr("Prodotto nel catalogo locale.") : origin === "off" ? tr("Dati da Open Food Facts: verifica prima di confermare.") : origin === "lookup-error" ? tr("Ricerca non conclusa: puoi registrare il prodotto manualmente.") : tr("Prodotto non trovato: registra come nuovo.")}</p>
         {(origin === "off" || product.source === "barcode_off") && <a href={`https://world.openfoodfacts.org/product/${code}`} target="_blank" rel="noreferrer">Open Food Facts · ODbL / DbCL</a>}
         {origin !== "local" && <LabelScan onBusy={value => { if (value) stopCamera(); setAiBusy(value); }} onExtract={label => {
           stopCamera();
@@ -153,15 +155,15 @@ export function BarcodeEntry({ date, onSaved, compact = false }: { date: string;
             if (input instanceof HTMLInputElement) input.value = label.per100g[spec.key] == null ? "" : String(label.per100g[spec.key]);
           }
         }} />}
-        <label>Nome prodotto<input name="name" required maxLength={200} defaultValue={product.name} readOnly={origin === "local"} /></label>
-        <label>Marca<input name="brand" maxLength={200} defaultValue={product.brand ?? ""} readOnly={origin === "local"} /></label>
-        <label>Kcal per 100 g<input name="kcal" type="number" required min="0" max="10000" step="1" defaultValue={product.kcalPer100g ?? ""} readOnly={origin === "local"} /></label>
+        <label>{tr("Nome prodotto")}<input name="name" required maxLength={200} defaultValue={product.name} readOnly={origin === "local"} /></label>
+        <label>{tr("Marca")}<input name="brand" maxLength={200} defaultValue={product.brand ?? ""} readOnly={origin === "local"} /></label>
+        <label>{tr("Kcal per 100 g")}<input name="kcal" type="number" required min="0" max="10000" step="1" defaultValue={product.kcalPer100g ?? ""} readOnly={origin === "local"} /></label>
         <NutritionFields prefix="" basis="per 100 g" readOnly={origin === "local"} values={normalizeNutrition(product.nutrientsPer100g, { protein: product.proteinPer100g, fat: product.fatPer100g, carbs: product.carbsPer100g })} />
-        <label>Grammi registrati<input name="grams" type="number" required min="0.01" max="100000" step="0.01" defaultValue="100" /></label>
-        <label>Pasto<select name="slot" defaultValue="Snack"><option value="Breakfast">Colazione</option><option value="Lunch">Pranzo</option><option value="Snack">Spuntino</option><option value="Dinner">Cena</option></select></label>
-        <p className="form-help">Nutrienti per 100 g; calorie del diario proporzionali ai grammi. I campi facoltativi vuoti restano sconosciuti.</p>
-        {aiApplied && <label className="ai-confirmation"><input type="checkbox" checked={aiConfirmed} onChange={event => setAiConfirmed(event.target.checked)} />Ho verificato i valori proposti dall’AI</label>}
-        <button type="submit" className="primary-btn" disabled={busy || aiBusy || (aiApplied && !aiConfirmed)}>Registra nel diario</button>
+        <label>{tr("Grammi registrati")}<input name="grams" type="number" required min="0.01" max="100000" step="0.01" defaultValue="100" /></label>
+        <label>{tr("Pasto")}<select name="slot" defaultValue="Snack"><option value="Breakfast">{tr("Colazione")}</option><option value="Lunch">{tr("Pranzo")}</option><option value="Snack">{tr("Spuntino")}</option><option value="Dinner">{tr("Cena")}</option></select></label>
+        <p className="form-help">{tr("Nutrienti per 100 g; calorie del diario proporzionali ai grammi. I campi facoltativi vuoti restano sconosciuti.")}</p>
+        {aiApplied && <label className="ai-confirmation"><input type="checkbox" checked={aiConfirmed} onChange={event => setAiConfirmed(event.target.checked)} />{tr("Ho verificato i valori proposti dall’AI")}</label>}
+        <button type="submit" className="primary-btn" disabled={busy || aiBusy || (aiApplied && !aiConfirmed)}>{tr("Registra nel diario")}</button>
         </fieldset>
       </form>}
     </dialog>

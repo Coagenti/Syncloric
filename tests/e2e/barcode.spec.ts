@@ -27,7 +27,7 @@ it("manual barcode: unknown product, confirmation, proportional diary kcal, relo
   const diary = buildDiaryFeedHandlers(deps);
   const foodEntry = buildFoodEntryHandlers({ ...deps, lookup: async () => { calls++; return null; } });
   const catalog = buildDiaryCatalogHandlers(deps);
-  const bundle = await build({ stdin: { contents: `import React from 'react'; import {createRoot} from 'react-dom/client'; import {FoodEntryView} from './src/components/food-entry/food-entry-view'; import {CalorieApp} from './src/components/calorie-app'; createRoot(document.getElementById('root')).render(location.pathname==='/diary/add'?<FoodEntryView initialDate={new URLSearchParams(location.search).get('date')||''} initialSlot={new URLSearchParams(location.search).get('slot')||'Snack'}/>:<CalorieApp view="diary"/>);`, resolveDir: process.cwd(), loader: "tsx" }, bundle: true, write: false, platform: "browser", jsx: "automatic", define: { "process.env.NODE_ENV": '"production"', "process.env": '{}' } });
+  const bundle = await build({ stdin: { contents: `import React from 'react'; import {createRoot} from 'react-dom/client'; import {FoodEntryView} from './src/components/food-entry/food-entry-view'; import {CalorieApp} from './src/components/calorie-app'; createRoot(document.getElementById('root')).render(location.pathname==='/diary/add'?<FoodEntryView initialDate={new URLSearchParams(location.search).get('date')||''} initialSlot={new URLSearchParams(location.search).get('slot')||'Snack'}/>:<CalorieApp view={location.pathname==='/diary/meal'?'meal':'diary'} initialSlot={new URLSearchParams(location.search).get('slot')||'Lunch'}/>);`, resolveDir: process.cwd(), loader: "tsx" }, bundle: true, write: false, platform: "browser", jsx: "automatic", define: { "process.env.NODE_ENV": '"production"', "process.env": '{}' } });
   const server = createServer(async (req, res) => {
     try {
       if (req.url === "/app.js") { res.setHeader("Content-Type", "application/javascript"); res.end(bundle.outputFiles[0].text); return; }
@@ -61,10 +61,11 @@ it("manual barcode: unknown product, confirmation, proportional diary kcal, relo
     await page.getByLabel("Kcal per 100 g").fill("400");
     await page.getByLabel("Quantità in grammi", { exact: true }).fill("25");
     await page.getByRole("button", { name: "Aggiungi a Spuntino", exact: true }).click();
-    await page.locator(".entry-success").waitFor(); await page.getByRole("link", { name: "Fine", exact: true }).click(); await page.getByText("Snack barcode", { exact: true }).waitFor();
+    await page.locator(".entry-success").waitFor(); await page.getByRole("link", { name: "Fine", exact: true }).click(); await page.getByRole("link", { name: "Apri Spuntino", exact: true }).click(); await page.getByText("Snack barcode", { exact: true }).waitFor();
     expect((await client.query<{kcal:number}>("SELECT kcal FROM diary_entries")).rows[0].kcal).toBe(100);
     await page.reload(); await page.getByText("Snack barcode", { exact: true }).waitFor();
     const before = calls;
+    await page.getByRole("link", { name: "Torna al diario", exact: true }).click();
     await scan.click(); await page.getByLabel("Codice a barre", { exact: true }).fill("8001234567890");
     await page.getByRole("button", { name: "Cerca prodotto" }).click();
     await page.getByRole("heading", { name: "Snack barcode", exact: true }).waitFor();

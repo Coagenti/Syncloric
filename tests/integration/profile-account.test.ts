@@ -45,12 +45,12 @@ it("requires ownership, live access, Origin, password and explicit deletion conf
   expect((await account().DELETE(request("DELETE", { password: "Current-pass-2026", confirmation: "wrong" }))).status).toBe(400);
   await db.execute(sql`UPDATE users SET banned=true WHERE id=${A}::uuid`); expect((await account().PATCH(request("PATCH", { name: "Alice" }))).status).toBe(401);
 });
-it("deletes owned data and revokes sessions/tokens while transferring household ownership", async () => {
+it.each(["ELIMINA", "DELETE"])("deletes owned data and transfers household ownership with %s confirmation", async confirmation => {
   await profile().PUT(request("PUT", person));
   await db.execute(sql`INSERT INTO sessions(id,token,user_id,expires_at) VALUES('session-a','private-token',${A}::uuid,now()+interval '1 day')`);
   await db.execute(sql`INSERT INTO households(id,name,owner_id) VALUES('aaaaaaaa-1111-4111-8111-111111111111','Casa',${A}::uuid)`);
   await db.execute(sql`INSERT INTO household_members(user_id,household_id) VALUES(${A}::uuid,'aaaaaaaa-1111-4111-8111-111111111111'),(${B}::uuid,'aaaaaaaa-1111-4111-8111-111111111111')`);
-  expect((await account().DELETE(request("DELETE", { password: "Current-pass-2026", confirmation: "ELIMINA" }))).status).toBe(200);
+  expect((await account().DELETE(request("DELETE", { password: "Current-pass-2026", confirmation }))).status).toBe(200);
   expect((await db.execute(sql`SELECT count(*)::int n FROM sessions WHERE user_id=${A}::uuid`)).rows[0].n).toBe(0); expect((await db.execute(sql`SELECT count(*)::int n FROM profiles WHERE user_id=${A}::uuid`)).rows[0].n).toBe(0);
   expect((await db.execute(sql`SELECT owner_id FROM households`)).rows[0].owner_id).toBe(B); expect((await account().GET(request("GET"))).status).toBe(401);
 });

@@ -1,7 +1,8 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { sql } from "drizzle-orm";
 import type { Db } from "@/server/db";
 import { buildFoodEntryHandlers } from "@/server/services/foods/entry-http";
+import { buildBarcodeHandlers } from "@/server/services/foods/http";
 import { buildDiaryCreateHandlers } from "@/server/services/diary/create";
 import { buildDiaryFeedHandlers } from "@/server/services/diary/feed";
 import { buildDiaryMutationHandlers } from "@/server/services/diary/mutate";
@@ -56,6 +57,36 @@ describe("food entry and personal portions",()=>{
  it("reuses existing barcodes and server nutrition without overwriting another catalog food",async()=>{
    const first=await handlers().POST(request('',{...product,barcode:'8001234567890'}));const id=(await first.json()).food.id;
    const second=await handlers(B).POST(request('',{...product,barcode:'8001234567890',name:'Spoofed',kcalPer100g:0}));expect(second.status).toBe(201);const body=await second.json();expect(body.food.id).toBe(id);expect(body.food.name).toBe('Biscotti');expect((await db.execute(sql`SELECT kcal FROM diary_entries WHERE id=${body.entry.id}::uuid`)).rows[0].kcal).toBe(41);
+ });
+ it("finds a manually saved barcode locally, preserving leading zeros",async()=>{
+   const code='0001234567890';
+   const response=await handlers().POST(request('',{...product,barcode:code}));expect(response.status).toBe(201);
+   const {food}=await response.json();
+   const scan=await buildBarcodeHandlers({...deps(),lookup:async()=>null}).GET(new Request('http://localhost/api/v1/barcode?code='+code));
+   expect(scan.status).toBe(200);expect(await scan.json()).toMatchObject({origin:'local',food:{id:food.id,barcode:code,name:'Biscotti'}});
+ });
+ it("lets an owner add, change and clear the barcode without overwriting another food",async()=>{
+   const patch=(id:string,code:string|null,user=A)=>handlers(user).PATCH(new Request('http://localhost/api/v1/foods/'+id,{method:'PATCH',headers:{'Content-Type':'application/json',Origin:'http://localhost'},body:JSON.stringify({portions:[],product:{name:'Pasta',brand:'Barilla',barcode:code,kcalPer100g:350,nutrientsPer100g:{}}})}),id);
+   expect((await patch(F,'0123456789012')).status).toBe(200);
+   const scan=buildBarcodeHandlers({...deps(),lookup:async()=>null});
+   expect((await(await scan.GET(new Request('http://localhost/api/v1/barcode?code=0123456789012'))).json()).food.id).toBe(F);
+   const second=await(await handlers().POST(request('',{...product,barcode:'0001234567890'}))).json();
+   const conflict=await patch(F,'0001234567890');expect(conflict.status).toBe(409);
+   expect((await(await handlers().GET(request('/'+F),F)).json()).food.barcode).toBe('0123456789012');
+   expect((await patch(second.food.id,'12345678',B)).status).toBe(403);
+   expect((await patch(F,null)).status).toBe(200);
+   expect((await(await scan.GET(new Request('http://localhost/api/v1/barcode?code=0123456789012'))).json()).origin).toBe('unknown');
+ });
+ it("filters names and brands independently in the local catalog and passes both to OFF",async()=>{
+   await handlers().POST(request('',product));const search=vi.fn(async()=>({foods:[],hasMore:false}));
+   const api=buildFoodEntryHandlers({...deps(),search,lookup:async()=>null});
+   let response=await api.SEARCH(request('/search?query=PaSta&brand=BAR&locale=en'));
+   expect(response.status).toBe(200);expect((await response.json()).local.map((f:{id:string})=>f.id)).toEqual([F]);
+   expect(search).toHaveBeenCalledWith('PaSta',1,'BAR','en');
+   response=await api.SEARCH(request('/search?query=pasta&brand=Marca'));expect((await response.json()).local).toEqual([]);
+   response=await api.SEARCH(request('/search?brand=barilla'));expect((await response.json()).local[0].id).toBe(F);
+   response=await api.SEARCH(request('/search?query=pasta&brand=Bar%25'));expect((await response.json()).local).toEqual([]);
+   expect((await api.SEARCH(request('/search?query=pasta&country=it'))).status).toBe(400);
  });
  it("authenticates before processing input and denies banned sessions and cross-origin writes",async()=>{
    expect((await handlers(null).POST(request('',product))).status).toBe(401);expect((await handlers().POST(request('',product,'https://other.test'))).status).toBe(403);

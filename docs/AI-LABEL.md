@@ -59,9 +59,13 @@ non già raggiungibile. Env e modelli in [configuration.md](configuration.md).
   La UI mantiene foto e valori del form, mostra fallback manuale e aggiorna lo
   stato/disclosure; un nuovo click esplicito è necessario, nessun retry automatico.
   Nessuna URL remota/chiave fornita dall'utente.
-- Output `{label:{name,brand?,per100g:{kcal,fat,carbs,protein,fiber?,salt?},servingSize?}}`.
+- Output `{label:{name,brand?,barcode?,per100g:{kcal,fat,carbs,protein,fiber?,salt?},servingSize?}}`.
   Zod strict, finite/nonnegative, macro<=100, kcal<=10000, nome obbligatorio.
   Rifiutati markdown, JSON malformato, campi sconosciuti e valori mancanti.
+  `barcode` è facoltativo: solo 8–14 cifre interamente leggibili, conservate
+  come testo per mantenere gli zeri iniziali. Un barcode malformato viene
+  omesso senza scartare i valori nutrizionali validi. La nuova vista di
+  inserimento propone il codice nel campo modificabile, prima della conferma.
 - Errori strutturati: 400 input/asserzione assente o invalida, 401 sessione,
   403 ruolo/origine, 409 disabled/key (`AI_UNAVAILABLE`) o consenso obsoleto
   (`AI_PROVIDER_CHANGED`),
