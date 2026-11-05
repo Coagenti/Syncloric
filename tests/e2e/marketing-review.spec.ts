@@ -45,7 +45,7 @@ async function withPendingSync(width: number, outcome: Outcome, run: (
     try {
       await page.goto(diaryUrl(page));
       // Catch missing/empty CSS instead of silently testing a naked harness.
-      expect(await page.locator("style").textContent()).toContain(".app-shell");
+      expect(await page.locator("#diary-production-css").textContent()).toContain(".app-shell");
       const trigger = page.getByRole("button", { name: /^(Sincronizza ora|Sincronizzazione…)$/ });
       await pw(trigger).toHaveText("Sincronizza ora");
       await pw(trigger).toBeEnabled();

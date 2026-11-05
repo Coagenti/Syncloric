@@ -16,7 +16,7 @@ export async function withDiaryBrowser(run: (page: Page) => Promise<void>, view 
     if (req.url && assets[req.url]) { const [file, type] = assets[req.url]; res.setHeader("Content-Type", type); res.end(await readFile(file)); return; }
     if (req.url?.startsWith("/api/")) { res.writeHead(500); res.end("Unmocked API"); return; }
     res.setHeader("Content-Type", req.url === "/app.js" ? "application/javascript" : "text/html");
-    res.end(req.url === "/app.js" ? bundle.outputFiles[0].text : `<html lang="it"><meta name="viewport" content="width=device-width"><style>${css}</style><div id="root"></div><script src="/app.js"></script></html>`);
+    res.end(req.url === "/app.js" ? bundle.outputFiles[0].text : `<html lang="it"><meta name="viewport" content="width=device-width"><style id="diary-production-css">${css}</style><div id="root"></div><script src="/app.js"></script></html>`);
   });
   await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
   let browser;
