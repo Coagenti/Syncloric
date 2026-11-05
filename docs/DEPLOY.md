@@ -71,7 +71,7 @@ viaggia fuori da un canale verificabile, e lo stesso host di build è anche l'am
 | 3 | prod non è un checkout git; le release dir sono alberi di sorgenti estratti | drift tra ciò che si legge e ciò che gira |
 | 4 | `docker-compose.deploy.yml` (log rotation + passthrough env) **non è nel repo**, esiste solo sull'host di prod | un rebuild pulito lo perde silenziosamente |
 | 5 | la release dir corrente è un `cp -a` della precedente: i **sorgenti** dentro sono della versione vecchia | confusione in ogni intervento; compose/entrypoint verificati identici per hash |
-| 6 | `/api/health` restituisce `version: "0.1.0"` **hardcoded** | dall'esterno non si può dire che versione gira |
+| 6 | `/api/health` restituiva `version: "0.1.0"` **hardcoded** — risolto: versione da `package.json`, più `commit` e `digest` | — |
 | 7 | `compose stop` ferma anche il db, che va riavviato nell'intervallo di cutover | finestra di downtime e ordine fragile |
 | 8 | host di build = ambiente di test (2 GB), lasciato acceso per il deploy | build lenta/fragile e catena non isolata |
 | 9 | `package.json` non cambia sul merge: la versione non distingue due build di `main` | impossibile dedurre "prod == main" dalla versione |
@@ -132,10 +132,12 @@ Una sola opzione **non** è accettabile: un self-hosted runner nella rete di pro
 
 ### 5.4 Identità e verificabilità della versione
 
-- `SYNCLORIC_COMMIT` iniettato come build-arg e restituito da `/api/health` insieme al digest;
-- `/api/health` **non deve** contenere versioni hardcoded (fix al punto 4.6);
+- `SYNCLORIC_COMMIT` è iniettato come build-arg nell'immagine e restituito da `/api/health`
+  insieme al digest che il deployer passa come `SYNCLORIC_DIGEST`;
+- `version` viene da `package.json` (bundled al build): **nessuna versione hardcoded**;
 - criterio di allineamento verificabile dall'esterno:
   `health.commit == git rev-parse main && health.digest == digest pubblicato dalla CI`.
+  `GET /api/health` è `no-store`: risponde sempre lo stato corrente.
 
 ### 5.5 Migrazioni e finestra di downtime
 

@@ -31,3 +31,49 @@ jobs:
           name: syncloric-source-assets
           path: ${{ runner.temp }}/release/
           if-no-files-found: error
+
+  image:
+    # L'immagine è l'artefatto che i server tirano per digest: si costruisce UNA volta,
+    # qui, sul commit di main, dopo che lo smoke è verde. Mai su pull_request (niente
+    # push di immagini da codice non ancora mergiato).
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: docker-smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Registry login (GHCR)
+        run: echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build (commit iniettato nell'immagine)
+        run: |
+          set -euo pipefail
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+          SHORT="$(git rev-parse --short=9 HEAD)"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+          echo "SHORT=$SHORT" >> "$GITHUB_ENV"
+          docker build -f docker/Dockerfile \
+            --build-arg SYNCLORIC_COMMIT="$GITHUB_SHA" \
+            -t "$IMAGE:sha-$SHORT" -t "$IMAGE:main" .
+
+      - name: Push e registrazione del digest
+        id: push
+        run: |
+          set -euo pipefail
+          docker push "$IMAGE:sha-$SHORT"
+          docker push "$IMAGE:main"
+          DIGEST="$(docker inspect --format '{{index .RepoDigests 0}}' "$IMAGE:sha-$SHORT")"
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Immagine pubblicata"
+            echo
+            echo '```'
+            echo "$DIGEST"
+            echo '```'
+            echo
+            echo "Deploy: \`SYNCLORIC_IMAGE=$DIGEST\` poi \`up -d --no-deps app\` (vedi docs/DEPLOY.md)."
+          } >> "$GITHUB_STEP_SUMMARY"
