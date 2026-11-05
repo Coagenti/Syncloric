@@ -3,7 +3,9 @@
 Documento di contratto per build, rilascio e aggiornamento degli ambienti.
 **Questo file è pensato per stare nel repo** (e quindi per essere pubblicabile): contiene
 procedure, contratti e criteri di verifica, **non** indirizzi, credenziali o dettagli della
-rete interna. Il dettaglio operativo sito-specifico vive nel runbook interno (repo separato).
+rete interna. Il dettaglio operativo sito-specifico (host, IP, percorsi, credenziali) va tenuto
+**fuori dal repository**, in un runbook locale ignorato da git: ognuno documenta la propria
+infrastruttura nel modo che preferisce, questo file resta la parte condivisibile.
 
 Ultima verifica dei fatti riportati: 2026-11-05.
 
