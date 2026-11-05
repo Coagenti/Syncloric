@@ -10,7 +10,8 @@ it("a later feed run replaces the temporary on-demand result", async () => {
     await page.getByRole("button", { name: "Sincronizza ora" }).click();
     await pw(page.locator(".sync-dot.ok")).toBeVisible();
     feedSync = { status: "error", reason: "auth", origin: "https://norish.example.invalid", finishedAt: "2026-09-29T13:00:00Z" };
-    await page.getByRole("button", { name: "Giorno successivo" }).click();
+    // A new month fetches a fresh feed; days in the loaded month reuse that feed.
+    await page.getByLabel("Seleziona data", { exact: true }).fill("2026-10-01");
     await pw(page.getByRole("alert")).toContainText("Verifica o sostituisci la tua chiave personale");
     await pw(page.getByText("Sincronizzazione Norish: completata.", { exact: true })).toHaveCount(0);
   });

@@ -1,8 +1,10 @@
 "use client";
+import { useI18n } from "@/components/ui-preferences-provider";
 import { useState } from "react";
 import { UiIcon } from "@/components/ui-icon";
 
 export function LogoutButton({ menuItem = false }: { menuItem?: boolean }) {
+  const { tr } = useI18n();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
   async function logout() {
@@ -13,5 +15,5 @@ export function LogoutButton({ menuItem = false }: { menuItem?: boolean }) {
       window.location.replace("/login");
     } catch { setError(true); setBusy(false); }
   }
-  return <div className="logout-control"><button role={menuItem ? "menuitem" : undefined} className={menuItem ? "account-menu-item account-logout" : "toolbar-action logout-action"} type="button" onClick={logout} disabled={busy}><UiIcon name="logout" /><span>{busy ? "Uscita…" : "Esci"}</span></button>{error && <p className="logout-error" role="alert">Uscita non riuscita. Riprova.</p>}</div>;
+  return <div className="logout-control"><button role={menuItem ? "menuitem" : undefined} className={menuItem ? "account-menu-item account-logout" : "toolbar-action logout-action"} type="button" onClick={logout} disabled={busy}><UiIcon name="logout" /><span>{busy ? tr("Uscita…") : tr("Esci")}</span></button>{error && <p className="logout-error" role="alert">{tr("Uscita non riuscita. Riprova.")}</p>}</div>;
 }

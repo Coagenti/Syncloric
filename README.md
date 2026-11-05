@@ -5,6 +5,10 @@ norish per importare in automatico i pasti segnati sul calendario e le kcal asso
 
 Dashboard moderna in stile cyberpunk (palette Cyberpunk 2077), mobile-first.
 
+Dal menu profilo sono disponibili **Temi** (Cyberpunk, Arasaka Red, Synthwave e Terminal)
+e **Lingua** (Italiano e Inglese), con salvataggio personale sincronizzato
+fra dispositivi. Dettagli e API: [preferenze UI](docs/UI-PREFERENCES.md).
+
 ## Stato del progetto
 
 Scheletro del codebase attivo (task `t_3899c9f8`): struttura `src/` (app shell,

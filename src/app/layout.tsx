@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Providers } from "./providers";
 import "./globals.css";
+import { cookies } from "next/headers";
+import { localeCookie, normalizeUiPreferences, themeCookie } from "@/lib/ui-preferences";
 
 export const metadata: Metadata = {
   title: "Syncloric",
@@ -18,14 +20,16 @@ export const viewport: Viewport = {
   themeColor: "#0a0e17",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const saved = await cookies();
+  const preferences = normalizeUiPreferences({ locale: saved.get(localeCookie)?.value, theme: saved.get(themeCookie)?.value });
   return (
-    <html lang="it" suppressHydrationWarning>
+    <html lang={preferences.locale} data-theme={preferences.theme} suppressHydrationWarning>
       <body className="min-h-dvh antialiased">
         <script dangerouslySetInnerHTML={{ __html: `(()=>{let saved;try{saved=localStorage.getItem('syncloric.reduce-motion')}catch{}document.documentElement.dataset.motion=(saved==='true'||(saved!=='false'&&matchMedia('(prefers-reduced-motion: reduce)').matches))?'reduce':'full'})()` }} />
-        <Providers>{children}</Providers>
+        <Providers initialPreferences={preferences}>{children}</Providers>
       </body>
     </html>
   );

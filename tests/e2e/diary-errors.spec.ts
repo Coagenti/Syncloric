@@ -18,7 +18,7 @@ it("preserves input, sanitizes failed writes, offers login and still supports ow
   await save.click();await pw(page.getByRole("alert")).toContainText("Controlla");await pw(page.locator("body")).not.toContainText("postgres");await pw(page.getByLabel("Nome alimento",{exact:true})).toHaveValue("Nuovo");
   status=500;await save.click();await pw(page.getByRole("alert")).toContainText("Non è stato possibile salvare");status=0;await save.click();await pw(page.getByRole("alert")).toContainText("Connessione al salvataggio interrotta");
   status=401;await save.click();await pw(page.getByRole("link",{name:"Accedi",exact:true})).toHaveAttribute("href","/login");
-  await page.getByRole("link",{name:"Torna al diario",exact:true}).click();const edit=page.locator(".entry-row").filter({hasText:"Yogurt"}).getByRole("button",{name:"Modifica",exact:true});await edit.click();
+  await page.getByRole("link",{name:"Torna al diario",exact:true}).click();await page.getByRole("link",{name:"Apri Spuntino",exact:true}).click();const edit=page.locator(".entry-row").filter({hasText:"Yogurt"}).getByRole("button",{name:"Modifica",exact:true});await edit.click();
   const dialog=page.getByRole("dialog",{name:"Modifica voce"});await pw(dialog.getByLabel("Nome alimento",{exact:true})).toHaveAttribute("readonly","");await dialog.getByLabel("Quantità in grammi").fill("150");await dialog.getByLabel("Kcal totali",{exact:true}).fill("95");await dialog.getByRole("button",{name:"Salva voce",exact:true}).click();await pw(edit).toBeFocused();
   expect(writes).toEqual([{date:"2026-09-29",slot:"Snack",quantityGrams:150,kcal:95,nutrients:{},portion:null}]);
  });

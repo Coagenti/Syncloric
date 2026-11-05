@@ -10,9 +10,9 @@ Indietro del browser torna alla selezione. **Fine** torna al diario della data.
 
 - La ricerca per nome usa il servizio ufficiale
   [Search-a-licious](https://openfoodfacts.github.io/search-a-licious/users/ref-openapi/)
-  di Open Food Facts, con lingua italiana/inglese, 20 risultati per pagina e
-  selezione **Italia / Tutti i paesi**. Il filtro Italia indica il mercato di
-  vendita, non l'origine del prodotto.
+  di Open Food Facts, con lingua italiana/inglese e 20 risultati per pagina.
+  **Nome** e **Marca** sono campi testuali separati, combinati in AND; si può
+  cercare anche solo per marca. Non viene applicato un filtro per paese.
 - Le richieste partono dopo 900 ms senza digitazione. Una nuova query annulla
   la precedente; i dati del catalogo locale restano utilizzabili quando OFF
   è indisponibile. Dati OFF attribuiti ODbL/DbCL, nutrienti assenti sconosciuti.
@@ -21,7 +21,7 @@ Indietro del browser torna alla selezione. **Fine** torna al diario della data.
   al minuto per processo; in caso di attesa la UI riprova una volta la query
   ancora corrente. Su più repliche serve un limite condiviso al proxy.
 - Lo switch admin Open Food Facts controlla anche la ricerca per nome. Nessuna
-  credenziale né cronologia alimentare viene inviata: solo query e mercato.
+  credenziale né cronologia alimentare viene inviata: solo nome, marca e lingua.
 - A campo vuoto compaiono i **più usati** del pasto corrente: conteggio delle
   voci dell'utente, ordine per frequenza e uso recente. Nessun dato di altri
   utenti o pasti contribuisce alla classifica. Le voci Norish rimosse sono escluse.
@@ -46,6 +46,11 @@ Rimuovere tutte le porzioni personali mantiene una preferenza vuota e usa grammi
 
 Un nuovo prodotto viene salvato atomicamente con la voce e le preferenze. Se
 esiste già il barcode, si usa il prodotto esistente senza sovrascriverne i dati.
+Il **codice a barre facoltativo** accetta 8–14 cifre e conserva gli zeri iniziali.
+Può essere aggiunto, corretto o rimosso dal creatore dell'alimento. Un codice
+già assegnato a un altro alimento produce un conflitto esplicito (409).
+Lo scanner cerca prima nel catalogo locale: funziona quindi anche per prodotti
+inseriti manualmente o tramite Etichetta AI, senza richiederli nuovamente a OFF.
 Non vengono effettuate scritture su Open Food Facts. Una risposta di rete persa
 richiede di controllare il diario prima di ritentare, perché l'API non usa ancora
 chiavi d'idempotenza per le registrazioni manuali.
@@ -71,15 +76,18 @@ Il riquadro riprende lo scanner e spiega di fotografare la tabella nutrizionale
 con kcal, nutrienti e unità leggibili. Il LED indica la disponibilità del servizio
 AI: verde se configurato e abilitato, rosso se disattivato o non disponibile;
 durante la verifica iniziale resta neutro.
+Quando tutte le cifre sono leggibili nella foto, l'AI propone anche il barcode;
+il campo resta modificabile e va verificato sulla confezione. Codici parziali,
+illeggibili o malformati vengono omessi, senza inventare cifre.
 
 ## API e migrazione
 
 | Endpoint | Funzione |
 | --- | --- |
-| `GET /api/v1/foods/search?query=...&country=it&page=1` | Ricerca locale e OFF |
+| `GET /api/v1/foods/search?query=...&brand=...&locale=it&page=1` | Ricerca locale e OFF; nome o marca di almeno 2 caratteri |
 | `GET /api/v1/foods/frequent?slot=Breakfast` | Più usati del proprio pasto |
 | `GET /api/v1/foods/:id` | Scheda e porzioni personali |
-| `PATCH /api/v1/foods/:id` | `portions` e `product` opzionale, riservato al creatore |
+| `PATCH /api/v1/foods/:id` | `portions` e `product` opzionale (incluso `barcode`, stringa o null), riservato al creatore |
 | `POST /api/v1/foods` | Nuovo alimento + preferenze + voce del diario |
 | `POST /api/v1/diary` | Alimento esistente o ricetta; alimenti con `portion`/`portions` opzionali |
 | `PATCH /api/v1/diary/:id` | Quantità e `portion` opzionale per le voci manuali |

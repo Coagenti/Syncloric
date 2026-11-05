@@ -1,4 +1,5 @@
 "use client";
+import { useI18n } from "@/components/ui-preferences-provider";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import { UiIcon } from "./ui-icon";
@@ -13,6 +14,7 @@ export function AccountAvatar({ user }: { user: AccountUser | null }) {
     <img src={image} alt="" onError={() => setFailedImage(image)} /> : <UiIcon name="profile" />;
 }
 export function AccountMenu() {
+  const { tr } = useI18n();
   const [open, setOpen] = useState(false); const [user, setUser] = useState<AccountUser | null>(null);
   const root = useRef<HTMLDivElement>(null); const trigger = useRef<HTMLButtonElement>(null); const menu = useRef<HTMLDivElement>(null); const id = useId();
   useEffect(() => {
@@ -28,11 +30,11 @@ export function AccountMenu() {
     document.addEventListener("pointerdown", outside); return () => document.removeEventListener("pointerdown", outside);
   }, [open]);
   return <div className="account-menu" ref={root} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
-    <button ref={trigger} type="button" className="account-trigger" aria-label="Menu profilo" aria-haspopup="menu" aria-controls={id} aria-expanded={open} onClick={() => setOpen(v => !v)} onKeyDown={event => { if (["ArrowDown", "ArrowUp"].includes(event.key)) { event.preventDefault(); setOpen(true); } }}><AccountAvatar user={user} /><span className="account-trigger-mark" aria-hidden="true" /></button>
+    <button ref={trigger} type="button" className="account-trigger" aria-label={tr("Menu profilo")} aria-haspopup="menu" aria-controls={id} aria-expanded={open} onClick={() => setOpen(v => !v)} onKeyDown={event => { if (["ArrowDown", "ArrowUp"].includes(event.key)) { event.preventDefault(); setOpen(true); } }}><AccountAvatar user={user} /><span className="account-trigger-mark" aria-hidden="true" /></button>
     {open && <div ref={menu} id={id} className="account-dropdown" role="menu" aria-label="Account" onKeyDown={event => {
       const items = Array.from(menu.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []); const index = items.indexOf(document.activeElement as HTMLElement);
       if (event.key === "Escape") { event.preventDefault(); setOpen(false); trigger.current?.focus(); }
       else if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) { event.preventDefault(); const next = event.key === "Home" ? 0 : event.key === "End" ? items.length - 1 : (index + (event.key === "ArrowDown" ? 1 : -1) + items.length) % items.length; items[next]?.focus(); }
-    }}><div className="account-menu-identity"><strong>{user?.name || user?.username || "Il tuo account"}</strong><span>{user?.username ? `@${user.username}` : "SYNCLORIC / PERSONALE"}</span></div><Link role="menuitem" className="account-menu-item" href="/profile" onClick={() => setOpen(false)}><UiIcon name="profile" />Profilo</Link><Link role="menuitem" className="account-menu-item" href="/settings" onClick={() => setOpen(false)}><UiIcon name="settings" />Impostazioni</Link><LogoutButton menuItem /></div>}
+    }}><div className="account-menu-identity"><strong>{user?.name || user?.username || tr("Il tuo account")}</strong><span>{user?.username ? `@${user.username}` : tr("SYNCLORIC / PERSONALE")}</span></div><Link role="menuitem" className="account-menu-item" href="/profile" onClick={() => setOpen(false)}><UiIcon name="profile" />{tr("Profilo")}</Link><Link role="menuitem" className="account-menu-item" href="/themes" onClick={() => setOpen(false)}><UiIcon name="palette" />{tr("Temi")}</Link><Link role="menuitem" className="account-menu-item" href="/language" onClick={() => setOpen(false)}><UiIcon name="language" />{tr("Lingua")}</Link><Link role="menuitem" className="account-menu-item" href="/settings" onClick={() => setOpen(false)}><UiIcon name="settings" />{tr("Impostazioni")}</Link><LogoutButton menuItem /></div>}
   </div>;
 }

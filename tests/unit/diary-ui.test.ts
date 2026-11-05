@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CalendarView, DashboardView, DiaryView } from "@/components/calorie-views";
+import { MealDetailView } from "@/components/meal-detail";
 import { addEntry, dailySummary, demoEntries, editEntry, monthDays, type DiaryEntry } from "@/lib/diary";
 
 const entry: DiaryEntry = { id: "a", date: "2026-09-29", slot: "Breakfast", entryType: "food", name: "Avena", quantityGrams: 50, servings: null, kcal: 190, protein: 5, fat: 3, carbs: 30, source: "manual", norishDeleted: false };
@@ -41,16 +42,29 @@ describe("diario calorie", () => {
     expect(html).toContain("Spuntino");
     expect(html).toContain("Cena");
   });
-  it("renders dated diary entries with imported provenance and no unsupported edit controls", () => {
+  it("keeps the diary compact and links each meal to its dated detail", () => {
     const html = renderToStaticMarkup(createElement(DiaryView, { entries: demoEntries, date: "2026-09-29" }));
+    expect(html).not.toContain("Yogurt greco e mirtilli");
+    expect(html).not.toContain("entry-row");
+    expect(html).toContain("/diary/meal?date=2026-09-29&amp;slot=Breakfast");
+    expect(html).toContain("Proteine");
+  });
+  it("renders meal details with imported provenance and no unsupported edit controls", () => {
+    const html = renderToStaticMarkup(createElement(MealDetailView, { entries: demoEntries, date: "2026-09-29", slot: "Lunch" }));
     expect(html).toContain("Da norish");
     expect(html).not.toContain("Modifica");
     expect(html).not.toContain("Aggiungi voce");
   });
-  it("renders imported meals in the calendar with navigable day links", () => {
+  it("renders all diary sources in the calendar with an optional Norish filter", () => {
     const html = renderToStaticMarkup(createElement(CalendarView, { entries: demoEntries, date: "2026-09-29", onSelect: () => {} }));
-    expect(html).toContain("Pasti importati");
+    expect(html).toContain("Tutte le registrazioni");
+    expect(html).toContain("Yogurt greco e mirtilli");
     expect(html).toContain("29");
     expect(html).toContain("norish");
+  });
+  it("does not round small known macro and micronutrient amounts to a false zero", () => {
+    const html = renderToStaticMarkup(createElement(MealDetailView, { entries: [{ ...entry, nutrients: { protein: .01, vitaminD: .0001 } }], date: entry.date, slot: "Breakfast" }));
+    expect(html).toContain("&lt;0,1");
+    expect(html).toContain("0,0001");
   });
 });

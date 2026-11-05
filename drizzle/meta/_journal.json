@@ -57,6 +57,13 @@
       "when": 1791933058125,
       "tag": "0007_goal_profile_account",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793661188561,
+      "tag": "0008_user_ui_preferences",
+      "breakpoints": true
     }
   ]
 }

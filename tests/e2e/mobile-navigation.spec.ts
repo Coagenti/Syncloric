@@ -19,7 +19,7 @@ beforeAll(async () => {
       createRoot(document.getElementById('root')).render(location.pathname === '/settings'
         ? <SettingsContent access="requires-admin" /> : location.pathname === '/diary/add'
         ? <FoodEntryView initialDate={query.get('date')} initialSlot={query.get('slot')} />
-        : <CalorieApp view={location.pathname.slice(1)} />);`, loader: "tsx", resolveDir: process.cwd() },
+        : <CalorieApp view={location.pathname==='/diary/meal'?'meal':location.pathname.slice(1)} initialSlot={query.get('slot')||'Lunch'} />);`, loader: "tsx", resolveDir: process.cwd() },
     bundle: true, write: false, platform: "browser", jsx: "automatic",
     define: { "process.env.NODE_ENV": '"production"', "process.env": "{}" },
   });
@@ -162,6 +162,8 @@ it("today meal cards open entry with the selected date and meal, while swiping a
     await drag(page, box.x + box.width - 10, box.y + box.height / 2, -110);
     await pw(page).toHaveURL(`${base}/diary`);
     await pw(page.locator(".nutrition-summary")).toHaveCount(0);
+    await pw(page.locator(".entry-nutrients")).toHaveCount(0);
+    await page.getByRole("link", { name: "Apri Colazione", exact: true }).click();
     await pw(page.locator(".entry-nutrients")).toBeVisible();
     await page.locator(".entry-nutrients summary").click();
     await pw(page.locator(".entry-nutrients")).toContainText("2,5 µg");

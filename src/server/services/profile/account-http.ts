@@ -5,7 +5,7 @@ import { verifyPassword } from "better-auth/crypto";
 import { accountSecurityAttempts, accounts, householdMembers, households, userAvatars, users } from "@/server/db/schema";
 import { activeUser, checkOrigin, handle, HttpError, input, json, lockHouseholds, privateHeaders, sessionUserId, type Deps } from "@/server/services/households/common";
 import { writeAdminAudit } from "@/server/db/repositories/admin-users";
-const deletion = z.object({ password: z.string().min(1).max(128), confirmation: z.literal("ELIMINA") }).strict();
+const deletion = z.object({ password: z.string().min(1).max(128), confirmation: z.enum(["ELIMINA", "DELETE"]) }).strict();
 export function buildAccountHandlers(deps: Deps) {
   async function owner(request: Request) { const id = await sessionUserId(deps, request); await activeUser(deps.getDb(), id); return id; }
   return {

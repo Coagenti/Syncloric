@@ -103,10 +103,10 @@ it("feed calendar outside-month text meets AA and retains interaction (1280/390)
       await pwExpect(page.getByRole("heading", { name: "settembre 2026" })).toBeVisible();
       const outside = page.locator(".calendar-day.outside").first();
       await pwExpect(outside).toBeEnabled();
-      await pwExpect(outside.locator("small")).toHaveText("1 norish");
+      await pwExpect(outside.locator("small")).toHaveText("1 voce");
       const insideText = page.locator(".calendar-day:not(.outside):not(.selected) > span").first();
       const inside = await measureText(insideText);
-      const day = await measureText(outside.locator("span"));
+      const day = await measureText(outside.locator(":scope > span"));
       const label = await measureText(outside.locator("small"));
       console.info(JSON.stringify({ viewport: viewport.width, inside, outside: day, importLabel: label }));
       expect(day.ratio).toBeGreaterThanOrEqual(4.5);
@@ -124,7 +124,7 @@ it("feed calendar outside-month text meets AA and retains interaction (1280/390)
       await page.keyboard.press("Tab");
       await pwExpect(outside).toBeFocused();
       await page.screenshot({ path: `test-results/calendar-${viewport.width}.png`, fullPage: true });
-      expect((await measureText(outside.locator("span"))).ratio).toBeGreaterThanOrEqual(4.5);
+      expect((await measureText(outside.locator(":scope > span"))).ratio).toBeGreaterThanOrEqual(4.5);
       await outside.hover();
       await pwExpect(outside).toHaveCSS("border-top-color", "rgb(0, 240, 255)");
       expect((await measureText(outside.locator("small"))).ratio).toBeGreaterThanOrEqual(4.5);
@@ -134,7 +134,7 @@ it("feed calendar outside-month text meets AA and retains interaction (1280/390)
       const selectedDay = page.locator(".calendar-day.selected");
       await pwExpect(selectedDay).toHaveAttribute("aria-pressed", "true");
       await pwExpect(selectedDay).toHaveCSS("border-top-color", "rgb(252, 238, 10)");
-      expect((await measureText(selectedDay.locator("span"))).ratio).toBeGreaterThanOrEqual(4.5);
+      expect((await measureText(selectedDay.locator(":scope > span"))).ratio).toBeGreaterThanOrEqual(4.5);
       // Outside cells are active: keyboard activation navigates to the adjacent month.
       await page.locator(".calendar-day.outside").first().focus();
       await page.keyboard.press("Enter");

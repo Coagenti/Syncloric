@@ -1,0 +1,92 @@
+[
+  {
+    "file": "rajdhani-500-latin-ext.woff2",
+    "sha256": "16fd373954f7569ad294444531caa2e7e5ffd1a6798c6df3f56b9faf691190c2",
+    "subset": "latin-ext",
+    "source": "https://fonts.gstatic.com/s/rajdhani/v17/LDI2apCSOBg7S-QT7pb0EPOleef2kg.woff2",
+    "bytes": 12380,
+    "family": "Rajdhani",
+    "weight": 500
+  },
+  {
+    "file": "rajdhani-500-latin.woff2",
+    "sha256": "23afdb9b5b89b878fab04d80cc30bf41bb4f3f7e8be88e5f16a7cc7671cdb2dc",
+    "subset": "latin",
+    "source": "https://fonts.gstatic.com/s/rajdhani/v17/LDI2apCSOBg7S-QT7pb0EPOreec.woff2",
+    "bytes": 15084,
+    "family": "Rajdhani",
+    "weight": 500
+  },
+  {
+    "file": "rajdhani-700-latin-ext.woff2",
+    "sha256": "c6b9df58743ccca1236e9521720b135138309bc4149d5d027a9bd10183cc8ed5",
+    "subset": "latin-ext",
+    "source": "https://fonts.gstatic.com/s/rajdhani/v17/LDI2apCSOBg7S-QT7pa8FvOleef2kg.woff2",
+    "bytes": 12964,
+    "family": "Rajdhani",
+    "weight": 700
+  },
+  {
+    "file": "rajdhani-700-latin.woff2",
+    "sha256": "5b7e4a6f97163c2636724d4de90304fc895653dcfe64c67a7a22f26331ca5c5f",
+    "subset": "latin",
+    "source": "https://fonts.gstatic.com/s/rajdhani/v17/LDI2apCSOBg7S-QT7pa8FvOreec.woff2",
+    "bytes": 15688,
+    "family": "Rajdhani",
+    "weight": 700
+  },
+  {
+    "file": "zen-kaku-gothic-new-400-latin-ext.woff2",
+    "sha256": "960fdc9411c5b40f1f8270b857278c1c8cddd6e4cd70efb4d0e8f3b27a419f4c",
+    "subset": "latin-ext",
+    "source": "https://fonts.gstatic.com/s/zenkakugothicnew/v19/gNMYW2drQpDw0GjzrVNFf_valaDBcznOojJoTFz5.woff2",
+    "bytes": 1676,
+    "family": "Zen Kaku Gothic New",
+    "weight": 400
+  },
+  {
+    "file": "zen-kaku-gothic-new-400-latin.woff2",
+    "sha256": "5b1bfc34d603aef66d247bd22b8344f19de165da7ea07d114d87fe7ff4cdc770",
+    "subset": "latin",
+    "source": "https://fonts.gstatic.com/s/zenkakugothicnew/v19/gNMYW2drQpDw0GjzrVNFf_valaDBcznOojxoTA.woff2",
+    "bytes": 9752,
+    "family": "Zen Kaku Gothic New",
+    "weight": 400
+  },
+  {
+    "file": "zen-kaku-gothic-new-500-latin-ext.woff2",
+    "sha256": "e0ebecb0594a41e19415a2a596b35245e0e549a2668d1c9b8f194ce5126dfc69",
+    "subset": "latin-ext",
+    "source": "https://fonts.gstatic.com/s/zenkakugothicnew/v19/gNMVW2drQpDw0GjzrVNFf_valaDBcznOqs9LWW3YTVlM.woff2",
+    "bytes": 1676,
+    "family": "Zen Kaku Gothic New",
+    "weight": 500
+  },
+  {
+    "file": "zen-kaku-gothic-new-500-latin.woff2",
+    "sha256": "e4ab8e9dc6984461551cf416f31f8e976cccee7359464ba4b86163c62d233251",
+    "subset": "latin",
+    "source": "https://fonts.gstatic.com/s/zenkakugothicnew/v19/gNMVW2drQpDw0GjzrVNFf_valaDBcznOqs9LWWPYTQ.woff2",
+    "bytes": 9588,
+    "family": "Zen Kaku Gothic New",
+    "weight": 500
+  },
+  {
+    "file": "zen-kaku-gothic-new-700-latin-ext.woff2",
+    "sha256": "ea76ea6cf1a6d4ddd89bd0466f6ee610a9428506e118525f90264237c8745a15",
+    "subset": "latin-ext",
+    "source": "https://fonts.gstatic.com/s/zenkakugothicnew/v19/gNMVW2drQpDw0GjzrVNFf_valaDBcznOqodNWW3YTVlM.woff2",
+    "bytes": 1660,
+    "family": "Zen Kaku Gothic New",
+    "weight": 700
+  },
+  {
+    "file": "zen-kaku-gothic-new-700-latin.woff2",
+    "sha256": "3be1f563567099c0b7350440246e5861621da99e68900890978d5824dead5f4c",
+    "subset": "latin",
+    "source": "https://fonts.gstatic.com/s/zenkakugothicnew/v19/gNMVW2drQpDw0GjzrVNFf_valaDBcznOqodNWWPYTQ.woff2",
+    "bytes": 9680,
+    "family": "Zen Kaku Gothic New",
+    "weight": 700
+  }
+]

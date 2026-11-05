@@ -1,0 +1,91 @@
+/* Arasaka Red: obsidian panels, signal red and disciplined, architectural lines. */
+.ui-icon-arasaka { display:none; }
+html[data-theme="arasaka-red"] {
+  --font-arasaka-ui:"Zen Kaku Gothic New","Yu Gothic",sans-serif;
+  --font-arasaka-display:"Rajdhani","Arial Narrow",sans-serif;
+  --color-cyber-bg:#0b090b; --color-cyber-surface:#171214; --color-cyber-border:#50343b;
+  --color-cyber-cyan:#ff6974; --color-cyber-yellow:#ff4052; --color-cyber-magenta:#ff91a2;
+  --surface-sidebar:#100d0f; --surface-sidebar-end:#100d0f; --surface-header:#100d0f;
+  --surface-console:#171214; --surface-nutrition:#171214;
+  --surface-control:#251a1f; --surface-profile:#1b1518; --surface-field:#100d10;
+  --text-accent:#ff929a;
+  --surface-entry:#171214; --surface-entry-end:#120e11;
+  --surface-raised:#24181e; --surface-raised-end:#191216;
+  --surface-quantity:#21171c; --surface-quantity-end:#171114;
+  --surface-overlay:#1c1318; --surface-well:#0e0a0d; --surface-accent:#361a23;
+  --text-primary:#f3edeb; --text-secondary:#c3b7bb; --text-muted:#b3a5ab;
+}
+html[data-theme="arasaka-red"] body { color:var(--text-primary); font-family:var(--font-arasaka-ui); }
+html[data-theme="arasaka-red"] :is(h1,h2,h3,legend,.section-kicker,.side-label,.side-build,.brand-wordmark,.energy-number,.energy-target,.energy-total strong,.energy-balance strong,.meal-energy strong,.settings-tab,.entry-tabs [role="tab"]) { font-family:var(--font-arasaka-display); font-weight:700; }
+html[data-theme="arasaka-red"] :is(h1,h2,h3,.brand-wordmark) { letter-spacing:.015em; }
+html[data-theme="arasaka-red"] :is(.nav-link,.mobile-nav a,.topbar-path,.side-build) { font-family:var(--font-arasaka-display); font-weight:500; }
+html[data-theme="arasaka-red"] :is(.nav-link,.mobile-nav a) { font-size:14px; letter-spacing:.035em; }
+html[data-theme="arasaka-red"] .ui-icon-standard { display:none; }
+html[data-theme="arasaka-red"] .ui-icon-arasaka { display:inline; }
+html[data-theme="arasaka-red"] .ui-icon-arasaka-accent { fill:#ff4052; stroke:none; }
+html[data-theme="arasaka-red"] .sidebar { border-right-color:#70414b; background:var(--surface-sidebar); }
+html[data-theme="arasaka-red"] .sidebar::before { content:""; position:absolute; top:0; left:0; bottom:0; width:4px; background:linear-gradient(#ff4052 0 148px,transparent 148px); pointer-events:none; }
+html[data-theme="arasaka-red"] .topbar { position:relative; border-bottom-color:#70414b; }
+html[data-theme="arasaka-red"] .topbar::after { content:""; position:absolute; left:0; bottom:-1px; width:92px; height:3px; background:#ff4052; pointer-events:none; }
+html[data-theme="arasaka-red"] .brand-mark { filter:grayscale(1) brightness(1.4); }
+html[data-theme="arasaka-red"] .brand-wordmark { font-style:normal; letter-spacing:.01em; }
+html[data-theme="arasaka-red"] .brand .brand-accent { color:#ff6974; }
+html[data-theme="arasaka-red"] :is(.nav-link,.account-menu,.account-dropdown,.account-trigger,.day-stepper,.day-stepper button,.app-date-picker,.settings-tab,.entry-tabs [role="tab"],.cyber-switch-track) { border-radius:2px; }
+html[data-theme="arasaka-red"] .nav-link.active { border-color:#8b414e; border-left:3px solid #ff4052; background:#31171e; color:#fff0ef; }
+html[data-theme="arasaka-red"] .nav-link i { background:#ff4052; }
+html[data-theme="arasaka-red"] .mobile-nav { background:#100d0f; border-top-color:#70414b; }
+html[data-theme="arasaka-red"] .mobile-nav a.active { color:#ff929a; border-top-color:#ff4052; }
+html[data-theme="arasaka-red"] :is(.side-label,.side-bottom p,.side-build,.form-help,.muted-caption,.energy-caption,.theme-option-description,.macro-target) { color:#c3b7bb; }
+
+/* Flat, rectangular surfaces make the red marks read like a corporate instrument panel. */
+html[data-theme="arasaka-red"] :is(.energy-card,.nutrition-summary,.meal-card,.diary-group,.diary-balance,.meal-nutrition,.calendar-panel,.preferences-panel,.profile-panel,.theme-option,.language-option,.entry-tab-panel,.food-energy-readout,.food-quantity-card,.food-edit-card,:where(.settings-grid > section),.editor-panel,.app-date-popover) {
+  border-radius:2px; border-color:#50343b; background:var(--surface-console);
+}
+html[data-theme="arasaka-red"] :is(.energy-card,.preferences-panel,.calendar-panel,.profile-panel,.app-date-popover) { border-top:2px solid #ff4052; }
+html[data-theme="arasaka-red"] :is(.theme-option,.language-option).is-selected { border-color:#ff6974; background:#2a171e; box-shadow:inset 3px 0 #ff4052; }
+html[data-theme="arasaka-red"] .meal-card:hover { border-color:#ff6974; background:#24171c; }
+html[data-theme="arasaka-red"] .diary-meal-link { background:transparent; }
+html[data-theme="arasaka-red"] .diary-meal-link:hover { background:#ff40520a; }
+html[data-theme="arasaka-red"] :is(.calendar-day,.calendar-import) { background:#1a1317; border-color:#50343b; border-radius:2px; }
+html[data-theme="arasaka-red"] .calendar-day:hover { border-color:#ff6974; }
+html[data-theme="arasaka-red"] .calendar-day.selected { background:#391a23; border-color:#ff4052; }
+html[data-theme="arasaka-red"] .calendar-day.selected > span { color:#fff0ef; }
+html[data-theme="arasaka-red"] .calendar-day small { color:#f0d6d9; }
+html[data-theme="arasaka-red"] .origin:not(.imported) { border-color:#79505a; background:#251a1f; color:#d1bdc3; }
+html[data-theme="arasaka-red"] .entry-tabs { background:#100d0ff5; border-color:#50343b; border-radius:2px 2px 0 0; }
+html[data-theme="arasaka-red"] .entry-tabs [aria-selected="true"] { background:#2a171e; border-color:#79505a; color:#ff929a; }
+html[data-theme="arasaka-red"] :is(.energy-card.is-over-target,.diary-balance.is-over-target,.profile-panel.profile-danger) { border-color:#ff6974; background:#27151e; }
+html[data-theme="arasaka-red"] .energy-card::before { opacity:.1; }
+html[data-theme="arasaka-red"] .gauge-fill { stroke:#f3edeb; filter:none; }
+html[data-theme="arasaka-red"] .is-over-target .gauge-fill { stroke:#ff4052; }
+html[data-theme="arasaka-red"] .gauge-inner { stroke:#a24958; }
+html[data-theme="arasaka-red"] .gauge-orbit { stroke:#9d8d93; }
+html[data-theme="arasaka-red"] .gauge-crosshair { stroke:#f3edeb; }
+html[data-theme="arasaka-red"] :is(.energy-rule,.macro-progress,.energy-rule > span,.macro-progress > i) { border-radius:0; }
+html[data-theme="arasaka-red"] .energy-rule > span { background:#f3edeb; }
+html[data-theme="arasaka-red"] .is-over-target .energy-rule > span { background:#ff4052; }
+html[data-theme="arasaka-red"] :is(.primary-btn,.primary-cta,.profile-save,.auth-primary) { border-radius:2px; background:#ff4052; color:#100b0d; box-shadow:none; }
+html[data-theme="arasaka-red"] :is(.secondary-btn,.toolbar-action,.neon-action,.meal-add,.food-square-add,.close-editor,.export-download,.app-date-month-button,.app-date-cell,.app-date-calendar-footer button) { border-radius:2px; }
+html[data-theme="arasaka-red"] :is(.secondary-btn,.toolbar-action,.export-download) { background:#251a1f; border-color:#79505a; color:#f3edeb; }
+html[data-theme="arasaka-red"] :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea) { border-radius:2px; }
+html[data-theme="arasaka-red"] :is(.profile-panel,.food-edit-card,.food-quantity-card,.entry-tab-panel,.entry-context,.settings-grid,.editor-panel,.calendar-panel,.auth-card) :is(input,select,textarea):where(:not([type="checkbox"],[type="radio"],[type="file"])) { background:var(--surface-field); border-color:#79505a; color:var(--text-primary); }
+html[data-theme="arasaka-red"] .profile-panel input:not([type="radio"]):not([type="checkbox"]) { border-color:#79505a; border-radius:2px; }
+html[data-theme="arasaka-red"] .food-monogram { background:#251a1f; border-color:#79505a; color:#ff6974; border-radius:2px; }
+html[data-theme="arasaka-red"] .cyber-switch-track { background:#1c1518; border-color:#8e7079; }
+html[data-theme="arasaka-red"] .app-date-picker input { background:transparent; }
+html[data-theme="arasaka-red"] .app-date-cell[data-selected] { color:#100b0d; }
+html[data-theme="arasaka-red"] .app-date-popover { box-shadow:0 12px 36px #0009; }
+
+/* The red sun and parallel rules also identify this option when another theme is active. */
+.theme-preview.theme-preview-arasaka { border-radius:2px; }
+.theme-preview-arasaka::before { background-image:repeating-linear-gradient(0deg,transparent 0 22px,#ff405209 22px 23px); }
+.theme-preview-arasaka .theme-preview-nav { background:#ff4052; border-right:3px solid #f3edeb; width:12%; }
+.theme-preview-arasaka .theme-preview-ring { border:2px solid #f3edeb; background:radial-gradient(circle,#ff4052 0 45%,transparent 47%); box-shadow:none; }
+.theme-preview-arasaka .theme-preview-bars { gap:3px; }
+.theme-preview-arasaka .theme-preview-bars i { border-radius:0; height:3px; background:#f3edeb; }
+.theme-preview-arasaka .theme-preview-bars i:nth-child(2) { background:#ff4052; }
+@media(max-width:1024px) {
+  html[data-theme="arasaka-red"] .daily-overview { border-radius:2px; border-color:#50343b; border-top:2px solid #ff4052; background:var(--surface-console); }
+  html[data-theme="arasaka-red"] .daily-overview :is(.energy-card,.nutrition-summary) { border:0; background:none; }
+  html[data-theme="arasaka-red"] .daily-overview.is-over-target { border-color:#ff6974; background:#27151e; }
+}

@@ -24,8 +24,13 @@ it("neon diary: icon actions, protected imports, confirmed DELETE, focus restora
     await pw(page.locator(".diary-balance")).toContainText("In eccesso"); await pw(page.locator(".energy-balance")).toContainText("300");
     await pw(page.locator(".diary-balance")).toHaveClass(/is-over-target/);
     await pw(page.locator(".sync-dot.ok")).toBeVisible();
+    await page.getByRole("link", { name: "Apri Pranzo", exact: true }).click();
     const imported = page.locator(".entry-row").filter({ hasText: "Bowl Norish" });
-    await pw(imported.getByRole("button")).toHaveCount(0);
+    await pw(imported.getByRole("button", { name: "Modifica", exact: true })).toHaveCount(0);
+    await pw(imported.getByRole("button", { name: "Elimina", exact: true })).toHaveCount(0);
+    await pw(imported.getByRole("button", { name: "Duplica", exact: true })).toBeVisible();
+    await page.getByRole("link", { name: "Torna al diario", exact: true }).click();
+    await page.getByRole("link", { name: "Apri Colazione", exact: true }).click();
     const row = page.locator(".entry-row").filter({ hasText: "Yogurt" });
     await pw(row.getByRole("button", { name: "Modifica", exact: true }).locator("svg")).toBeVisible();
     expect(await row.getByRole("button", { name: "Modifica", exact: true }).textContent()).toBe("");
@@ -39,6 +44,7 @@ it("neon diary: icon actions, protected imports, confirmed DELETE, focus restora
     fail = false; await trash.click(); await dialog.getByRole("button", { name: "Elimina voce" }).click();
     await pw(dialog).not.toBeVisible(); await pw(row).toHaveCount(0);
     await pw(page.locator('[data-add-slot="Breakfast"]')).toBeFocused();
+    await page.getByRole("link", { name: "Torna al diario", exact: true }).click();
     await pw(page.locator(".diary-balance")).not.toHaveClass(/is-over-target/);
     await pw(page.locator(".energy-balance")).toContainText("Rimanenti"); await pw(page.locator(".energy-balance")).toContainText("500");
     expect(deleted).toHaveLength(2);

@@ -4,6 +4,7 @@ import type { PortionSnapshot } from "@/lib/food-portions";
 export type Slot = "Breakfast" | "Lunch" | "Snack" | "Dinner";
 export const slots: Slot[] = ["Breakfast", "Lunch", "Snack", "Dinner"];
 export const slotLabels: Record<Slot, string> = { Breakfast: "Colazione", Lunch: "Pranzo", Snack: "Spuntino", Dinner: "Cena" };
+export const mealDetailUrl = (date: string, slot: Slot) => `/diary/meal?date=${encodeURIComponent(date)}&slot=${slot}`;
 export type DiaryEntry = {
   id: string; date: string; slot: Slot; entryType: "food" | "recipe";
   name: string; quantityGrams: number | null; servings: number | null;

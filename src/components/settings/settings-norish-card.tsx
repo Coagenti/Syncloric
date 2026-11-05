@@ -1,5 +1,6 @@
 "use client";
 
+import { useI18n } from "@/components/ui-preferences-provider";
 import { useRef, useState } from "react";
 import { fetchJson } from "@/lib/http-client";
 
@@ -75,6 +76,7 @@ export function SettingsNorishCard({
   initialSaved: string | null;
   initialStatus: SettingsStatusJson;
 }) {
+  const { tr } = useI18n();
   const [url, setUrl] = useState(initialSaved ?? "");
   const [saved, setSaved] = useState(initialSaved ?? "");
   const busy = useRef(false);
@@ -98,7 +100,7 @@ export function SettingsNorishCard({
       setFeedback({ text: feedbackMessage({ ok: true, status: payload.status, hostChanged: payload.hostChanged }), ok: true });
     } catch (error) {
       setFeedback({
-        text: error instanceof Error ? error.message : "Errore durante il salvataggio",
+        text: error instanceof Error ? error.message : tr("Errore durante il salvataggio"),
         ok: false,
       });
     } finally {
@@ -121,7 +123,7 @@ export function SettingsNorishCard({
       setFeedback({ text: feedbackMessage({ ok: true, status: payload.status, hostChanged: payload.hostChanged }), ok: true });
     } catch (error) {
       setFeedback({
-        text: error instanceof Error ? error.message : "Errore durante la cancellazione",
+        text: error instanceof Error ? error.message : tr("Errore durante la cancellazione"),
         ok: false,
       });
     } finally {
@@ -135,15 +137,14 @@ export function SettingsNorishCard({
       <h2 id="norish-url-heading" className="text-lg font-semibold">
         Norish URL
       </h2>
-      <p className="mt-1 text-sm opacity-80">
-        Indirizzo del tuo server Norish.{" "}
-        <span data-testid="norish-source">{SOURCE_LABEL[status.source] ?? "Norish non configurato"}</span>
+      <p className="mt-1 text-sm opacity-80">{tr("Indirizzo del tuo server Norish.")}{" "}
+        <span data-testid="norish-source">{tr(SOURCE_LABEL[status.source] ?? "Norish non configurato")}</span>
       </p>
       <p className="mt-1 text-sm" data-testid="norish-state">
-        {status.enabled ? "Norish configurato" : "Norish non configurato"}
+        {status.enabled ? tr("Norish configurato") : tr("Norish non configurato")}
       </p>
       <form onSubmit={handleSave} className="mt-4 flex flex-col gap-3">
-        {url !== saved && <p>Modifiche non salvate</p>}
+        {url !== saved && <p>{tr("Modifiche non salvate")}</p>}
         <label htmlFor="norish-url" className="text-sm font-medium">
           Norish URL
         </label>
@@ -159,31 +160,25 @@ export function SettingsNorishCard({
           onChange={(e) => { editRevision.current++; setUrl(e.target.value); }}
           className="rounded-md border border-cyber-border bg-cyber-surface px-3 py-2 text-sm"
         />
-        <p className="text-xs opacity-70">
-          Lascia il campo vuoto per usare l&apos;eventuale impostazione da file .env.
-        </p>
+        <p className="text-xs opacity-70">{tr("Lascia il campo vuoto per usare l'eventuale impostazione da file .env.")}</p>
         <div className="flex flex-wrap gap-2">
           <button
             type="submit"
             aria-disabled={saving}
             style={{ minHeight: 44 }}
             className="rounded-md border border-cyber-border px-4 py-2 text-sm hover:bg-cyber-surface disabled:opacity-50"
-          >
-            Salva Norish
-          </button>
+          >{tr("Salva Norish")}</button>
           <button
             type="button"
             onClick={handleClear}
             aria-disabled={saving}
             style={{ minHeight: 44 }}
             className="rounded-md border border-cyber-border px-4 py-2 text-sm hover:bg-cyber-surface disabled:opacity-50"
-          >
-            Cancella
-          </button>
+          >{tr("Cancella")}</button>
         </div>
         {feedback && (
           <p role={feedback.ok ? "status" : "alert"} className={`text-sm ${feedback.ok ? "text-emerald-400" : "text-red-400"}`}>
-            {feedback.text}
+            {tr(feedback.text)}
           </p>
         )}
       </form>
