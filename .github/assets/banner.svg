@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 340" width="1280" height="340" role="img" aria-label="Syncloric — self-hosted calorie diary, cyberpunk neon UI">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b1014"/>
+      <stop offset="55%" stop-color="#10151a"/>
+      <stop offset="100%" stop-color="#0a0e12"/>
+    </linearGradient>
+    <linearGradient id="cyanfade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#00f0ff"/>
+      <stop offset="100%" stop-color="#9ffbff"/>
+    </linearGradient>
+    <radialGradient id="glowCyan" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00f0ff" stop-opacity=".38"/>
+      <stop offset="100%" stop-color="#00f0ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowYellow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fcee0a" stop-opacity=".22"/>
+      <stop offset="100%" stop-color="#fcee0a" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#1d2a33" stroke-width="1" stroke-opacity=".55"/>
+    </pattern>
+    <pattern id="scan" width="4" height="4" patternUnits="userSpaceOnUse">
+      <rect width="4" height="1" fill="#ffffff" fill-opacity=".025"/>
+    </pattern>
+    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="16"/>
+    </filter>
+    <filter id="neon" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="5" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="panel">
+      <path d="M846 62h352a10 10 0 0 1 10 10v196a10 10 0 0 1-10 10H846a10 10 0 0 1-10-10V72a10 10 0 0 1 10-10z"/>
+    </clipPath>
+
+  </defs>
+
+  <!-- fondo -->
+  <rect width="1280" height="340" fill="url(#bg)"/>
+  <rect width="1280" height="340" fill="url(#grid)" opacity=".45"/>
+  <ellipse cx="150" cy="150" rx="330" ry="210" fill="url(#glowCyan)" filter="url(#soft)"/>
+  <ellipse cx="1180" cy="40" rx="260" ry="170" fill="url(#glowYellow)" filter="url(#soft)"/>
+
+  <!-- marchio -->
+  <g transform="translate(48,58) scale(0.98)" filter="url(#neon)" opacity=".97">
+    <!-- canale esterno -->
+      <path d="M96 34H44L28 50v30l16 16h34l14 14v30l-14 14H18"
+            fill="none" stroke="#00f0ff" stroke-width="30" stroke-linejoin="miter" stroke-linecap="butt"/>
+      <!-- canale interno (scuro) -->
+      <path d="M96 34H44L28 50v30l16 16h34l14 14v30l-14 14H18"
+            fill="none" stroke="#0a2b33" stroke-width="14" stroke-linejoin="miter" stroke-linecap="butt" opacity=".92"/>
+      <!-- fulmine -->
+      <path d="M56 62h16l-13 26h12l-24 34 8-30H42z" fill="#fcee0a"/>
+      <!-- nodi circuito -->
+      <circle cx="96" cy="34" r="7.5" fill="none" stroke="#00f0ff" stroke-width="6"/>
+      <circle cx="18" cy="158" r="7.5" fill="none" stroke="#00f0ff" stroke-width="6"/>
+    
+  </g>
+
+  <!-- HUD -->
+  <g>
+    <rect x="836" y="52" width="372" height="216" fill="#0a1014" fill-opacity=".78" stroke="#22323c" rx="12"/>
+    <rect x="846" y="62" width="352" height="196" fill="none" stroke="#00f0ff" stroke-opacity=".22" rx="10"/>
+    <g clip-path="url(#panel)" font-family="'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace">
+      <text x="864" y="88" fill="#00f0ff" font-size="11" letter-spacing="3">OGGI // TARGET 2280 KCAL</text>
+      <g transform="translate(864,106)">
+        <text x="0" y="9" fill="#8fa6b8" font-size="10" letter-spacing="1.5">PROTEINE</text>
+        <rect x="92" y="2" width="180" height="8" fill="#16222a" rx="4"/>
+        <rect x="92" y="2" width="148" height="8" fill="#00f0ff" rx="4"/>
+        <text x="280" y="9" fill="#edf1f3" font-size="10">148/180</text>
+
+        <text x="0" y="35" fill="#8fa6b8" font-size="10" letter-spacing="1.5">CARBO</text>
+        <rect x="92" y="28" width="180" height="8" fill="#16222a" rx="4"/>
+        <rect x="92" y="28" width="118" height="8" fill="#fcee0a" rx="4"/>
+        <text x="280" y="35" fill="#edf1f3" font-size="10">196/240</text>
+
+        <text x="0" y="61" fill="#8fa6b8" font-size="10" letter-spacing="1.5">GRASSI</text>
+        <rect x="92" y="54" width="180" height="8" fill="#16222a" rx="4"/>
+        <rect x="92" y="54" width="86" height="8" fill="#ff4977" rx="4"/>
+        <text x="280" y="61" fill="#edf1f3" font-size="10">62/72</text>
+      </g>
+      <!-- andamento 7 giorni -->
+      <polyline points="864,206 890,194 916,200 942,178 968,184 994,162 1020,168 1046,150 1072,156 1098,134 1124,140 1150,122"
+                fill="none" stroke="#00f0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="1150" cy="122" r="3.5" fill="#fcee0a"/>
+      <text x="864" y="232" fill="#5d7482" font-size="10" letter-spacing="2">7 GIORNI</text>
+      <text x="1032" y="232" fill="#5d7482" font-size="10" letter-spacing="2">SINC · NORISH OK</text>
+    </g>
+  </g>
+
+  <!-- wordmark -->
+  <g font-family="'Inter','Segoe UI',system-ui,-apple-system,Helvetica,Arial,sans-serif">
+    <text x="196" y="150" font-size="86" font-weight="800" letter-spacing="-1.5" fill="#00f0ff" opacity=".28" transform="translate(2,2)">SYNCLORIC</text>
+    <text x="196" y="150" font-size="86" font-weight="800" letter-spacing="-1.5" fill="url(#cyanfade)">SYNCLORIC</text>
+
+    <text x="200" y="190" font-size="17" fill="#b9cdd4" letter-spacing="4.2">DIARIO CALORICO SELF-HOSTED</text>
+    <text x="200" y="214" font-size="17" fill="#7f97a5" letter-spacing="4.2">NEXT.JS · POSTGRES · DOCKER</text>
+
+    <g font-size="12" letter-spacing="2" font-family="'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace">
+      <rect x="200" y="240" width="150" height="28" rx="14" fill="#00f0ff" fill-opacity=".1" stroke="#00f0ff" stroke-opacity=".55"/>
+      <text x="228" y="259" fill="#8ef6ff">DIARIO</text>
+      <rect x="360" y="240" width="176" height="28" rx="14" fill="#fcee0a" fill-opacity=".08" stroke="#fcee0a" stroke-opacity=".5"/>
+      <text x="388" y="259" fill="#f4ef7a">MACRO</text>
+      <rect x="546" y="240" width="196" height="28" rx="14" fill="#ff4977" fill-opacity=".08" stroke="#ff4977" stroke-opacity=".45"/>
+      <text x="574" y="259" fill="#ff9db5">BARCODE · AI</text>
+    </g>
+  </g>
+
+  <!-- cornice -->
+  <rect x="1" y="1" width="1278" height="338" fill="none" stroke="#22323c"/>
+  <rect x="0" y="336" width="1280" height="3" fill="#00f0ff" opacity=".55"/>
+  <rect x="0" y="336" width="520" height="3" fill="#fcee0a" opacity=".75"/>
+  <rect width="1280" height="340" fill="url(#scan)"/>
+</svg>
