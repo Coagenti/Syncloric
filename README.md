@@ -23,7 +23,7 @@ Un container, un database, i tuoi dati a casa tua. Nessun account su un servizio
 
 Syncloric conta calorie e macro di quello che mangi, giorno per giorno: quattro pasti,
 porzioni, ricette, barcode, lettura dell'etichetta con AI (opt-in) e import automatico dei
-pasti che segni su un'istanza [Norish](https://github.com/norish/norish). Gira interamente
+pasti che segni su un'istanza [Norish](https://github.com/norish-recipes/norish). Gira interamente
 sul tuo server, in una singola istanza Docker Compose.
 
 Nato come progetto reale e usato ogni giorno: il diario non è una demo, le viste leggono
@@ -207,7 +207,6 @@ eseguire ai server solo il `pull`: nessun trasferimento di archivi, nessun segre
 
 L'applicazione è completa e usata quotidianamente (v0.2.1). Aperto e in lavorazione:
 
-- automazione del deploy end-to-end (build in CI → registry → pull per digest → rollback automatico);
 - separazione rigida dei segreti fra ambienti di sviluppo, test e produzione;
 - copertura test su alcune viste (vedi `docs/`), accessibilità e prestazioni su dispositivi lenti.
 
