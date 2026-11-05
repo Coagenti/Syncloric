@@ -31,7 +31,7 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY richiesta (§ 6)}
       # Opzionale: assente/vuota => Norish disabilitato, nessun default (ADR-0007).
       NORISH_BASE_URL: ${NORISH_BASE_URL-}
-      # Decisione D2 v2 (t_f908513c): fuso upstream per la reconciliation a vuoto,
+      # Decisione D2 v2: fuso upstream per la reconciliation a vuoto,
       # env-only (nessun default nel codice); assente/vuota = nessuna marca.
       # Il valore vive nello .env di deployment (docker/.env.example lo documenta).
       NORISH_UPSTREAM_TZ: ${NORISH_UPSTREAM_TZ-}

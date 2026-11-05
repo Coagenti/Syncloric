@@ -28,7 +28,7 @@ describe("parseNorishUrlInput", () => {
   });
 
   it.each([
-    "https://norish.coagenti.it",
+    "https://norish.example.com",
     "http://localhost:8080",
     "https://norish.example.invalid/norish",
   ])("accetta un URL sintatticamente valido: %s", (value) => {
@@ -41,7 +41,7 @@ describe("parseNorishUrlInput", () => {
     "not-a-url",
     "ftp://example.invalid",
     "https://",
-    "https://norish.coagenti.it/",
+    "https://norish.example.com/",
     "http://norish.example.invalid",
   ])("rifiuta un input non valido con un messaggio comprensibile: %s", (value) => {
     const parsed = parseNorishUrlInput(value);

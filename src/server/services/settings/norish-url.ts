@@ -65,7 +65,7 @@ export function parseNorishUrlInput(raw: unknown): ParseNorishUrlResult {
 }
 
 /**
- * Forma dell'override per i getter @/server/config (t_797de62f): la chiamante
+ * Forma dell'override per i getter @/server/config: la chiamante
  * proietta la tabella admin_settings in un Record — nessuna mappa aggiuntiva.
  */
 export interface AdminSettingsOverrideShape {

@@ -5,7 +5,7 @@ import { closeTestDb, makeTestDb, resetTables, type TestDb } from "./setup";
 
 let db: TestDb;
 vi.mock("@/server/db", () => ({ getDb: () => db }));
-const publicOrigin = "https://syncloric.coagenti.it";
+const publicOrigin = "https://syncloric.example.com";
 const backendOrigin = "http://localhost:3000";
 const credentials = {
   username: "origin_regression",

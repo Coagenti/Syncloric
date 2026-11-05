@@ -1,8 +1,8 @@
 # Syncloric — Architettura & Stack Tecnico
 
 > Webapp self-hosted per il conteggio calorie (stile Yazio), mobile-first, integrata
-> con le API di un'istanza norish dichiarata al deploy (istanza di test corrente:
-> norish.coagenti.it, solo lettura) per l'import automatico dei pasti del calendario
+> con le API di un'istanza norish dichiarata al deploy (esempio: `norish.example.com`,
+> solo lettura) per l'import automatico dei pasti del calendario
 > e delle kcal associate. Modello di deployment: § 9.
 >
 > Stato: v1.2 — fondazione, deployment multi-istanza (§ 9) e idempotenza per utente (ADR-0008).
@@ -251,7 +251,7 @@ admin_settings   key TEXT PK, value JSONB          -- singleton:
 
 ---
 
-## 5. Integrazione con l'istanza norish di test (norish.coagenti.it)
+## 5. Integrazione con un'istanza norish upstream
 
 ### 5.0 Base URL come configurazione di deployment (ADR-0007)
 
@@ -264,12 +264,11 @@ README presenta come configurabile dall'utente finale / da chi fa il deploy
 (`NORISH_BASE_URL`): questo documento la rende vincolante per l'implementazione
 futura (task implementativi dedicati — qui si decide e si documenta il come).
 
-Il valore `https://norish.coagenti.it` identifica l'istanza di test corrente ed è un
-dato di questa fase: appare qui (e nel README) come esempio qualificato, mai come
-costante nel codice. Su norish vale il **divieto esplicito di modifica dei dati**:
-Syncloric la usa solo in lettura — il sync è read-only (ADR-0006) e il client è
-limitato ai soli `GET /api/v1/**` (§ 5.1). Nessun POST/PUT/PATCH/DELETE verso
-nessun endpoint dell'istanza di test.
+L'URL dell'istanza upstream è **configurazione di deployment**: negli esempi di questo
+documento compare come `https://norish.example.com`, mai come costante nel codice.
+Syncloric la usa **solo in lettura** — il sync è read-only (ADR-0006) e il client è
+limitato ai soli `GET /api/v1/**` (§ 5.1): nessun POST/PUT/PATCH/DELETE verso nessun
+endpoint dell'upstream.
 
 ### 5.1 Contratto verificato (giorno della scrittura: 2026-09-29)
 
@@ -279,7 +278,7 @@ da bundle servito dall'istanza) e da una verifica live con la chiave reale (2026
 istanza di test). Il base URL è variabile al deploy (§ 5.0); path, errori e semantica
 valgono per qualunque istanza norish che esponga la stessa API (stesso codice AGPL).
 
-- **Base URL** (istanza di test corrente): `https://norish.coagenti.it/api/v1`
+- **Base URL** (esempio): `https://norish.example.com/api/v1`
   (fetch handler tRPC→OpenAPI su Router `openApiRouter`). Al deploy il valore
   arriva da `NORISH_BASE_URL` (§ 5.0, § 9.3): questo è il valore usato nei test.
 - **Auth**: header `x-api-key` con il valore della chiave (alternativa equivalente:
@@ -356,8 +355,8 @@ L'intero payload viene salvato in `recipes.snapshot` (JSONB).
   **env-only senza default**, consente di ottenere T nel fuso del server con
   `Intl.DateTimeFormat` (Node full-ICU) e derivare la partizione anche a vuoto.
   Fuso invalido = unset con warning controllato, mai crash; risoluzione/iniezione
-  per tick e CLI, nessun accesso alle settings dal client. Per l'istanza Coagenti
-  il TL ha verificato UTC; non assumere UTC per altre istanze.
+  per tick e CLI, nessun accesso alle settings dal client. Il valore va verificato
+  sull'istanza upstream del proprio deployment; non assumere UTC.
   **Orizzonte limitato** alla settimana/mese correnti: voci anteriori alla
   partizione non vengono marcate. Sweep retroattivo eventuale v3, fuori scope.
 - **Idempotenza**: ogni item upstream con `id` → upsert su `diary_entries` con
@@ -513,7 +512,7 @@ locale con gli stessi nomi-variabile (niente due schemi).
 
 | Variabile | Obbligo | Contenuto |
 | --- | --- | --- |
-| `NORISH_BASE_URL` | **Sì**, fail fast | Base URL dell'istanza norish upstream (es. `https://norish.coagenti.it`, l'istanza di test corrente). Il client aggiunge `/api/v1` (§ 5.1). Normalizzazione: no trailing slash; solo https (http ammesso solo su host locale, per lo sviluppo). Nessun default embedded nel codice. |
+| `NORISH_BASE_URL` | **Sì**, fail fast | Base URL dell'istanza norish upstream (es. `https://norish.example.com`). Il client aggiunge `/api/v1` (§ 5.1). Normalizzazione: no trailing slash; solo https (http ammesso solo su host locale, per lo sviluppo). Nessun default embedded nel codice. |
 | Chiave Norish personale | UI per utente | Cifrata a riposo; `NORISH_API_KEY` legacy ignorata (§ 5.4, ADR-0010). |
 | `DATABASE_URL`, `BETTER_AUTH_SECRET`, `ENCRYPTION_KEY` | Sì | Segreti standard già previsti da § 6; unici per istanza. |
 
@@ -525,11 +524,11 @@ locale con gli stessi nomi-variabile (niente due schemi).
   restano record storici (anche per il campo `servers.url`) e NON sono sorgente di
   configurazione (nota in testa al documento e § 5.1).
 
-### 9.3 Ambiente di test corrente: norish.coagenti.it
+### 9.3 Istanza upstream
 
-- L'istanza **norish.coagenti.it è l'ambiente di test corrente** per tutta la fase:
-  verifiche live del client, contract test e sync sperimentale girano su di essa
-  (§ 5.1: fixture e verifica del 2026-09-29 su questa istanza).
+- L'istanza upstream è **esterna e configurabile** (`NORISH_BASE_URL`, § 5.0): le fixture
+  del contratto in `docs/norish-api/` sono snapshot dell'API osservata, non un endpoint
+  cablato.
 - **Divieto esplicito di modifica dei dati su norish**: nessuna scrittura,
   cancellazione o variazione di utenze/impostazioni via Syncloric (o dai task che
   la usano). Syncloric è read-only per design (ADR-0006): su norish esegue solo
@@ -598,5 +597,5 @@ richiede: implementare, verificare e poi configurare — nessun rebuild:
 | 0004 | Scheduler in-process (node-cron) + advisory lock, no Redis in v1 | limiti con many-user/batch AI, ma zero dipendenze extra | >50 utenti sync attivi o job AI batch |
 | 0005 | Mirror locale delle ricette norish con snapshot JSONB (+ kcal snapshot nel diario) | duplicazione dati (storia stabile, query locali) | se norish garantisse storia immutabile |
 | 0006 | Sync read-only + idempotenza per coppia `(user_id, norish_item_id)` (raffinata da [ADR-0008](adr/0008-user-scoped-norish-idempotency.md)) + no-autodelete (voci orfane marcate) | import indipendenti per utente; voci orfane restano visibili finché non rimosse a mano | feedback utenti |
-| 0007 | Base URL dell'istanza norish via configurazione di deployment (env `NORISH_BASE_URL`, § 5.0), nessun host cablato nel codice; norish.coagenti.it è istanza di test read-only | config obbligatoria al bootstrap (fail fast), un solo upstream norish per istanza in v1 | se un deployment dovesse parlare con più upstream contemporaneamente o servisse un override per-utente della base URL |
+| 0007 | Base URL dell'istanza norish via configurazione di deployment (env `NORISH_BASE_URL`, § 5.0), nessun host cablato nel codice; l'istanza upstream è read-only | config obbligatoria al bootstrap (fail fast), un solo upstream norish per istanza in v1 | se un deployment dovesse parlare con più upstream contemporaneamente o servisse un override per-utente della base URL |
 | [0008](adr/0008-user-scoped-norish-idempotency.md) | Idempotenza sync per coppia utente/item: indice univoco parziale `(user_id, norish_item_id) WHERE norish_item_id IS NOT NULL` | stesso item importabile da utenti diversi; data/slot aggiornabili senza duplicare la voce; nessuna unicità globale sull'item | se cambiasse il modello un solo upstream per istanza (ADR-0007) |

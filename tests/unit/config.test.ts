@@ -8,7 +8,7 @@ import {
 
 const base = {
   NODE_ENV: "test" as const,
-  NORISH_BASE_URL: "https://norish.coagenti.it",
+  NORISH_BASE_URL: "https://norish.example.com",
   DATABASE_URL: "postgres://REDACTED@localhost:5432/syncloric",
   BETTER_AUTH_SECRET: "x".repeat(64),
   ENCRYPTION_KEY: "a".repeat(64),
@@ -21,7 +21,7 @@ describe("loadEnvConfig", () => {
 
   it("parsa un env valido con default PORT", () => {
     const config = loadEnvConfig({ ...base });
-    expect(config.NORISH_BASE_URL).toBe("https://norish.coagenti.it");
+    expect(config.NORISH_BASE_URL).toBe("https://norish.example.com");
     expect(config.PORT).toBe(3000);
   });
 
@@ -33,7 +33,7 @@ describe("loadEnvConfig", () => {
     },
   );
 
-  it.each(["not-a-url", "ftp://example.invalid", "https://", "https:example.invalid", "https:///example.invalid", "https://norish.coagenti.it/"])(
+  it.each(["not-a-url", "ftp://example.invalid", "https://", "https:example.invalid", "https:///example.invalid", "https://norish.example.com/"])(
     "rifiuta NORISH_BASE_URL esplicitamente malformata: %j",
     (value) => {
       expect(() => loadEnvConfig({ ...base, NORISH_BASE_URL: value })).toThrow(/ADR-0007/);

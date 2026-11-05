@@ -39,7 +39,7 @@ function buildNorishUrlHandlers(deps: NorishUrlRouteDeps) {
    * Proiezione per la pagina Impostazioni: valore salvato dalla GUI (o null) +
    * norishConfigStatus (MAI segreti: l'API key resta solo in env, § 5.0). Il DB
    * passa dai repositories e l'override ai getter è la proiezione
-   * { adminSettings } della tabella — nessuna mappa extra (t_797de62f).
+   * { adminSettings } della tabella — nessuna mappa extra.
    */
   async function settingsPayload(db: Db): Promise<{
     saved: string | null;
