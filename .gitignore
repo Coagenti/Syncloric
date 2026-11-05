@@ -56,3 +56,6 @@ Thumbs.db
 # ---- Log ----
 logs/
 *.log
+
+# ---- Runbook di deploy SITO-SPECIFICO (mai nel repo pubblico) ----
+docs/DEPLOY-LOCALE.md
