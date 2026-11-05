@@ -17,6 +17,9 @@ COPY . .
 RUN pnpm build
 
 FROM node:22.20.0-bookworm-slim AS runner
+# Identità dell'artefatto: iniettata dalla CI, esposta da /api/health.
+ARG SYNCLORIC_COMMIT=unknown
+ENV SYNCLORIC_COMMIT=${SYNCLORIC_COMMIT}
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \

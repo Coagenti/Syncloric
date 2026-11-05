@@ -18,6 +18,9 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+      args:
+        # commit iniettato al build: /api/health lo espone come `commit`
+        SYNCLORIC_COMMIT: ${SYNCLORIC_COMMIT:-unknown}
     image: ${SYNCLORIC_IMAGE:-syncloric:local}
     restart: unless-stopped
     depends_on:
