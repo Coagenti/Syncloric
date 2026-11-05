@@ -373,3 +373,22 @@ Nuclei familiari, inviti e copia dei pasti: [guida e API](docs/HOUSEHOLDS-MEAL-S
 - Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`) e CI su ogni PR
   (`pnpm lint` → `pnpm typecheck` → `pnpm test:unit` → `pnpm test:integration` →
   `pnpm build`, § 8)
+
+## Licenza
+
+Copyright (C) 2026 Coagenti.
+
+Syncloric è distribuito sotto **GNU Affero General Public License v3.0 o successiva**
+(`AGPL-3.0-or-later`). Il testo completo è in [`LICENSE`](LICENSE).
+
+In pratica: puoi usarlo, modificarlo e self-hostarlo liberamente; se lo offri come servizio
+accessibile in rete devi rendere disponibile il sorgente delle modifiche (AGPL § 13). Per usi
+che non possono rispettare l'AGPL — per esempio un'offerta commerciale con modifiche non
+pubblicate — è disponibile una **licenza commerciale**: contatta i maintainer tramite il profilo
+dell'organizzazione.
+
+Il nome "Syncloric", il logo e l'identità visiva **non** sono coperti dalla licenza del codice.
+
+Come contribuire (incluse le condizioni sui contributi): [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Come segnalare una vulnerabilità: [`SECURITY.md`](SECURITY.md).
+

@@ -1,0 +1,7 @@
+# Code owners: review obbligatoria su ogni modifica a main e alle pipeline.
+* @Coagenti
+
+.github/ @Coagenti
+docker/ @Coagenti
+drizzle/ @Coagenti
+src/server/ @Coagenti
