@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src=".github/assets/banner.svg" alt="Syncloric — diario calorico self-hosted, interfaccia cyberpunk" width="100%">
+<img src=".github/assets/banner.svg" alt="Syncloric — self-hosted calorie diary with a cyberpunk interface" width="100%">
 
 <br>
 
@@ -11,235 +11,240 @@
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 
-**Diario calorico self-hosted, con un'interfaccia cyberpunk e un sync in sola lettura verso Norish.**
+**Self-hosted calorie diary with a cyberpunk interface and a read-only sync to Norish.**
 
-Un container, un database, i tuoi dati a casa tua. Nessun account su un servizio di terzi.
+One container, one database, your data on your own machine. No account on a third-party service.
+
+**English** · [Italiano](README.it.md) · [Español](README.es.md)
 
 </div>
 
 ---
 
-## Cos'è
+## What it is
 
-Syncloric conta calorie e macro di quello che mangi, giorno per giorno: quattro pasti,
-porzioni, ricette, barcode, lettura dell'etichetta con AI (opt-in) e import automatico dei
-pasti che segni su un'istanza [Norish](https://github.com/norish-recipes/norish). Gira interamente
-sul tuo server, in una singola istanza Docker Compose.
+Syncloric counts the calories and macros of what you eat, day by day: four meals, portions,
+recipes, barcodes, AI label reading (opt-in) and automatic import of the meals you log on a
+[Norish](https://github.com/norish-recipes/norish) instance. It runs entirely on your own server,
+in a single Docker Compose stack.
 
-Nato come progetto reale e usato ogni giorno: il diario non è una demo, le viste leggono
-solo dati tuoi dal tuo database.
+It started as a real project, used every day: the diary is not a demo, and the views only read
+your own data from your own database.
 
-## Screenshot
+## Screenshots
 
-> Istantanee di un'istanza locale con **dati fittizi** (nessun dato reale di persone).
+> Captures from a local instance with **fictional data** (no real person's data).
 
 <div align="center">
-  <img src=".github/assets/screenshot-dashboard.png" alt="Dashboard: bilancio energetico, macro e riepilogo dei quattro pasti" width="49%">
-  <img src=".github/assets/screenshot-diary.png" alt="Diario del giorno con kcal e macro per pasto" width="49%">
+  <img src=".github/assets/screenshot-dashboard.png" alt="Dashboard: energy balance, macros and a summary of the four meals" width="49%">
+  <img src=".github/assets/screenshot-diary.png" alt="Day diary with kcal and macros per meal" width="49%">
   <br>
-  <img src=".github/assets/screenshot-meal.png" alt="Dettaglio del pasto con elenco alimenti, grammi e kcal" width="49%">
-  <img src=".github/assets/screenshot-themes.png" alt="Quattro temi: Cyberpunk, Arasaka Red, Synthwave, Terminal" width="49%">
+  <img src=".github/assets/screenshot-meal.png" alt="Meal detail with the list of foods, grams and kcal" width="49%">
+  <img src=".github/assets/screenshot-themes.png" alt="Four themes: Cyberpunk, Arasaka Red, Synthwave, Terminal" width="49%">
   <br>
-  <img src=".github/assets/screenshot-mobile.png" alt="Vista mobile del diario" width="26%">
+  <img src=".github/assets/screenshot-mobile.png" alt="Mobile view of the diary" width="26%">
 </div>
 
-## Funzionalità
+## Features
 
-**Diario e nutrizione**
+**Diary and nutrition**
 
-- Diario giornaliero su quattro pasti (colazione, pranzo, spuntino, cena) con kcal, proteine,
-  carboidrati, grassi e micronutrienti disponibili per singola voce e per pasto.
-- Inserimento manuale, ricerca alimenti con porzioni e misure personali, ricette con porzioni.
-- Calendario mensile per navigare lo storico; la data «oggi» è quella locale del browser.
-- Obiettivo calorico **calcolato** (sesso, altezza, peso, età, attività, obiettivo) oppure
-  **manuale**, salvato per utente. Numeri informativi, non prescrizioni nutrizionali.
+- Daily diary across four meals (breakfast, lunch, snack, dinner) with kcal, protein,
+  carbohydrates, fat and the micronutrients available for each entry and each meal.
+- Manual entry, food search with portions and custom measures, recipes with portions.
+- Monthly calendar to browse your history; "today" is the browser's local date.
+- Calorie target either **computed** (sex, height, weight, age, activity level, goal) or
+  **manual**, stored per user. Informational numbers, not nutritional prescriptions.
 
-**Acquisizione dati**
+**Getting data in**
 
-- **Barcode**: codice digitabile a mano, camera nativa dove il browser la supporta, ricerca
-  locale-first con fallback su Open Food Facts, conferma prodotto e grammi prima della scrittura.
-- **Etichetta con AI** (opt-in, scelta dell'admin): foto dell'etichetta → valori nutrizionali in
-  preview → conferma esplicita. Provider OpenAI, Anthropic o Ollama locale; le foto non vengono
-  salvate né loggate da Syncloric.
-- **Sync Norish** in **sola lettura**: importa i pasti del calendario e le kcal associate, con
-  riconciliazione settimanale/mensile; le voci importate restano di proprietà del sync.
+- **Barcode**: the code can be typed by hand, native camera where the browser supports it,
+  local-first lookup with an Open Food Facts fallback, product and grams confirmed before
+  anything is written.
+- **AI label reading** (opt-in, the admin's choice): photo of the label → nutritional values in a
+  preview → explicit confirmation. OpenAI, Anthropic or a local Ollama; Syncloric never stores or
+  logs the photos.
+- **Norish sync** in **read-only** mode: imports the meals of the calendar and their kcal, with
+  weekly/monthly reconciliation; imported entries stay owned by the sync.
 
-**Condivisione e dati**
+**Sharing and data**
 
-- Nuclei familiari: inviti, condivisione dei pasti e copia di un pasto da un membro all'altro.
-- Export completo in JSON/CSV e token di export in sola lettura.
-- Ogni utente gestisce la propria chiave Norish dalla UI; le chiavi sono cifrate a riposo
-  (AES-256-GCM) e non vengono mai restituite alle pagine.
+- Households: invitations, meal sharing and copying a meal from one member to another.
+- Full JSON/CSV export and read-only export tokens.
+- Every user manages their own Norish key from the UI; keys are encrypted at rest
+  (AES-256-GCM) and are never returned to the pages.
 
-**Interfaccia**
+**Interface**
 
-- Quattro temi (Cyberpunk, Arasaka Red, Synthwave, Terminal), italiano e inglese, preferenze
-  sincronizzate per utente.
-- Opzione **Riduci animazioni** per chi preferisce meno movimento.
-- Mobile-first e installabile come PWA con HTTPS.
+- Four themes (Cyberpunk, Arasaka Red, Synthwave, Terminal), Italian and English, preferences
+  synced per user.
+- **Reduce motion** option for anyone who prefers less movement.
+- Mobile-first, installable as a PWA over HTTPS.
 
-**Amministrazione**
+**Administration**
 
-- Primo utente dell'istanza = amministratore; pannello utenti con ruoli, ban e audit delle
-  modifiche. Impersonation disabilitata.
-- Chiavi AI e provider, soglia barcode, URL Norish: configurazione globale da `/settings`,
-  salvata in database (i segreti cifrati).
+- The first user of the instance becomes the administrator; user panel with roles, bans and an
+  audit log of changes. Impersonation is disabled.
+- AI keys and provider, barcode threshold, Norish URL: global configuration from `/settings`,
+  stored in the database (secrets encrypted).
 
-## Avvio rapido (Docker)
+## Quick start (Docker)
 
 ```bash
 git clone https://github.com/Coagenti/Syncloric.git
 cd Syncloric
 cp docker/.env.example docker/.env
-# compila in docker/.env i tre segreti obbligatori:
-#   POSTGRES_PASSWORD   (URL-safe: usa esadecimale)
-#   BETTER_AUTH_SECRET  (almeno 32 caratteri)
-#   ENCRYPTION_KEY      (64 cifre esadecimali)
-# e imposta BETTER_AUTH_URL all'origine pubblica, es. https://diario.example.com
+# fill in the three required secrets in docker/.env:
+#   POSTGRES_PASSWORD   (URL-safe: use hex)
+#   BETTER_AUTH_SECRET  (at least 32 characters)
+#   ENCRYPTION_KEY      (64 hex digits)
+# and set BETTER_AUTH_URL to the public origin, e.g. https://diary.example.com
 chmod 600 docker/.env
 docker compose -f docker/docker-compose.yml --env-file docker/.env -p syncloric up -d --wait
 ```
 
-L'app risponde su `http://localhost:3000` (`APP_PORT` per cambiare porta). Al primo accesso
-crea l'account dalla pagina di registrazione: **il primo utente dell'istanza diventa admin**.
+The app answers on `http://localhost:3000` (`APP_PORT` changes the port). On first access create
+the account from the registration page: **the first user of the instance becomes admin**.
 
-Conserva `ENCRYPTION_KEY` insieme ai backup del database: senza quella chiave le credenziali
-cifrate (chiavi Norish/AI) non sono più leggibili. Non committare `docker/.env` e non stampare
-`docker compose config` in log condivisi: contiene i segreti risolti.
+Keep `ENCRYPTION_KEY` together with your database backups: without that key the encrypted
+credentials (Norish/AI keys) can no longer be read. Do not commit `docker/.env` and do not print
+`docker compose config` into shared logs: it contains the resolved secrets.
 
-Health check: `GET /api/health` (app) e `GET /api/v1/health` (app + database).
+Health checks: `GET /api/health` (app) and `GET /api/v1/health` (app + database).
 
-## Sviluppo locale
+## Local development
 
-Requisiti: Node.js 22 (vedi `.nvmrc`), pnpm 10, PostgreSQL 17 (o Docker per il solo database).
+Requirements: Node.js 22 (see `.nvmrc`), pnpm 10, PostgreSQL 17 (or Docker for the database
+only).
 
 ```bash
 corepack enable
 pnpm install
-cp .env.example .env      # valori di sviluppo, vedi i commenti nel file
-pnpm db:migrate           # applica le migrazioni drizzle al DATABASE_URL
+cp .env.example .env      # development values, see the comments in the file
+pnpm db:migrate           # applies the drizzle migrations to DATABASE_URL
 pnpm dev                  # http://localhost:3000
 ```
 
-Il bootstrap (`src/instrumentation.ts`) valida l'ambiente: senza `DATABASE_URL`,
-`BETTER_AUTH_SECRET` o `ENCRYPTION_KEY` l'app non parte. `NORISH_BASE_URL` è opzionale e senza
-default: se manca, lo scheduler gira ma salta il sync.
+The bootstrap (`src/instrumentation.ts`) validates the environment: without `DATABASE_URL`,
+`BETTER_AUTH_SECRET` or `ENCRYPTION_KEY` the app does not start. `NORISH_BASE_URL` is optional and
+has no default: when it is missing, the scheduler runs but skips the sync.
 
-## Test
+## Tests
 
 ```bash
-pnpm test:unit              # vitest: config, client Norish (fetch mockato), crypto
-pnpm test:integration       # vitest + PGlite (Postgres WASM) sulle stesse migrazioni
-pnpm test                   # entrambi
-pnpm build                  # prerequisito dei test browser
-pnpm test:settings-browser  # Chromium reale + componenti/API di produzione su PGlite
+pnpm test:unit              # vitest: config, Norish client (mocked fetch), crypto
+pnpm test:integration       # vitest + PGlite (Postgres WASM) on the same migrations
+pnpm test                   # both
+pnpm build                  # prerequisite for the browser tests
+pnpm test:settings-browser  # real Chromium + production components/APIs on PGlite
 ```
 
-I test di integrazione non richiedono Docker: PGlite è un Postgres WASM in-process con le
-migrazioni drizzle reali. Gli harness Chromium verificano componenti e API reali (settings,
-feed, barcode, auth con sessioni Better Auth vere), con upstream HTTP mockati: nessun test
-contatta servizi esterni, nessuna chiamata AI reale.
+The integration tests do not need Docker: PGlite is an in-process Postgres WASM running the real
+drizzle migrations. The Chromium harnesses check real components and APIs (settings, feed,
+barcode, auth with real Better Auth sessions), with HTTP upstreams mocked: no test contacts an
+external service, and no real AI call is made.
 
-## Come funziona il diario
+## How the diary works
 
-`/dashboard`, `/diary` e `/calendar` leggono `GET /api/v1/diary?month=YYYY-MM`, che richiede una
-sessione valida e filtra per l'utente corrente; la risposta è `private, no-store` e non contiene
-chiavi né messaggi upstream grezzi. Le scritture passano da `POST /api/v1/diary` e
-`PATCH`/`DELETE /api/v1/diary/:id` (contratti in [DIARY-WRITES](docs/DIARY-WRITES.md) e
-[DIARY-MUTATE](docs/DIARY-MUTATE.md)); le voci arrivate dal sync (`norish_sync`) rispondono `403`
-a qualunque modifica manuale. La vista di inserimento è descritta in [FOOD-ENTRY](docs/FOOD-ENTRY.md).
+`/dashboard`, `/diary` and `/calendar` read `GET /api/v1/diary?month=YYYY-MM`, which requires a
+valid session and filters by the current user; the response is `private, no-store` and contains
+neither keys nor raw upstream messages. Writes go through `POST /api/v1/diary` and
+`PATCH`/`DELETE /api/v1/diary/:id` (contracts in [DIARY-WRITES](docs/DIARY-WRITES.md) and
+[DIARY-MUTATE](docs/DIARY-MUTATE.md)); entries that came from the sync (`norish_sync`) answer
+`403` to any manual change. The entry view is described in [FOOD-ENTRY](docs/FOOD-ENTRY.md).
 
-Le sessioni vivono in cookie HTTP-only (non in `localStorage`) e i ruoli sono letti dal database,
-senza cache di autorizzazione. Se il bootstrap del primo admin fallisce per un errore transitorio,
-il login successivo lo ritenta.
+Sessions live in HTTP-only cookies (not in `localStorage`) and roles are read from the database,
+with no authorization cache. If the first-admin bootstrap fails on a transient error, the next
+login retries it.
 
-## Norish: integrazione e riconciliazione
+## Norish: integration and reconciliation
 
-La connessione a Norish usa **la chiave personale di ogni utente**, salvata dalla UI e cifrata con
-AES-256-GCM. `NORISH_API_KEY` non è più usata. Il client espone solo `GET /api/v1/**` verso
-l'upstream: Syncloric non scrive mai su Norish.
+The connection to Norish uses **each user's personal key**, saved from the UI and encrypted with
+AES-256-GCM. `NORISH_API_KEY` is no longer used. The client exposes only `GET /api/v1/**` towards
+the upstream: Syncloric never writes to Norish.
 
-Lo scheduler risolve l'URL effettivo a ogni tick (ogni 30 minuti) con precedenza
-**Impostazioni → variabile d'ambiente → nessun URL**: senza URL non registra run e non contatta
-l'upstream. Il contratto è pinnato a Norish `v0.24.0-beta`: il sync settimanale riconcilia
-lunedì–domenica, il backfill `month` l'intero mese; le voci sparite dall'upstream vengono marcate
-come rimosse (mai cancellate fisicamente) e ripristinate se ricompaiono. Con payload vuoto il
-default è **zero marcature**: per autorizzarle serve `NORISH_UPSTREAM_TZ` con il fuso realmente
-verificato del server Norish (nessun default implicito). Solo un fetch completo abilita le
-marcature; un errore 401/403 produce `reason=auth` senza toccare le credenziali.
+The scheduler resolves the effective URL at every tick (every 30 minutes) with the precedence
+**Settings → environment variable → no URL**: without a URL it records no run and does not
+contact the upstream. The contract is pinned to Norish `v0.24.0-beta`: the weekly sync reconciles
+Monday–Sunday, the `month` backfill the whole month; entries that disappeared upstream are marked
+as removed (never physically deleted) and restored if they come back. With an empty payload the
+default is **zero markings**: to allow them you need `NORISH_UPSTREAM_TZ` with the actually
+verified timezone of the Norish server (no implicit default). Only a complete fetch enables the
+markings; a 401/403 produces `reason=auth` without touching the credentials.
 
-Dettagli: [ARCHITECTURE § 5](docs/ARCHITECTURE.md), [configurazione runtime](docs/configuration.md),
-[contratto Impostazioni](docs/NORISH-SETTINGS.md). Le fixture in `docs/norish-api/` sono snapshot
-del contratto osservato, non un endpoint da configurare.
+Details: [ARCHITECTURE § 5](docs/ARCHITECTURE.md), [runtime configuration](docs/configuration.md),
+[Settings contract](docs/NORISH-SETTINGS.md). The fixtures in `docs/norish-api/` are snapshots of
+the observed contract, not an endpoint to configure.
 
-## Etichetta con AI
+## AI label reading
 
-Un admin abilita la funzione e sceglie il provider in `/settings`; senza provider, o con
-`ai.enabled=false`, la scansione resta disabilitata e il form manuale funziona comunque. Le chiavi
-OpenAI/Anthropic si inseriscono dalla UI, sono cifrate in database e hanno precedenza sulle
-eventuali chiavi d'ambiente legacy; la GUI mostra solo lo stato e un campo vuoto per sostituirle.
-Ollama non richiede chiavi e usa `OLLAMA_BASE_URL`. `SYNCLORIC_AI_MODEL` permette l'override del
-modello vision.
+An admin enables the feature and picks the provider in `/settings`; without a provider, or with
+`ai.enabled=false`, scanning stays disabled and the manual form keeps working. OpenAI/Anthropic
+keys are entered from the UI, encrypted in the database, and take precedence over any legacy
+environment keys; the GUI only shows the status and an empty field to replace them. Ollama needs
+no keys and uses `OLLAMA_BASE_URL`. `SYNCLORIC_AI_MODEL` overrides the vision model.
 
-La foto non viene inviata finché non premi il pulsante, la UI dichiara il destinatario, e la
-lettura va verificata prima di confermare: è un aiuto, non un consiglio dietetico. Privacy, API e
-limiti: [AI-LABEL](docs/AI-LABEL.md), [configuration](docs/configuration.md).
+The photo is not sent until you press the button, the UI states the recipient, and the reading has
+to be verified before confirming: it is an aid, not dietary advice. Privacy, APIs and limits:
+[AI-LABEL](docs/AI-LABEL.md), [configuration](docs/configuration.md).
 
-## Deploy e ambienti
+## Deploy and environments
 
-Il template `.env.example` nella root è per lo sviluppo; per il deploy usa `docker/.env.example`
-(`NORISH_BASE_URL`, `NORISH_UPSTREAM_TZ`, `BETTER_AUTH_URL`). Dietro un reverse proxy imposta
-`BETTER_AUTH_URL` all'origine pubblica HTTPS che il browser vede davvero: auth e scritture API
-usano lo stesso valore.
+The `.env.example` template in the root is for development; for a deployment use
+`docker/.env.example` (`NORISH_BASE_URL`, `NORISH_UPSTREAM_TZ`, `BETTER_AUTH_URL`). Behind a
+reverse proxy, set `BETTER_AUTH_URL` to the public HTTPS origin the browser actually sees: auth
+and API writes use the same value.
 
-Per una seconda istanza basta un `.env` separato e un project name diverso: reti, volumi e
-segreti restano isolati, e l'immagine è la stessa.
+A second instance only needs its own `.env` and a different project name: networks, volumes and
+secrets stay isolated, and the image is the same.
 
 ```bash
 APP_PORT=3001 docker compose -f docker/docker-compose.yml --env-file docker/.env.second -p syncloric-b up -d --wait
 ```
 
-Procedura completa (build, cutover, migrazioni, rollback) in **[docs/DEPLOY.md](docs/DEPLOY.md)**.
-Il percorso consigliato è costruire l'immagine **una volta** in CI, pubblicarla per digest e far
-eseguire ai server solo il `pull`: nessun trasferimento di archivi, nessun segreto nei layer.
+Full procedure (build, cutover, migrations, rollback) in **[docs/DEPLOY.md](docs/DEPLOY.md)**. The
+recommended path is to build the image **once** in CI, publish it by digest, and let the servers
+only `pull`: no archive transfers, no secrets in the layers.
 
-## Stato del progetto
+## Project status
 
-L'applicazione è completa e usata quotidianamente (v0.2.1). Aperto e in lavorazione:
+The application is complete and used daily (v0.2.1). Open and in progress:
 
-- separazione rigida dei segreti fra ambienti di sviluppo, test e produzione;
-- copertura test su alcune viste (vedi `docs/`), accessibilità e prestazioni su dispositivi lenti.
+- strict separation of secrets between development, test and production environments;
+- test coverage on some views (see `docs/`), accessibility and performance on slow devices.
 
-Il codice arriva tramite branch e pull request, senza merge diretti su `main`; ogni PR passa
-`lint → typecheck → unit → integration → build` e la regressione browser. Vedi
+Code arrives through branches and pull requests, never as direct merges to `main`; every PR goes
+through `lint → typecheck → unit → integration → build` plus the browser regression. See
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
-## Documentazione
+## Documentation
 
-| Documento | Contenuto |
+_Project documentation is currently written in Italian._
+
+| Document | Content |
 |---|---|
-| [ARCHITECTURE](docs/ARCHITECTURE.md) | stack, struttura, modello dati, sync, deployment |
-| [DEPLOY](docs/DEPLOY.md) | build, cutover, migrazioni, rollback |
-| [DIARY-UI](docs/DIARY-UI.md) · [FOOD-ENTRY](docs/FOOD-ENTRY.md) | diario, inserimento, cataloghi |
-| [BARCODE](docs/BARCODE.md) · [AI-LABEL](docs/AI-LABEL.md) | scansione barcode, lettura etichetta |
-| [HOUSEHOLDS-MEAL-SHARING](docs/HOUSEHOLDS-MEAL-SHARING.md) | nuclei familiari e condivisione pasti |
-| [ADMINISTRATION](docs/ADMINISTRATION.md) | ruoli, audit, chiavi, limiti del pannello |
-| [MOBILE-NUTRITION-EXPORT](docs/MOBILE-NUTRITION-EXPORT.md) | mobile, nutrienti, export |
+| [ARCHITECTURE](docs/ARCHITECTURE.md) | stack, structure, data model, sync, deployment |
+| [DEPLOY](docs/DEPLOY.md) | build, cutover, migrations, rollback |
+| [DIARY-UI](docs/DIARY-UI.md) · [FOOD-ENTRY](docs/FOOD-ENTRY.md) | diary, entry, food catalogs |
+| [BARCODE](docs/BARCODE.md) · [AI-LABEL](docs/AI-LABEL.md) | barcode scanning, label reading |
+| [HOUSEHOLDS-MEAL-SHARING](docs/HOUSEHOLDS-MEAL-SHARING.md) | households and meal sharing |
+| [ADMINISTRATION](docs/ADMINISTRATION.md) | roles, audit, keys, panel limits |
+| [MOBILE-NUTRITION-EXPORT](docs/MOBILE-NUTRITION-EXPORT.md) | mobile, nutrients, export |
 
-## Licenza
+## License
 
 Copyright (C) 2026 Coagenti.
 
-Syncloric è distribuito sotto **GNU Affero General Public License v3.0 o successiva**
-(`AGPL-3.0-or-later`). Il testo completo è in [`LICENSE`](LICENSE).
+Syncloric is released under the **GNU Affero General Public License v3.0 or later**
+(`AGPL-3.0-or-later`). The full text is in [`LICENSE`](LICENSE).
 
-In pratica: puoi usarlo, modificarlo e self-hostarlo liberamente; se lo offri come servizio
-accessibile in rete devi rendere disponibile il sorgente delle modifiche (AGPL § 13). Per usi
-che non possono rispettare l'AGPL — per esempio un'offerta commerciale con modifiche non
-pubblicate — è disponibile una **licenza commerciale**: contatta i maintainer tramite il profilo
-dell'organizzazione.
+In practice: you can use, modify and self-host it freely; if you offer it as a service reachable
+over a network you must make the source of your modifications available (AGPL § 13). For uses
+that cannot comply with the AGPL — for example a commercial offering with unpublished
+modifications — a **commercial license** is available: contact the maintainers through the
+organization's profile.
 
-Il nome "Syncloric", il logo e l'identità visiva **non** sono coperti dalla licenza del codice.
+The name "Syncloric", the logo and the visual identity are **not** covered by the code license.
 
-Come contribuire (incluse le condizioni sui contributi): [`CONTRIBUTING.md`](CONTRIBUTING.md).
-Come segnalare una vulnerabilità: [`SECURITY.md`](SECURITY.md).
+How to contribute (including the terms on contributions): [`CONTRIBUTING.md`](CONTRIBUTING.md).
+How to report a vulnerability: [`SECURITY.md`](SECURITY.md).
