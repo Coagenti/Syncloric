@@ -1,8 +1,42 @@
-/* Cyberpunk only. A nine-slice frame keeps the beveled corners the same size. */
+/* Cyberpunk only. A nine-slice frame keeps the beveled corners the same size;
+   fixed-size HUD pieces (tab, chevrons, hatch, rail) sit on top and never stretch.
+   Panels are cut 17px at top-left/bottom-right and 8px at the other two corners. */
 html[data-theme="cyberpunk"] {
-  --hud-panel:#0c171f; --hud-line:#6e949f; --hud-ink:#e1f5f7; --hud-cut:9px;
-  --hud-panel-shape:polygon(17px 0,calc(100% - 17px) 0,100% 17px,100% calc(100% - 17px),calc(100% - 17px) 100%,17px 100%,0 calc(100% - 17px),0 17px);
-  --hud-frame:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22100%22%20height%3D%22100%22%20viewBox%3D%220%200%20100%20100%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M1%2014%2014%201H86L99%2014V86L86%2099H14L1%2086Z%22%20stroke%3D%22%236e949f%22%20stroke-width%3D%221%22%2F%3E%3Cpath%20d%3D%22M1%2026V14L14%201H30M70%2099H86L99%2086V74%22%20stroke%3D%22%23e1f5f7%22%20stroke-width%3D%221.6%22%2F%3E%3Cpath%20d%3D%22M39%201H54M4%2012%2012%204M88%2096%2096%2088%22%20stroke%3D%22%23fcee0a%22%20stroke-width%3D%222.5%22%2F%3E%3Cpath%20d%3D%22m61%201%204%204m5-4%204%204m5-4%204%204M18%2095l4%204m5-4%204%204%22%20stroke%3D%22%239ab8c0%22%20stroke-width%3D%221%22%2F%3E%3C%2Fsvg%3E");
+  --hud-panel:#0c171f; --hud-line:#6e949f; --hud-ink:#e1f5f7; --hud-cut:9px; --hud-rule:#2d404b;
+  --hud-panel-shape:polygon(17px 0,calc(100% - 8px) 0,100% 8px,100% calc(100% - 17px),calc(100% - 17px) 100%,8px 100%,0 calc(100% - 8px),0 17px);
+  --hud-frame:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120' fill='none'%3E%3Cpath d='M1 14 14 1H114L119 6V106L106 119H6L1 114Z' stroke='%236e949f'/%3E%3Cpath d='M1 28V14L14 1H28M92 119H106L119 106V92' stroke='%23e1f5f7' stroke-width='1.6'/%3E%3Cpath d='M4 12 12 4M108 116 116 108' stroke='%23fcee0a' stroke-width='2.5'/%3E%3Cpath d='M114 1 119 6M1 114 6 119' stroke='%239ab8c0' stroke-width='1.4'/%3E%3C/svg%3E");
+  /* Raised yellow tab with three trailing dashes (top edge). */
+  --hud-tab:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 92 4' fill='%23fcee0a'%3E%3Cpath d='M0 0H56L52 4H4Z'/%3E%3Cpath d='M62 0h6l-4 4h-6zm11 0h6l-4 4h-6zm11 0h6l-4 4h-6z' fill-opacity='.45'/%3E%3C/svg%3E");
+  /* Six chevrons fading in towards the corner. */
+  --hud-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 6' fill='%2300f0ff'%3E%3Cpath d='M0 0h2l3 3-3 3H0l3-3z' fill-opacity='.2'/%3E%3Cpath d='M6 0h2l3 3-3 3H6l3-3z' fill-opacity='.35'/%3E%3Cpath d='M12 0h2l3 3-3 3h-2l3-3z' fill-opacity='.5'/%3E%3Cpath d='M18 0h2l3 3-3 3h-2l3-3z' fill-opacity='.65'/%3E%3Cpath d='M24 0h2l3 3-3 3h-2l3-3z' fill-opacity='.8'/%3E%3Cpath d='M30 0h2l3 3-3 3h-2l3-3z'/%3E%3C/svg%3E");
+  /* Diagonal hazard hatch. */
+  --hud-hatch:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 5'%3E%3Cpath d='M2 0h3l-2 5h-3zm5 0h3l-2 5h-3zm5 0h3l-2 5h-3zm5 0h3l-2 5h-3zm5 0h3l-2 5h-3zm5 0h3l-2 5h-3zm5 0h3l-2 5h-3zm5 0h3l-2 5h-3z' fill='%23fcee0a' fill-opacity='.85'/%3E%3C/svg%3E");
+  /* Status squares: three lit, one empty. */
+  --hud-squares:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 25 4'%3E%3Cpath d='M0 0h4v4H0zm7 0h4v4h-4zm7 0h4v4h-4z' fill='%239ab8c0'/%3E%3Cpath d='M21.5.5h3v3h-3z' fill='none' stroke='%239ab8c0'/%3E%3C/svg%3E");
+  /* Side rail: a thick segment on the edge with two short trailing blocks. */
+  --hud-rail:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 3 48' fill='%2300f0ff'%3E%3Cpath d='M0 0h2.5v32H0z' fill-opacity='.85'/%3E%3Cpath d='M0 36h2.5v4H0zm0 8h2.5v4H0z' fill-opacity='.45'/%3E%3C/svg%3E");
+  /* Stack of short diagonal ticks beside the right edge. */
+  --hud-ticks:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 5 17' fill='none'%3E%3Cpath d='M0 4 5 1M0 8 5 5M0 12 5 9M0 16 5 13' stroke='%239ab8c0' stroke-width='1.2'/%3E%3C/svg%3E");
+  /* Separator pieces, 9px tall, drawn around a rule that sits 4px above the bottom. */
+  --hud-rule-start:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 156 9'%3E%3Cpath d='M0 1H46L50 5H0Z' fill='%23fcee0a'/%3E%3Cpath d='M55 2.5h5l2.5 2.5h-5zm9 0h5l2.5 2.5h-5zm9 0h5l2.5 2.5h-5z' fill='%236e949f'/%3E%3Cpath d='M90 4h66v1H90z' fill='%2300f0ff' fill-opacity='.55'/%3E%3C/svg%3E");
+  --hud-rule-end:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 72 9'%3E%3Cpath d='M34 1h1v3h-1zm3 0h1v3h-1zm3 0h1v3h-1zm3 0h1v3h-1zm3 0h1v3h-1zm3 0h1v3h-1zm3 0h1v3h-1zm3 0h1v3h-1zm3 0h1v3h-1zm3 0h1v3h-1z' fill='%236e949f'/%3E%3Ccircle cx='67.5' cy='4.5' r='3' fill='%23090d14' stroke='%23e1f5f7'/%3E%3Ccircle cx='67.5' cy='4.5' r='1' fill='%2300f0ff'/%3E%3C/svg%3E");
+  --hud-node:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 7'%3E%3Ccircle cx='3.5' cy='3.5' r='2.75' fill='none' stroke='%236e949f'/%3E%3C/svg%3E");
+  --hud-capsule:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 7'%3E%3Crect x='.5' y='.5' width='29' height='6' rx='3' fill='none' stroke='%236e949f'/%3E%3Cpath d='M4 3h12v1H4z' fill='%23fcee0a'/%3E%3C/svg%3E");
+  --hud-ledge:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 3'%3E%3Cpath d='M0 0H23L26 3H0Z' fill='%236e949f'/%3E%3C/svg%3E");
+  --hud-hex:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 42 42' fill='none'%3E%3Cpath d='M11 1.5H31L40.5 21 31 40.5H11L1.5 21Z' fill='%2314232d' stroke='%235a9aa7'/%3E%3Cpath d='M14 1.5H28' stroke='%2300f0ff' stroke-width='2'/%3E%3Cpath d='M37 21h3.5M1.5 21H5' stroke='%23e1f5f7'/%3E%3C/svg%3E");
+  /* Background layer lists for the frame pseudo-element. */
+  --hud-deco-full:
+    var(--hud-tab) left 30px top 0 / 92px 4px,
+    var(--hud-chev) right 30px top 6px / 36px 6px,
+    var(--hud-hatch) right 30px bottom 3px / 40px 5px,
+    var(--hud-squares) left 20px bottom 5px / 25px 4px,
+    var(--hud-rail) left 0 top 50% / 3px 48px,
+    var(--hud-ticks) right 4px top 38px / 5px 17px;
+  --hud-deco-lite:
+    var(--hud-tab) left 26px top 0 / 92px 4px,
+    var(--hud-hatch) right 26px bottom 3px / 40px 5px,
+    var(--hud-ticks) right 4px top 30px / 5px 17px;
+  --hud-alert:grayscale(1) sepia(1) saturate(7) hue-rotate(-80deg);
   --surface-sidebar:#10191f; --surface-sidebar-end:#080f15; --surface-header:#0b141b;
   --surface-control:#14232d; --color-cyber-border:#35515d;
 }
@@ -41,23 +75,26 @@ html[data-theme="cyberpunk"] .mobile-nav { border-top-color:var(--hud-line); bac
 html[data-theme="cyberpunk"] .mobile-nav a.active { background:linear-gradient(#fcee0a0d,transparent); }
 
 /* Cut only the painted surface to match the frame, leaving content and menus unclipped.
-   A 12px diagonal gradient stop meets the SVG's corner at about 17px on each edge. */
+   A 12px diagonal gradient stop meets the SVG's large corner at about 17px on each edge,
+   a 5.6px stop meets the small corner at about 8px. */
 html[data-theme="cyberpunk"] :is(.energy-card,.nutrition-summary,.meal-card,.diary-group,.diary-balance,.meal-nutrition,.calendar-panel,.app-date-popover,.preferences-panel,.profile-panel,.theme-option,.language-option,.entry-tab-panel,.food-energy-readout,.food-quantity-card,.food-edit-card,:where(.settings-grid > section),.editor-panel,.daily-overview) {
   --hud-fill:var(--hud-panel);
   border-radius:0; border-color:transparent;
   background:
-    linear-gradient(135deg,transparent 11.8px,var(--hud-fill) 12.2px) left top / 50.1% 50.1%,
-    linear-gradient(225deg,transparent 11.8px,var(--hud-fill) 12.2px) right top / 50.1% 50.1%,
-    linear-gradient(45deg,transparent 11.8px,var(--hud-fill) 12.2px) left bottom / 50.1% 50.1%,
-    linear-gradient(315deg,transparent 11.8px,var(--hud-fill) 12.2px) right bottom / 50.1% 50.1%;
+    linear-gradient(135deg,transparent 11.8px,var(--hud-fill) 12.2px) left top / calc(50% + 1px) calc(50% + 1px),
+    linear-gradient(225deg,transparent 5.4px,var(--hud-fill) 5.8px) right top / calc(50% + 1px) calc(50% + 1px),
+    linear-gradient(45deg,transparent 5.4px,var(--hud-fill) 5.8px) left bottom / calc(50% + 1px) calc(50% + 1px),
+    linear-gradient(315deg,transparent 11.8px,var(--hud-fill) 12.2px) right bottom / calc(50% + 1px) calc(50% + 1px);
   background-repeat:no-repeat; background-origin:border-box;
 }
 html[data-theme="cyberpunk"] :is(.energy-card,.nutrition-summary,.meal-card,.diary-group,.diary-balance,.meal-nutrition,.calendar-panel,.app-date-popover,.preferences-panel,.profile-panel,.theme-option,.language-option,.entry-tab-panel,.food-energy-readout,.food-quantity-card,.food-edit-card,.settings-grid > section,.editor-panel):not(dialog) { position:relative; isolation:isolate; }
 html[data-theme="cyberpunk"] :is(.energy-card,.nutrition-summary,.meal-card,.diary-group,.diary-balance,.meal-nutrition,.calendar-panel,.app-date-popover,.preferences-panel,.profile-panel,.theme-option,.language-option,.entry-tab-panel,.food-energy-readout,.food-quantity-card,.food-edit-card,.settings-grid > section,.editor-panel)::after {
   content:""; position:absolute; inset:0; width:auto; height:auto; pointer-events:none; z-index:1;
-  border:1px solid transparent; border-image-source:var(--hud-frame); border-image-slice:20; border-image-width:20px; border-image-repeat:stretch;
-  background:none; box-shadow:none; opacity:.8;
+  border:1px solid transparent; border-image-source:var(--hud-frame); border-image-slice:30; border-image-width:30px; border-image-repeat:stretch;
+  background:var(--hud-deco-lite); background-repeat:no-repeat; background-origin:border-box; box-shadow:none; opacity:.8;
 }
+/* Large data panels carry the full set of HUD pieces; smaller cards keep the light set. */
+html[data-theme="cyberpunk"] :is(.energy-card,.nutrition-summary,.calendar-panel,.preferences-panel,.profile-panel,.entry-tab-panel,.settings-grid > section,.editor-panel,.meal-nutrition)::after { background:var(--hud-deco-full); background-repeat:no-repeat; background-origin:border-box; }
 html[data-theme="cyberpunk"] :is(.preferences-panel,.profile-panel) > legend { background:var(--hud-panel); position:relative; z-index:2; }
 /* Fieldsets position their frame below the legend; paint from that same origin. */
 html[data-theme="cyberpunk"] fieldset:is(.preferences-panel,.profile-panel) { background:none; }
@@ -67,7 +104,7 @@ html[data-theme="cyberpunk"] :is(.theme-option,.language-option).is-selected::af
 html[data-theme="cyberpunk"] :is(.theme-option.is-selected,.language-option.is-selected,.editor-panel:not(dialog),.app-date-popover) { box-shadow:none; }
 html[data-theme="cyberpunk"] .theme-option { padding:16px; }
 html[data-theme="cyberpunk"] :is(.energy-card.is-over-target,.diary-balance.is-over-target,.profile-panel.profile-danger) { border-color:transparent; --hud-fill:#1b141e; }
-html[data-theme="cyberpunk"] :is(.energy-card.is-over-target,.diary-balance.is-over-target,.profile-panel.profile-danger)::after { filter:hue-rotate(300deg); }
+html[data-theme="cyberpunk"] :is(.energy-card.is-over-target,.diary-balance.is-over-target,.profile-panel.profile-danger)::after { filter:var(--hud-alert); }
 html[data-theme="cyberpunk"] .energy-card::before { clip-path:var(--hud-panel-shape); }
 html[data-theme="cyberpunk"] .diary-meal-link { background:transparent; }
 html[data-theme="cyberpunk"] .diary-meal-link:hover { background:#00f0ff07; }
@@ -93,13 +130,41 @@ html[data-theme="cyberpunk"] :is(.primary-btn,.primary-cta,.profile-save,.auth-p
   background-image:repeating-linear-gradient(125deg,transparent 0 4px,#10151a 4px 6px,transparent 6px 9px);
   background-size:28px 4px; background-position:right 8px bottom 4px; background-repeat:no-repeat; letter-spacing:.025em; box-shadow:inset 0 0 0 1px #ffffff38;
 }
-html[data-theme="cyberpunk"] :is(.secondary-btn,.toolbar-action,.close-editor,.export-download) { border-color:#648591; background-color:#12222c; box-shadow:inset 0 0 0 2px #071017; }
-html[data-theme="cyberpunk"] :is(.neon-action,.meal-add,.food-square-add) { --hud-cut:6px; border-color:#5a9aa7; background-color:#10232b; }
-html[data-theme="cyberpunk"] :is(.delete-action,.danger-btn) { border-color:#ff7296; background-color:#351923; color:#ff9ab5; }
+/* A dark corner bracket echoes the frame's inner marks on the yellow fill. */
+html[data-theme="cyberpunk"] :is(.primary-btn,.primary-cta,.profile-save,.auth-primary) {
+  background-image:linear-gradient(#10151a,#10151a),linear-gradient(#10151a,#10151a),repeating-linear-gradient(125deg,transparent 0 4px,#10151a 4px 6px,transparent 6px 9px);
+  background-size:8px 1px,1px 8px,28px 4px; background-position:right 4px top 4px,right 4px top 4px,right 8px bottom 4px;
+}
+/* Outlined controls: the clipped corners get their own stroke so the border runs unbroken,
+   and two inner brackets mark the square corners. */
+html[data-theme="cyberpunk"] :is(.secondary-btn,.toolbar-action,.close-editor,.neon-action,.meal-add,.food-square-add,.danger-btn) {
+  --hud-edge:#648591; --hud-mark:#9fc3cc;
+  box-shadow:none;
+  background-image:
+    linear-gradient(135deg,transparent calc(50% - 1px),var(--hud-edge) 0 calc(50% + 1px),transparent 0),
+    linear-gradient(135deg,transparent calc(50% - 1px),var(--hud-edge) 0 calc(50% + 1px),transparent 0),
+    linear-gradient(var(--hud-mark),var(--hud-mark)),linear-gradient(var(--hud-mark),var(--hud-mark)),
+    linear-gradient(var(--hud-mark),var(--hud-mark)),linear-gradient(var(--hud-mark),var(--hud-mark));
+  background-size:var(--hud-cut) var(--hud-cut),var(--hud-cut) var(--hud-cut),6px 1px,1px 6px,6px 1px,1px 6px;
+  background-position:left top,right bottom,right 3px top 3px,right 3px top 3px,left 3px bottom 3px,left 3px bottom 3px;
+  background-repeat:no-repeat; background-origin:border-box;
+}
+html[data-theme="cyberpunk"] :is(.secondary-btn,.toolbar-action,.close-editor) { border-color:var(--hud-edge); background-color:#12222c; }
+html[data-theme="cyberpunk"] .export-download {
+  --hud-edge:#648591; border-color:#648591; background-color:#12222c; box-shadow:none;
+  background-image:
+    linear-gradient(135deg,transparent calc(50% - 1px),var(--hud-edge) 0 calc(50% + 1px),transparent 0),
+    linear-gradient(135deg,transparent calc(50% - 1px),var(--hud-edge) 0 calc(50% + 1px),transparent 0),
+    linear-gradient(130deg,var(--export-glow),#0a1721 75%);
+  background-size:var(--hud-cut) var(--hud-cut),var(--hud-cut) var(--hud-cut),100% 100%;
+  background-position:left top,right bottom,0 0; background-repeat:no-repeat; background-origin:border-box;
+}
+html[data-theme="cyberpunk"] :is(.neon-action,.meal-add,.food-square-add) { --hud-cut:6px; --hud-edge:#5a9aa7; border-color:var(--hud-edge); background-color:#10232b; }
+html[data-theme="cyberpunk"] :is(.delete-action,.danger-btn) { --hud-edge:#ff7296; --hud-mark:#ff9ab5; border-color:#ff7296; background-color:#351923; color:#ff9ab5; }
 html[data-theme="cyberpunk"] :is(.primary-btn,.primary-cta,.secondary-btn,.profile-save,.auth-primary,.toolbar-action,.neon-action,.meal-add,.food-square-add,.close-editor,.danger-btn,.export-download):focus-visible { outline-offset:-5px; }
 html[data-theme="cyberpunk"] :is(.primary-btn,.primary-cta,.profile-save,.auth-primary):focus-visible { outline-color:#10151a; }
-html[data-theme="cyberpunk"] :is(.secondary-btn,.toolbar-action,.neon-action,.meal-add,.food-square-add):hover:not(:disabled) { border-color:var(--color-cyber-cyan); background-color:#163440; }
-html[data-theme="cyberpunk"] .delete-action:hover:not(:disabled) { border-color:#ff9ab5; background-color:#482031; }
+html[data-theme="cyberpunk"] :is(.secondary-btn,.toolbar-action,.neon-action,.meal-add,.food-square-add,.close-editor,.export-download):hover:not(:disabled) { --hud-edge:var(--color-cyber-cyan); --hud-mark:var(--color-cyber-cyan); border-color:var(--color-cyber-cyan); background-color:#163440; }
+html[data-theme="cyberpunk"] :is(.delete-action,.danger-btn):hover:not(:disabled) { --hud-edge:#ff9ab5; border-color:#ff9ab5; background-color:#482031; }
 html[data-theme="cyberpunk"][data-motion="full"] :is(.primary-btn,.secondary-btn,.profile-save,.toolbar-action,.neon-action,.meal-add,.food-square-add):hover:not(:disabled) { transform:translateY(-1px); }
 html[data-theme="cyberpunk"][data-motion="full"] :is(.primary-btn,.secondary-btn,.profile-save,.toolbar-action,.neon-action,.meal-add,.food-square-add):active:not(:disabled) { transform:translateY(1px); }
 html[data-theme="cyberpunk"] .nav-link:focus-visible { outline-offset:-4px; }
@@ -109,6 +174,71 @@ html[data-theme="cyberpunk"] :is(.settings-tab.is-active,.entry-tabs [aria-selec
 html[data-theme="cyberpunk"] :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),select,textarea) { border-radius:2px; border-color:#597482; }
 html[data-theme="cyberpunk"] :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),select,textarea):focus-visible { border-color:var(--color-cyber-cyan); }
 html[data-theme="cyberpunk"] .account-menu { border-radius:0; border-color:var(--hud-line); }
+html[data-theme="cyberpunk"] :is(.day-stepper,.app-date-picker) {
+  background-image:linear-gradient(#7fa3ad,#7fa3ad),linear-gradient(#7fa3ad,#7fa3ad),linear-gradient(#7fa3ad,#7fa3ad),linear-gradient(#7fa3ad,#7fa3ad);
+  background-size:6px 1px,1px 6px,6px 1px,1px 6px; background-position:right 2px top 2px,right 2px top 2px,left 2px bottom 2px,left 2px bottom 2px; background-repeat:no-repeat;
+}
+
+/* Separators: a thin rule with a raised yellow plateau, slanted blocks, a barcode and an end node. */
+html[data-theme="cyberpunk"] .view-title {
+  border-bottom-color:transparent;
+  background:var(--hud-rule-start) left bottom / 156px 9px,var(--hud-rule-end) right bottom / 72px 9px,linear-gradient(var(--hud-rule),var(--hud-rule)) left bottom 4px / 100% 1px;
+  background-repeat:no-repeat; background-origin:border-box;
+}
+html[data-theme="cyberpunk"] .side-divider {
+  height:7px; margin:31px 0; border-top:0;
+  background:var(--hud-node) left center / 7px 7px,var(--hud-node) right center / 7px 7px,var(--hud-capsule) center / 30px 7px,
+    linear-gradient(var(--color-cyber-border),var(--color-cyber-border)) left 7px center / calc(50% - 22px) 1px,
+    linear-gradient(var(--color-cyber-border),var(--color-cyber-border)) right 7px center / calc(50% - 22px) 1px;
+  background-repeat:no-repeat;
+}
+html[data-theme="cyberpunk"] .side-bottom {
+  border-top-color:transparent;
+  background:var(--hud-node) left top / 7px 7px,linear-gradient(var(--color-cyber-border),var(--color-cyber-border)) left 7px top 3px / calc(100% - 7px) 1px;
+  background-repeat:no-repeat; background-origin:border-box;
+}
+html[data-theme="cyberpunk"] .meal-bottom { background:var(--hud-ledge) left top / 26px 3px no-repeat; background-origin:border-box; }
+
+/* Indicators: a reticle dot with two arcs, and hexagonal icon cells. */
+html[data-theme="cyberpunk"] :is(.signal-dot,.live-label i) {
+  width:11px; height:11px; vertical-align:-1px; border-radius:50%;
+  background:radial-gradient(circle,var(--color-cyber-cyan) 0 2.4px,transparent 2.6px),conic-gradient(from 25deg,var(--color-cyber-cyan) 0 115deg,transparent 0 180deg,var(--color-cyber-cyan) 0 295deg,transparent 0);
+  mask:radial-gradient(circle,#000 0 2.6px,transparent 2.8px 3.9px,#000 4.1px 5.5px,transparent 5.7px);
+}
+html[data-theme="cyberpunk"][data-motion="full"] :is(.signal-dot,.live-label i) { animation:hud-spin 9s linear infinite; }
+html[data-theme="cyberpunk"] .entry-icon { background:var(--hud-hex) center / 100% 100% no-repeat; }
+/* Tags: square chips with bright brackets on two corners. */
+html[data-theme="cyberpunk"] :is(.energy-header .energy-tag,.entry-section-heading > span) {
+  border-radius:0;
+  background-image:linear-gradient(var(--color-cyber-yellow),var(--color-cyber-yellow)),linear-gradient(var(--color-cyber-yellow),var(--color-cyber-yellow)),
+    linear-gradient(var(--color-cyber-yellow),var(--color-cyber-yellow)),linear-gradient(var(--color-cyber-yellow),var(--color-cyber-yellow));
+  background-size:7px 1px,1px 7px,7px 1px,1px 7px; background-position:left top,left top,right bottom,right bottom;
+  background-repeat:no-repeat; background-origin:border-box;
+}
+html[data-theme="cyberpunk"] .profile-avatar { outline:1px dashed #9ad7e070; outline-offset:5px; box-shadow:0 0 0 10px var(--hud-panel),0 0 0 11px #6e949f66,0 0 28px #00f0ff12; }
+
+/* Tabs: the top-right corner is cut like the panels' small bevel, with its own stroke.
+   The cut would hide an outside focus ring, so it is drawn inside. */
+html[data-theme="cyberpunk"] :is(.settings-tab,.entry-tabs [role="tab"]) { clip-path:polygon(0 0,calc(100% - 9px) 0,100% 9px,100% 100%,0 100%); }
+html[data-theme="cyberpunk"] :is(.settings-tab,.entry-tabs [role="tab"])::before {
+  content:""; position:absolute; top:-2px; right:-1px; width:9px; height:9px; pointer-events:none;
+  background:linear-gradient(45deg,transparent calc(50% - 1px),var(--hud-tab-edge,#63818c) 0 calc(50% + 1px),transparent 0);
+}
+html[data-theme="cyberpunk"] :is(.settings-tab.is-active,.entry-tabs [aria-selected="true"]) { --hud-tab-edge:var(--color-cyber-yellow); }
+html[data-theme="cyberpunk"] :is(.settings-tab,.entry-tabs [role="tab"]):focus-visible { outline-offset:-4px; }
+
+/* Calendar cells and day rows: bottom-right bevel with a stroke matching the border. */
+html[data-theme="cyberpunk"] :is(.calendar-day,.calendar-import) {
+  --hud-edge:#384651; --hud-edge-w:1px; border-radius:0;
+  clip-path:polygon(0 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%);
+  background-image:linear-gradient(135deg,transparent calc(50% - var(--hud-edge-w)),var(--hud-edge) 0 calc(50% + var(--hud-edge-w)),transparent 0);
+  background-size:8px 8px; background-position:right bottom; background-repeat:no-repeat; background-origin:border-box;
+}
+html[data-theme="cyberpunk"] .calendar-import { --hud-edge:#34404b; background-image:var(--hud-ledge),linear-gradient(135deg,transparent calc(50% - 1px),var(--hud-edge) 0 calc(50% + 1px),transparent 0); background-size:26px 3px,8px 8px; background-position:left top,right bottom; }
+html[data-theme="cyberpunk"] .calendar-day.outside { --hud-edge:#2c3640; }
+html[data-theme="cyberpunk"] .calendar-day:hover { --hud-edge:var(--color-cyber-cyan); }
+html[data-theme="cyberpunk"] .calendar-day.selected { --hud-edge:var(--color-cyber-yellow); --hud-edge-w:1.5px; }
+html[data-theme="cyberpunk"] .calendar-day:focus-visible { outline-offset:-5px; }
 
 /* This thumbnail depicts Cyberpunk when any theme is selected. */
 .theme-preview.theme-preview-hud { border-radius:0; }
@@ -125,9 +255,10 @@ html[data-theme="cyberpunk"] .account-menu { border-radius:0; border-color:var(-
   html[data-theme="cyberpunk"] .daily-overview { position:relative; isolation:isolate; border-radius:0; border-color:transparent; }
   html[data-theme="cyberpunk"] .daily-overview::after {
     content:""; position:absolute; inset:0; pointer-events:none; border:1px solid transparent;
-    border-image-source:var(--hud-frame); border-image-slice:20; border-image-width:20px; border-image-repeat:stretch; opacity:.8;
+    border-image-source:var(--hud-frame); border-image-slice:30; border-image-width:30px; border-image-repeat:stretch; opacity:.8;
+    background:var(--hud-deco-full); background-repeat:no-repeat; background-origin:border-box;
   }
-  html[data-theme="cyberpunk"] .daily-overview.is-over-target::after { filter:hue-rotate(300deg); }
+  html[data-theme="cyberpunk"] .daily-overview.is-over-target::after { filter:var(--hud-alert); }
   html[data-theme="cyberpunk"] .daily-overview.is-over-target { --hud-fill:#1b141e; }
   html[data-theme="cyberpunk"] .daily-overview :is(.energy-card,.nutrition-summary) { border:0; background:none; }
   html[data-theme="cyberpunk"] .daily-overview :is(.energy-card,.nutrition-summary)::after { display:none; }
@@ -139,6 +270,7 @@ html[data-theme="cyberpunk"] .account-menu { border-radius:0; border-color:var(-
   100% { transform:translateX(80vw); opacity:0; }
 }
 @keyframes hud-signal { 0%,100% { opacity:.3; } 50% { opacity:1; } }
+@keyframes hud-spin { to { transform:rotate(1turn); } }
 @media(prefers-reduced-motion:reduce) {
   html[data-theme="cyberpunk"]:not([data-motion="full"]) .hud-header-track > i,
   html[data-theme="cyberpunk"]:not([data-motion="full"]) .sidebar::after { animation:none; }

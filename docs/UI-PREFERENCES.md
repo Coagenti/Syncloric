@@ -15,6 +15,17 @@ Il menu account contiene, nell'ordine, **Profilo**, **Temi**, **Lingua**,
   anche negli stati selezionati o di eccesso. Il ritaglio riguarda solo
   la superficie dipinta e lascia integri moduli e menu. Scansione luminosa dell'header,
   pulsazione laterale e movimento dei pulsanti rispettano Riduci animazioni.
+  I pannelli hanno smussi grandi in alto a sinistra e in basso a destra, piccoli
+  sugli altri angoli. Sopra la cornice nine-slice stanno elementi a dimensione
+  fissa che non si deformano: linguetta gialla, chevron, tratteggio,
+  quadratini di stato, binario laterale e tacche. I pannelli dati li hanno tutti,
+  le card più piccole solo una parte. In eccesso la cornice vira al magenta.
+  Pulsanti con contorno: gli smussi hanno la loro linea e due staffe interne.
+  Schede e celle del calendario sono smussate con lo stesso tratto; il focus
+  resta visibile dentro il controllo. I titoli di pagina usano un separatore
+  con plateau, codice a barre e nodo finale; la sidebar ha nodi e capsula.
+  L'indicatore live diventa un mirino (rotante solo con animazioni attive)
+  e le icone delle voci stanno in esagoni.
   La skin è isolata in `src/app/cyberpunk-hud.css`; gli altri temi mantengono
   la propria presentazione. L'anteprima della scheda Cyberpunk riflette l'HUD.
 - Arasaka Red ha superfici piatte, cornici rettangolari, logo monocromatico
