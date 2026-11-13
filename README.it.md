@@ -36,13 +36,13 @@ solo dati tuoi dal tuo database.
 > Istantanee di un'istanza locale con **dati fittizi** (nessun dato reale di persone).
 
 <div align="center">
-  <img src=".github/assets/screenshot-dashboard.png" alt="Dashboard: bilancio energetico, macro e riepilogo dei quattro pasti" width="49%">
-  <img src=".github/assets/screenshot-diary.png" alt="Diario del giorno con kcal e macro per pasto" width="49%">
+  <img src=".github/assets/screenshot-dashboard.it.png" alt="Dashboard: bilancio energetico, macro e riepilogo dei quattro pasti" width="49%">
+  <img src=".github/assets/screenshot-diary.it.png" alt="Diario del giorno con kcal e macro per pasto" width="49%">
   <br>
-  <img src=".github/assets/screenshot-meal.png" alt="Dettaglio del pasto con elenco alimenti, grammi e kcal" width="49%">
-  <img src=".github/assets/screenshot-themes.png" alt="Quattro temi: Cyberpunk, Arasaka Red, Synthwave, Terminal" width="49%">
+  <img src=".github/assets/screenshot-meal.it.png" alt="Dettaglio del pasto con elenco alimenti, grammi e kcal" width="49%">
+  <img src=".github/assets/screenshot-themes.it.png" alt="Quattro temi: Cyberpunk, Arasaka Red, Synthwave, Terminal" width="49%">
   <br>
-  <img src=".github/assets/screenshot-mobile.png" alt="Vista mobile del diario" width="26%">
+  <img src=".github/assets/screenshot-mobile.it.png" alt="Vista mobile del diario" width="26%">
 </div>
 
 ## Funzionalità
