@@ -26,7 +26,7 @@ describe("Open Food Facts name search", () => {
   it("keeps brand and language in the cache key and supports brand-only searches", async () => {
     let now = 0; const fetcher = vi.fn<typeof fetch>(async () => Response.json(payload)); const search = createFoodSearch(fetcher, () => now);
     await search("pasta", 1, "Barilla");
-    expect(JSON.parse(fetcher.mock.calls[0][1]!.body as string).q).toBe('pasta AND brands:"barilla"');
+    expect(JSON.parse(fetcher.mock.calls[0][1]!.body as string).q).toBe('pasta brands:"barilla"');
     await search("PASTA", 1, "BARILLA"); expect(fetcher).toHaveBeenCalledTimes(1);
     now = 6000; await search("pasta", 1, "De Cecco"); expect(fetcher).toHaveBeenCalledTimes(2);
     now = 12000; await search("", 1, "Barilla", "en");
@@ -37,6 +37,13 @@ describe("Open Food Facts name search", () => {
     const fetcher = vi.fn<typeof fetch>(async () => Response.json(payload));
     await createFoodSearch(fetcher)('pasta OR code:*', 1, 'Acme" OR countries:italy');
     const body = JSON.parse(fetcher.mock.calls[0][1]!.body as string);
-    expect(body.q).toBe('pasta or code AND brands:"acme\\" or countries:italy"');
+    expect(body.q).toBe('pasta or code brands:"acme\\" or countries:italy"');
+  });
+  it("keeps every word of a multi-word name beside the brand filter, not inside it", async () => {
+    // "passato di verdure AND brands:..." parsed as passato di (verdure AND brands:...) and returned no hits.
+    const fetcher = vi.fn<typeof fetch>(async () => Response.json(payload));
+    await createFoodSearch(fetcher)("Passato di verdure", 1, "Conad");
+    const body = JSON.parse(fetcher.mock.calls[0][1]!.body as string);
+    expect(body.q).toBe('passato di verdure brands:"conad"'); expect(body.q).not.toMatch(/\b(AND|OR)\b/);
   });
 });

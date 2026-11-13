@@ -29,7 +29,10 @@ export function createFoodSearch(fetchImpl: typeof fetch = fetch, now = Date.now
       // Quote the brand as data, never as user-supplied Lucene field/operators.
       // Use OFF's supported full-text fields; explicit product_name filters return 500
       // on the public deployment. Brand remains a separate, quoted field filter.
-      const q = [terms, brandPhrase ? `brands:"${brandPhrase}"` : ""].filter(Boolean).join(" AND ");
+      // Keep words and filter as siblings: Search-a-licious makes top-level fields mandatory
+      // filters and the remaining words free text. With "a b AND brands:x", AND binds tighter,
+      // so "b" lands in the filter as a match on the "*" field and nothing matches.
+      const q = [terms, brandPhrase ? `brands:"${brandPhrase}"` : ""].filter(Boolean).join(" ");
       const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 12000);
       try {
         const response = await fetchImpl("https://search.openfoodfacts.org/search", { method: "POST", headers: { Accept: "application/json", "Content-Type": "application/json", "User-Agent": "Syncloric (https://github.com/Coagenti/Syncloric)" }, body: JSON.stringify({ q, langs: locale === "en" ? ["en", "it"] : ["it", "en"], page, page_size: 20, fields: ["code", "product_name", "product_name_it", "product_name_en", "brands", "nutriments", "serving_size"] }), signal: controller.signal });
