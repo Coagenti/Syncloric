@@ -8,6 +8,16 @@ updates:
     groups:
       minor-and-patch:
         update-types: ["minor", "patch"]
+    ignore:
+      # @types/node segue il runtime (Node 22.20.0 in .nvmrc e docker/Dockerfile), non
+      # l'ultima major pubblicata: la major si alza insieme al runtime. Vedi docs/adr/0011.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # postgres.js 4 è una riscrittura: drizzle-orm 0.45.4 (ultima stable) non dichiara il
+      # supporto e nessun test del repo esercita il driver (l'integrazione gira su PGlite).
+      # Vedi docs/adr/0011 per la condizione di riapertura.
+      - dependency-name: "postgres"
+        update-types: ["version-update:semver-major"]
 
   # Le action sono pinnate per SHA: Dependabot apre la PR con SHA e commento di versione.
   - package-ecosystem: github-actions
