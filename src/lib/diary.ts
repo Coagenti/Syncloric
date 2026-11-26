@@ -5,6 +5,8 @@ export type Slot = "Breakfast" | "Lunch" | "Snack" | "Dinner";
 export const slots: Slot[] = ["Breakfast", "Lunch", "Snack", "Dinner"];
 export const slotLabels: Record<Slot, string> = { Breakfast: "Colazione", Lunch: "Pranzo", Snack: "Spuntino", Dinner: "Cena" };
 export const mealDetailUrl = (date: string, slot: Slot) => `/diary/meal?date=${encodeURIComponent(date)}&slot=${slot}`;
+/** Ogni URL costruito da un valore dinamico passa da encodeURIComponent: nessun href interpolato a mano. */
+export const diaryDateUrl = (date: string) => `/diary?date=${encodeURIComponent(date)}`;
 export type DiaryEntry = {
   id: string; date: string; slot: Slot; entryType: "food" | "recipe";
   name: string; quantityGrams: number | null; servings: number | null;
