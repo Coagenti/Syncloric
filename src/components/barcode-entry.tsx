@@ -7,6 +7,7 @@ import { UiIcon } from "./ui-icon";
 import { createBarcodeReader } from "@/lib/barcode-reader";
 import { NutritionFields } from "@/components/nutrition-fields";
 import { normalizeNutrition, nutrientSpecs, type Nutrition } from "@/lib/nutrition";
+import { offProductUrl } from "@/lib/food-entry";
 
 type Product = { name: string; brand: string | null; kcalPer100g: number | null; proteinPer100g: number | string | null; fatPer100g: number | string | null; carbsPer100g: number | string | null; nutrientsPer100g?: Nutrition; source?: string };
 type Detector = { detect: (video: HTMLVideoElement) => Promise<{ rawValue: string }[]> };
@@ -141,7 +142,7 @@ export function BarcodeEntry({ date, onSaved, compact = false }: { date: string;
       {product && <form ref={productForm} key={`${code}-${origin}`} onSubmit={save}>
         <fieldset disabled={busy || aiBusy}>
         <p className="form-help">{origin === "local" ? tr("Prodotto nel catalogo locale.") : origin === "off" ? tr("Dati da Open Food Facts: verifica prima di confermare.") : origin === "lookup-error" ? tr("Ricerca non conclusa: puoi registrare il prodotto manualmente.") : tr("Prodotto non trovato: registra come nuovo.")}</p>
-        {(origin === "off" || product.source === "barcode_off") && <a href={`https://world.openfoodfacts.org/product/${code}`} target="_blank" rel="noreferrer">Open Food Facts · ODbL / DbCL</a>}
+        {(origin === "off" || product.source === "barcode_off") && <a href={offProductUrl(code)} target="_blank" rel="noreferrer">Open Food Facts · ODbL / DbCL</a>}
         {origin !== "local" && <LabelScan onBusy={value => { if (value) stopCamera(); setAiBusy(value); }} onExtract={label => {
           stopCamera();
           setAiApplied(true); setAiConfirmed(false);

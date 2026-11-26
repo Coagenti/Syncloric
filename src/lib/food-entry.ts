@@ -14,6 +14,8 @@ export const entryTabs = ["ricerca", "scansione", "etichetta"] as const;
 export function foodEntryUrl(date: string, slot: Slot, tab: EntryTab = "ricerca") {
   return `/diary/add?date=${encodeURIComponent(date)}&slot=${slot}#${tab}`;
 }
+/** Scheda del prodotto sul catalogo Open Food Facts; il codice è input utente, va percent-encoded. */
+export const offProductUrl = (barcode: string) => `https://world.openfoodfacts.org/product/${encodeURIComponent(barcode)}`;
 export function foodEntryError(status: number) {
   if (status === 401) return "Autenticazione richiesta. Accedi per continuare.";
   if (status === 403) return "Operazione non consentita. Controlla l’accesso o ricarica la pagina.";

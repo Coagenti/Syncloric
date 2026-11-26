@@ -5,7 +5,7 @@ import { UiIcon } from "@/components/ui-icon";
 import { NutritionFields } from "@/components/nutrition-fields";
 import { nutrientSpecs, normalizeNutrition, scaleNutrition, type NutrientKey } from "@/lib/nutrition";
 import { decimalAmount, parseFoodAmount, portionTotalGrams } from "@/lib/food-portions";
-import { foodEntryError, type EntryFood, type EntryRecipe } from "@/lib/food-entry";
+import { foodEntryError, offProductUrl, type EntryFood, type EntryRecipe } from "@/lib/food-entry";
 import { slotLabels, type Slot } from "@/lib/diary";
 import { PortionEditor, parsePortionDrafts, portionDrafts } from "./portion-editor";
 
@@ -88,7 +88,7 @@ export function FoodDetail({ food, recipe, date, slot, ai = false, onBack, onSav
         <div className="food-macro-readout">{(["carbs", "protein", "fat"] as const).map(key => <div key={key}><strong>{totals[key] == null ? "—" : number(totals[key])}<small>g</small></strong><span>{tr(nutrientSpecs.find(s => s.key === key)!.label)}</span></div>)}</div>
         <details className="food-nutrient-list"><summary>{tr("Tutti i nutrienti della quantità")}</summary><dl>{nutrientSpecs.map(spec => <div key={spec.key}><dt>{tr(spec.label)}</dt><dd>{totals[spec.key] == null ? "—" : `${number(totals[spec.key]!)} ${spec.unit}`}</dd></div>)}</dl><p className="form-help">{tr("— indica un valore non disponibile.")}</p></details>
         {barcode && <p className="food-barcode"><UiIcon name="scan" />{barcode}</p>}
-        {food?.source === "barcode_off" && food.barcode && barcode.trim() === food.barcode && <p className="food-attribution"><a href={`https://world.openfoodfacts.org/product/${food.barcode}`} target="_blank" rel="noreferrer">Open Food Facts · ODbL / DbCL</a>{tr(" · Verifica i valori sull’etichetta.")}</p>}
+        {food?.source === "barcode_off" && food.barcode && barcode.trim() === food.barcode && <p className="food-attribution"><a href={offProductUrl(food.barcode)} target="_blank" rel="noreferrer">Open Food Facts · ODbL / DbCL</a>{tr(" · Verifica i valori sull’etichetta.")}</p>}
       </div><div className="food-quantity-card">
         <span className="section-kicker">{tr("LA TUA QUANTITÀ")}</span>
         <div className="food-quantity-fields"><label>{recipe ? tr("Numero di porzioni") : unit === "grams" ? tr("Quantità in grammi") : tr("Quantità di porzioni")}<input required inputMode="decimal" value={quantity} onChange={e => setQuantity(e.target.value)} aria-describedby="portion-equivalence" /></label>
